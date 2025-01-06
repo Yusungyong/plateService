@@ -94,7 +94,8 @@ const styles = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    gap: "100px", // 간격 조정
+    gap: "2rem", // 반응형 간격
+    flexWrap: "wrap", // 작은 화면에서 줄바꿈
     paddingBottom: "20px",
   },
   link: {
@@ -113,6 +114,14 @@ const styles = {
   main: {
     padding: "20px",
     textAlign: "center",
+  },
+  "@media (max-width: 768px)": {
+    link: {
+      fontSize: "16px", // 모바일에서 폰트 크기 조정
+    },
+    nav: {
+      gap: "1rem", // 모바일에서 간격 줄이기
+    },
   },
 };
 
