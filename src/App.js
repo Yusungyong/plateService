@@ -4,6 +4,8 @@ import FAQ from "./pages/FAQ";
 import QnA from "./pages/QnA";
 import Feedback from "./pages/Feedback";
 import ContentVerification from "./pages/ContentVerification";
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 function App() {
   const [activeTab, setActiveTab] = useState("/faq");
@@ -66,7 +68,28 @@ function App() {
           >
             컨텐츠 검증
           </Link>
-          {/* 하단 바 */}
+          <Link
+            to="/terms-of-service"
+            data-tab="/terms-of-service"
+            style={{
+              ...styles.link,
+              color: activeTab === "/terms-of-service" ? "#FF7F50" : "#000",
+            }}
+            onClick={() => setActiveTab("/terms-of-service")}
+          >
+            이용약관
+          </Link>
+          <Link
+            to="/privacy-policy"
+            data-tab="/privacy-policy"
+            style={{
+              ...styles.link,
+              color: activeTab === "/privacy-policy" ? "#FF7F50" : "#000",
+            }}
+            onClick={() => setActiveTab("/privacy-policy")}
+          >
+            개인정보 처리방침
+          </Link>
           <div style={{ ...styles.underline, ...underlineStyle }} />
         </nav>
       </header>
@@ -76,6 +99,8 @@ function App() {
           <Route path="/qna" element={<QnA />} />
           <Route path="/feedback" element={<Feedback />} />
           <Route path="/content-verification" element={<ContentVerification />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         </Routes>
       </main>
     </Router>
@@ -94,8 +119,8 @@ const styles = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    gap: "2rem", // 반응형 간격
-    flexWrap: "wrap", // 작은 화면에서 줄바꿈
+    gap: "2rem",
+    flexWrap: "wrap",
     paddingBottom: "20px",
   },
   link: {
@@ -106,7 +131,7 @@ const styles = {
   },
   underline: {
     position: "absolute",
-    bottom: "-10px", // 하단 바를 더 아래로 이동
+    bottom: "-10px",
     height: "4px",
     backgroundColor: "#FF7F50",
     transition: "left 0.3s ease, width 0.3s ease",
@@ -117,10 +142,10 @@ const styles = {
   },
   "@media (max-width: 768px)": {
     link: {
-      fontSize: "16px", // 모바일에서 폰트 크기 조정
+      fontSize: "16px",
     },
     nav: {
-      gap: "1rem", // 모바일에서 간격 줄이기
+      gap: "1rem",
     },
   },
 };
