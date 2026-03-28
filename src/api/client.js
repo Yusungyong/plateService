@@ -15,6 +15,14 @@ class ApiError extends Error {
 }
 
 let authToken = null;
+let refreshToken = null;
+let refreshPromise = null;
+let authFailureHandler = null;
+
+function setAuthSession(nextAccessToken, nextRefreshToken) {
+  authToken = nextAccessToken || null;
+  refreshToken = nextRefreshToken || null;
+}
 
 function setAuthToken(token) {
   authToken = token || null;
@@ -22,6 +30,15 @@ function setAuthToken(token) {
 
 function clearAuthToken() {
   authToken = null;
+}
+
+function clearAuthSession() {
+  authToken = null;
+  refreshToken = null;
+}
+
+function registerAuthFailureHandler(handler) {
+  authFailureHandler = typeof handler === "function" ? handler : null;
 }
 
 function buildQueryString(params = {}) {
@@ -77,7 +94,23 @@ async function parseResponse(response) {
   return response.blob();
 }
 
-async function request(path, options = {}) {
+function createApiError(response, payload) {
+  const message =
+    typeof payload === "object" && payload && payload.message
+      ? payload.message
+      : `Request failed with status ${response.status}`;
+
+  return new ApiError(message, {
+    status: response.status,
+    code:
+      typeof payload === "object" && payload && (payload.code || payload.errorCode)
+        ? payload.code || payload.errorCode
+        : "HTTP_ERROR",
+    payload,
+  });
+}
+
+async function executeRequest(path, options = {}) {
   const {
     method = "GET",
     body,
@@ -112,23 +145,87 @@ async function request(path, options = {}) {
 
   const payload = await parseResponse(response);
 
-  if (!response.ok) {
-    const message =
-      typeof payload === "object" && payload && payload.message
-        ? payload.message
-        : `Request failed with status ${response.status}`;
+  return {
+    response,
+    payload,
+  };
+}
 
-    throw new ApiError(message, {
-      status: response.status,
-      code:
-        typeof payload === "object" && payload && payload.code
-          ? payload.code
-          : "HTTP_ERROR",
-      payload,
+async function refreshAuthSession() {
+  if (!refreshToken) {
+    throw new ApiError("Refresh token is missing.", {
+      status: 401,
+      code: "AUTH_REFRESH_MISSING",
     });
   }
 
-  return payload;
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const { response, payload } = await executeRequest("/api/auth/refresh", {
+        method: "POST",
+        body: { refreshToken },
+        withAuth: false,
+      });
+
+      if (!response.ok) {
+        throw createApiError(response, payload);
+      }
+
+      const nextAccessToken = payload?.data?.accessToken || "";
+      const nextRefreshToken = payload?.data?.refreshToken || "";
+
+      if (!nextAccessToken || !nextRefreshToken) {
+        throw new ApiError("Refresh response is missing tokens.", {
+          status: 401,
+          code: "AUTH_REFRESH_INVALID",
+          payload,
+        });
+      }
+
+      setAuthSession(nextAccessToken, nextRefreshToken);
+
+      return {
+        accessToken: nextAccessToken,
+        refreshToken: nextRefreshToken,
+      };
+    })().finally(() => {
+      refreshPromise = null;
+    });
+  }
+
+  return refreshPromise;
+}
+
+async function request(path, options = {}) {
+  const { response, payload } = await executeRequest(path, options);
+
+  if (response.ok) {
+    return payload;
+  }
+
+  const error = createApiError(response, payload);
+  const shouldRefresh =
+    options.withAuth !== false &&
+    !options._retry &&
+    response.status === 401 &&
+    (error.code === "AUTH_402" || error.code === "AUTH_401" || error.code === "HTTP_ERROR");
+
+  if (shouldRefresh && refreshToken) {
+    try {
+      await refreshAuthSession();
+      return request(path, { ...options, _retry: true });
+    } catch (refreshError) {
+      clearAuthSession();
+
+      if (authFailureHandler) {
+        authFailureHandler(refreshError);
+      }
+
+      throw refreshError;
+    }
+  }
+
+  throw error;
 }
 
 const apiClient = {
@@ -150,5 +247,15 @@ const apiClient = {
   },
 };
 
-export { ApiError, API_BASE_URL, buildQueryString, clearAuthToken, request, setAuthToken };
+export {
+  ApiError,
+  API_BASE_URL,
+  buildQueryString,
+  clearAuthSession,
+  clearAuthToken,
+  registerAuthFailureHandler,
+  request,
+  setAuthSession,
+  setAuthToken,
+};
 export default apiClient;
