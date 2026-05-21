@@ -7,6 +7,8 @@ import {
 
 const AUTH_STORAGE_KEY = "plate-service.auth";
 const AuthContext = createContext(null);
+const ADMIN_ROLES = ["ADMIN", "SUPER_ADMIN"];
+const ADMIN_PERMISSIONS = ["ADMIN_ACCESS"];
 
 function decodeBase64Url(value) {
   const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
@@ -31,6 +33,47 @@ function parseJwtClaims(accessToken) {
   }
 }
 
+function normalizeStringArray(value) {
+  if (!value) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.filter(Boolean).map((item) => String(item));
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(/[,\s]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [String(value)];
+}
+
+function normalizeAuthorityName(value) {
+  return String(value).trim().toUpperCase().replace(/^ROLE_/, "");
+}
+
+function collectRoles(claims) {
+  return [
+    ...normalizeStringArray(claims.roles),
+    ...normalizeStringArray(claims.role),
+    ...normalizeStringArray(claims.auth),
+    ...normalizeStringArray(claims.authorities),
+  ];
+}
+
+function collectPermissions(claims) {
+  return [
+    ...normalizeStringArray(claims.permissions),
+    ...normalizeStringArray(claims.permission),
+    ...normalizeStringArray(claims.scope),
+    ...normalizeStringArray(claims.scopes),
+  ];
+}
+
 function buildUserFromClaims(claims) {
   if (!claims) {
     return null;
@@ -51,11 +94,11 @@ function buildUserFromClaims(claims) {
     claims.nickname ||
     username;
 
-  const role = Array.isArray(claims.roles)
-    ? claims.roles[0] || null
-    : claims.role || claims.auth || null;
+  const roles = collectRoles(claims);
+  const permissions = collectPermissions(claims);
+  const role = roles[0] || null;
 
-  if (!username && !displayName && !role) {
+  if (!username && !displayName && roles.length === 0 && permissions.length === 0) {
     return null;
   }
 
@@ -63,15 +106,26 @@ function buildUserFromClaims(claims) {
     username: username || displayName || "",
     displayName: displayName || username || "",
     role,
+    roles,
+    permissions,
   };
 }
 
-function isAdminRole(role) {
-  if (!role) {
+function hasAnyValue(values, allowedValues) {
+  const normalizedValues = normalizeStringArray(values).map(normalizeAuthorityName);
+  const normalizedAllowedValues = allowedValues.map(normalizeAuthorityName);
+  return normalizedAllowedValues.some((allowedValue) => normalizedValues.includes(allowedValue));
+}
+
+function isAdminUser(user) {
+  if (!user) {
     return false;
   }
 
-  return String(role).toUpperCase() === "993";
+  return (
+    hasAnyValue(user.roles || user.role, ADMIN_ROLES) ||
+    hasAnyValue(user.permissions, ADMIN_PERMISSIONS)
+  );
 }
 
 function normalizeAuthState(authState) {
@@ -84,7 +138,23 @@ function normalizeAuthState(authState) {
   return {
     accessToken: authState.accessToken,
     refreshToken: authState.refreshToken || null,
-    user: userFromToken || authState.user || null,
+    user: userFromToken || normalizeStoredUser(authState.user),
+  };
+}
+
+function normalizeStoredUser(user) {
+  if (!user) {
+    return null;
+  }
+
+  const roles = normalizeStringArray(user.roles || user.role);
+  const permissions = normalizeStringArray(user.permissions);
+
+  return {
+    ...user,
+    role: user.role || roles[0] || null,
+    roles,
+    permissions,
   };
 }
 
@@ -143,7 +213,13 @@ function AuthProvider({ children }) {
       user: authState?.user || null,
       accessToken: authState?.accessToken || null,
       refreshToken: authState?.refreshToken || null,
-      isAdmin: isAdminRole(authState?.user?.role),
+      isAdmin: isAdminUser(authState?.user),
+      hasRole(role) {
+        return hasAnyValue(authState?.user?.roles || authState?.user?.role, [role]);
+      },
+      hasPermission(permission) {
+        return hasAnyValue(authState?.user?.permissions, [permission]);
+      },
       login(nextAuthState) {
         setAuthState(normalizeAuthState(nextAuthState));
       },

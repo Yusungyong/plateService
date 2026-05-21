@@ -4,7 +4,13 @@ import AppShell from "./components/AppShell";
 import { AuthProvider } from "./auth/AuthContext";
 import { useAuth } from "./auth/AuthContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
-import { adminRoutes, openSupportRoutes, policyRoutes, publicRoutes } from "./config/routes";
+import {
+  adminRoutes,
+  openAdminRoutes,
+  openSupportRoutes,
+  policyRoutes,
+  publicRoutes,
+} from "./config/routes";
 import Login from "./pages/Login";
 import "./App.css";
 
@@ -30,6 +36,9 @@ function App() {
               <Route key={path} path={path} element={<Component />} />
             ))}
             {openSupportRoutes.map(({ path, component: Component }) => (
+              <Route key={path} path={path} element={<Component />} />
+            ))}
+            {openAdminRoutes.map(({ path, component: Component }) => (
               <Route key={path} path={path} element={<Component />} />
             ))}
             <Route element={<ProtectedRoute />}>

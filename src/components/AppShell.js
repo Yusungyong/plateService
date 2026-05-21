@@ -1,11 +1,19 @@
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { adminNavigationItems, publicNavigationItems } from "../config/routes";
+import {
+  adminNavigationItems,
+  openAdminNavigationItems,
+  publicNavigationItems,
+} from "../config/routes";
 
 function AppShell({ children }) {
   const navigate = useNavigate();
   const { isAdmin, isAuthenticated, logout, user } = useAuth();
+  const roleLabel = user?.roles?.length ? user.roles.join(", ") : user?.role;
+  const visibleAdminNavigationItems = isAdmin
+    ? [...openAdminNavigationItems, ...adminNavigationItems]
+    : openAdminNavigationItems;
 
   function handleLogout() {
     logout();
@@ -31,7 +39,7 @@ function AppShell({ children }) {
                 <>
                   <span>
                     {user?.displayName || user?.username || "사용자"}
-                    {user?.role ? ` (${user.role})` : ""}
+                    {roleLabel ? ` (${roleLabel})` : ""}
                   </span>
                   <button type="button" onClick={handleLogout}>
                     로그아웃
@@ -59,9 +67,9 @@ function AppShell({ children }) {
             ))}
           </nav>
 
-          {isAdmin ? (
+          {visibleAdminNavigationItems.length > 0 ? (
             <nav className="app-nav app-nav--admin" aria-label="관리자 메뉴">
-              {adminNavigationItems.map(({ path, label }) => (
+              {visibleAdminNavigationItems.map(({ path, label }) => (
                 <NavLink
                   key={path}
                   to={path}
