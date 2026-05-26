@@ -4,6 +4,8 @@ import Feedback from "../pages/Feedback";
 import MemberMonitoring from "../pages/MemberMonitoring";
 import PrivacyPolicy from "../pages/PrivacyPolicy";
 import QnA from "../pages/QnA";
+import RestaurantDetail from "../pages/RestaurantDetail";
+import RestaurantManagement from "../pages/RestaurantManagement";
 import RestaurantRegistration from "../pages/RestaurantRegistration";
 import TermsOfService from "../pages/TermsOfService";
 
@@ -24,6 +26,7 @@ export const adminNavigationItems = [
 
 export const openAdminNavigationItems = [
   { path: "/admin/restaurant-registration", label: "식당 정보 등록" },
+  { path: "/admin/restaurants", label: "식당 정보 관리" },
 ];
 
 export const publicRoutes = [
@@ -43,6 +46,14 @@ export const openAdminRoutes = [
   {
     path: "/admin/restaurant-registration",
     component: RestaurantRegistration,
+  },
+  {
+    path: "/admin/restaurants",
+    component: RestaurantManagement,
+  },
+  {
+    path: "/admin/restaurants/:restaurantId",
+    component: RestaurantDetail,
   },
 ];
 
