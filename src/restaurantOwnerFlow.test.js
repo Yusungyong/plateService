@@ -192,6 +192,10 @@ test("shows previews for existing image and video media on the detail page", asy
   expect(screen.getAllByAltText("이미지 미리보기")).toHaveLength(2);
   expect(container.querySelectorAll(".restaurant-existing-media__preview video")).toHaveLength(2);
   expect(screen.getAllByRole("link", { name: "원본 열기" })).toHaveLength(4);
+
+  fireEvent.error(screen.getAllByAltText("이미지 미리보기")[0]);
+  expect(screen.getByText("미리보기 불가")).toBeInTheDocument();
+  expect(screen.getByText("원본 파일을 열어 확인해 주세요.")).toBeInTheDocument();
 });
 
 test("validates required fields before creating a store", async () => {

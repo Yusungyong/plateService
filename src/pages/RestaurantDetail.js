@@ -494,7 +494,20 @@ function RestaurantDetail() {
 }
 
 function ExistingMediaGallery({ media, emptyText }) {
+  const [failedMediaUrls, setFailedMediaUrls] = useState(() => new Set());
   const visibleMedia = media.filter((item) => item.fileUrl);
+
+  function markMediaFailed(fileUrl) {
+    setFailedMediaUrls((current) => {
+      if (current.has(fileUrl)) {
+        return current;
+      }
+
+      const nextFailedMediaUrls = new Set(current);
+      nextFailedMediaUrls.add(fileUrl);
+      return nextFailedMediaUrls;
+    });
+  }
 
   if (!visibleMedia.length) {
     return (
@@ -510,18 +523,36 @@ function ExistingMediaGallery({ media, emptyText }) {
         const isVideo = isVideoMedia(item);
         const typeLabel = toMediaTypeLabel(isVideo ? "video" : "image");
         const fileName = getMediaFileName(item);
+        const isPreviewUnavailable = failedMediaUrls.has(item.fileUrl);
 
         return (
           <article className="restaurant-existing-media__card" key={item.id || item.fileUrl || index}>
             <div className="restaurant-existing-media__preview">
-              {isVideo ? (
-                <video src={item.fileUrl} controls muted playsInline preload="metadata">
+              {isPreviewUnavailable ? (
+                <div className="restaurant-existing-media__preview-fallback" role="status">
+                  <strong>미리보기 불가</strong>
+                  <span>원본 파일을 열어 확인해 주세요.</span>
+                </div>
+              ) : isVideo ? (
+                <video
+                  src={item.fileUrl}
+                  controls
+                  muted
+                  playsInline
+                  preload="metadata"
+                  onError={() => markMediaFailed(item.fileUrl)}
+                >
                   <a href={item.fileUrl} target="_blank" rel="noreferrer">
                     동영상 보기
                   </a>
                 </video>
               ) : (
-                <img src={item.fileUrl} alt={`${typeLabel} 미리보기`} loading="lazy" />
+                <img
+                  src={item.fileUrl}
+                  alt={`${typeLabel} 미리보기`}
+                  loading="lazy"
+                  onError={() => markMediaFailed(item.fileUrl)}
+                />
               )}
             </div>
             <div className="restaurant-existing-media__body">
