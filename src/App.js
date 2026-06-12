@@ -6,10 +6,10 @@ import { useAuth } from "./auth/AuthContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import {
   adminRoutes,
-  openAdminRoutes,
   openSupportRoutes,
   policyRoutes,
   publicRoutes,
+  restaurantRoutes,
 } from "./config/routes";
 import Login from "./pages/Login";
 import "./App.css";
@@ -38,10 +38,10 @@ function App() {
             {openSupportRoutes.map(({ path, component: Component }) => (
               <Route key={path} path={path} element={<Component />} />
             ))}
-            {openAdminRoutes.map(({ path, component: Component }) => (
-              <Route key={path} path={path} element={<Component />} />
-            ))}
             <Route element={<ProtectedRoute />}>
+              {restaurantRoutes.map(({ path, component: Component }) => (
+                <Route key={path} path={path} element={<Component />} />
+              ))}
               {publicRoutes.map(({ path, component: Component }) => (
                 <Route
                   key={path}

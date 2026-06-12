@@ -181,7 +181,15 @@ function writeStoredAuth(authState) {
 }
 
 function AuthProvider({ children }) {
-  const [authState, setAuthState] = useState(() => readStoredAuth());
+  const [authState, setAuthState] = useState(() => {
+    const storedAuthState = readStoredAuth();
+
+    if (storedAuthState?.accessToken) {
+      setAuthSession(storedAuthState.accessToken, storedAuthState.refreshToken);
+    }
+
+    return storedAuthState;
+  });
 
   useEffect(() => {
     if (authState?.accessToken) {

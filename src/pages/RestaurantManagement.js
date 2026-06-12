@@ -9,6 +9,8 @@ const initialFilters = {
   exposureStatus: "",
 };
 
+const categoryOptions = ["한식", "중식", "일식", "양식", "분식", "카페", "디저트", "패스트푸드", "주점", "기타"];
+
 function RestaurantManagement() {
   const [filters, setFilters] = useState(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
@@ -21,7 +23,7 @@ function RestaurantManagement() {
     hasNext: false,
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [deletingRestaurantId, setDeletingRestaurantId] = useState(null);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("success");
 
@@ -40,7 +42,7 @@ function RestaurantManagement() {
       setRestaurantPage(normalizeRestaurantPage(response));
     } catch (error) {
       setMessageType("error");
-      setMessage(error.message || "식당 목록을 불러오지 못했습니다.");
+      setMessage(error.message || "가게 목록을 불러오지 못했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -74,32 +76,35 @@ function RestaurantManagement() {
       return;
     }
 
-    const confirmed = window.confirm(`${restaurant.title || restaurant.name || "식당"} 정보를 삭제할까요?`);
+    const restaurantName = restaurant.title || restaurant.name || "가게";
+    const confirmed = window.confirm(
+      `${restaurantName} 정보를 삭제할까요?\n\n등록된 메뉴와 미디어 정보도 함께 삭제됩니다.`
+    );
 
     if (!confirmed) {
       return;
     }
 
-    setIsDeleting(true);
+    setDeletingRestaurantId(restaurantId);
     setMessage("");
 
     try {
       await deleteRestaurant(restaurantId);
       setMessageType("success");
-      setMessage("식당 정보가 삭제되었습니다.");
+      setMessage("가게 정보가 삭제되었습니다.");
       await loadRestaurants(restaurantPage.page, appliedFilters);
     } catch (error) {
       setMessageType("error");
-      setMessage(error.message || "식당 삭제에 실패했습니다.");
+      setMessage(error.message || "가게 삭제에 실패했습니다.");
     } finally {
-      setIsDeleting(false);
+      setDeletingRestaurantId(null);
     }
   }
 
   return (
     <PageLayout
-      title="식당 정보 관리"
-      description="등록된 식당을 조회하고 상세 정보 수정 또는 삭제를 처리합니다."
+      title="내 가게 관리"
+      description="내 계정에 연결된 가게 정보를 확인하고 메뉴, 사진, 노출 상태를 관리합니다."
     >
       <div className="stack-layout restaurant-registration">
         {message ? (
@@ -116,18 +121,23 @@ function RestaurantManagement() {
                 type="search"
                 value={filters.keyword}
                 onChange={(event) => updateFilter("keyword", event.target.value)}
-                placeholder="식당명 또는 주소"
+                placeholder="가게 이름 또는 주소"
               />
             </label>
 
             <label className="admin-field">
               <span>카테고리</span>
-              <input
-                type="text"
+              <select
                 value={filters.category}
                 onChange={(event) => updateFilter("category", event.target.value)}
-                placeholder="예: 한식"
-              />
+              >
+                <option value="">전체</option>
+                {categoryOptions.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label className="admin-field">
@@ -161,13 +171,13 @@ function RestaurantManagement() {
               <h3>총 {restaurantPage.totalElements.toLocaleString()}개</h3>
             </div>
             <Link className="restaurant-text-link" to="/admin/restaurant-registration">
-              새 식당 등록
+              새 가게 등록
             </Link>
           </div>
 
-            <div className="restaurant-table" role="table" aria-label="식당 목록">
+            <div className="restaurant-table" role="table" aria-label="내 가게 목록">
               <div className="restaurant-table__head" role="row">
-              <span role="columnheader">식당</span>
+              <span role="columnheader">가게</span>
               <span role="columnheader">카테고리</span>
               <span role="columnheader">상태</span>
               <span role="columnheader">메뉴</span>
@@ -177,19 +187,20 @@ function RestaurantManagement() {
 
             <div className="restaurant-table__body">
               {isLoading ? (
-                <div className="board-empty">식당 목록을 불러오는 중입니다.</div>
+                <div className="board-empty">가게 목록을 불러오는 중입니다.</div>
               ) : restaurants.length === 0 ? (
-                <div className="board-empty">조회된 식당이 없습니다.</div>
+                <div className="board-empty">조회된 가게가 없습니다.</div>
               ) : (
                 restaurants.map((restaurant) => {
                   const restaurantId = restaurant.id || restaurant.restaurantId;
                   const representativeImageUrl = getRepresentativeImageUrl(restaurant);
+                  const isDeletingThisRow = deletingRestaurantId === restaurantId;
 
                   return (
                     <div key={restaurantId || restaurant.title} className="restaurant-table__row" role="row">
-                      <div className="restaurant-list-title" role="cell">
+                      <div className="restaurant-list-title" role="cell" data-label="가게">
                         {representativeImageUrl ? (
-                          <img src={representativeImageUrl} alt={`${restaurant.title || restaurant.name || "식당"} 대표 이미지`} />
+                          <img src={representativeImageUrl} alt={`${restaurant.title || restaurant.name || "가게"} 대표 이미지`} />
                         ) : (
                           <span className="restaurant-list-title__empty" aria-label="대표 이미지 없음" />
                         )}
@@ -198,16 +209,24 @@ function RestaurantManagement() {
                           <p>{restaurant.address || "-"}</p>
                         </div>
                       </div>
-                      <span role="cell">{formatCategories(restaurant.categories)}</span>
-                      <span role="cell" className={`status-pill status-pill--${restaurant.exposureStatus || "default"}`}>
+                      <span role="cell" data-label="카테고리">{formatCategories(restaurant.categories)}</span>
+                      <span
+                        role="cell"
+                        data-label="상태"
+                        className={`status-pill status-pill--${restaurant.exposureStatus || "default"}`}
+                      >
                         {toExposureStatusLabel(restaurant.exposureStatus)}
                       </span>
-                      <span role="cell">{Number(restaurant.menuCount || 0).toLocaleString()}개</span>
-                      <span role="cell">{formatDate(restaurant.updatedAt || restaurant.updated_at)}</span>
-                      <div className="restaurant-row-actions" role="cell">
+                      <span role="cell" data-label="메뉴">{Number(restaurant.menuCount || 0).toLocaleString()}개</span>
+                      <span role="cell" data-label="수정일">{formatDate(restaurant.updatedAt || restaurant.updated_at)}</span>
+                      <div className="restaurant-row-actions" role="cell" data-label="작업">
                         <Link to={`/admin/restaurants/${restaurantId}`}>상세</Link>
-                        <button type="button" onClick={() => handleDelete(restaurant)} disabled={isDeleting}>
-                          삭제
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(restaurant)}
+                          disabled={deletingRestaurantId !== null}
+                        >
+                          {isDeletingThisRow ? "삭제 중" : "삭제"}
                         </button>
                       </div>
                     </div>

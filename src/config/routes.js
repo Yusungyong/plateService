@@ -24,9 +24,9 @@ export const adminNavigationItems = [
   { path: "/admin/member-monitoring", label: "회원 모니터링" },
 ];
 
-export const openAdminNavigationItems = [
-  { path: "/admin/restaurant-registration", label: "식당 정보 등록" },
-  { path: "/admin/restaurants", label: "식당 정보 관리" },
+export const restaurantNavigationItems = [
+  { path: "/admin/restaurant-registration", label: "내 가게 등록" },
+  { path: "/admin/restaurants", label: "내 가게 관리" },
 ];
 
 export const publicRoutes = [
@@ -42,7 +42,7 @@ export const policyRoutes = [
   { path: "/privacy-policy", component: PrivacyPolicy },
 ];
 
-export const openAdminRoutes = [
+export const restaurantRoutes = [
   {
     path: "/admin/restaurant-registration",
     component: RestaurantRegistration,

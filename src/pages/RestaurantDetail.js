@@ -51,7 +51,7 @@ function RestaurantDetail() {
       setFormVersion((current) => current + 1);
     } catch (error) {
       setMessageType("error");
-      setMessage(error.message || "식당 상세 정보를 불러오지 못했습니다.");
+      setMessage(error.message || "가게 상세 정보를 불러오지 못했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -172,17 +172,17 @@ function RestaurantDetail() {
     setFieldErrors({});
     setIsSubmitting(true);
     setMessageType("success");
-    setMessage("식당 정보를 수정 중입니다.");
+    setMessage("가게 정보를 수정 중입니다.");
 
     try {
       const payload = await buildUpdatePayload(restaurant, menus);
       await updateRestaurant(restaurantId, payload);
       setMessageType("success");
-      setMessage("식당 정보가 수정되었습니다.");
+      setMessage("가게 정보가 수정되었습니다.");
       await loadRestaurant();
     } catch (error) {
       setMessageType("error");
-      setMessage(error.message || "식당 정보 수정에 실패했습니다.");
+      setMessage(error.message || "가게 정보 수정에 실패했습니다.");
     } finally {
       setIsSubmitting(false);
     }
@@ -190,16 +190,16 @@ function RestaurantDetail() {
 
   if (isLoading) {
     return (
-      <PageLayout title="식당 상세 관리" description="등록된 식당 정보를 불러오고 있습니다.">
-        <div className="board-empty">식당 상세 정보를 불러오는 중입니다.</div>
+      <PageLayout title="내 가게 상세 관리" description="등록된 가게 정보를 불러오고 있습니다.">
+        <div className="board-empty">가게 상세 정보를 불러오는 중입니다.</div>
       </PageLayout>
     );
   }
 
   return (
     <PageLayout
-      title="식당 상세 관리"
-      description="등록된 식당의 기본 정보, 메뉴, 미디어 정보를 수정합니다."
+      title="내 가게 상세 관리"
+      description="고객에게 보일 가게 기본 정보, 메뉴, 사진과 영상을 수정합니다."
     >
       <form key={formVersion} className="stack-layout restaurant-registration" onSubmit={handleSubmit}>
         {message ? (
@@ -216,7 +216,7 @@ function RestaurantDetail() {
           <div className="support-panel__header restaurant-menu-header">
             <div>
               <span className="support-kicker">기본 정보</span>
-              <h3>{restaurant.title || "식당 제목 미입력"}</h3>
+              <h3>{restaurant.title || "가게 이름 미입력"}</h3>
             </div>
             <Link className="restaurant-text-link" to="/admin/restaurants">
               목록으로
@@ -226,7 +226,7 @@ function RestaurantDetail() {
           <div className="admin-form">
             <label className="admin-field">
               <span>
-                식당 제목 <em className="field-required" aria-label="필수">*</em>
+                가게 이름 <em className="field-required" aria-label="필수">*</em>
               </span>
               <input
                 ref={(element) => {
@@ -348,21 +348,14 @@ function RestaurantDetail() {
               />
             </label>
 
-            <div className="restaurant-existing-media">
-              {restaurant.existingRepresentativeMedia.length ? (
-                restaurant.existingRepresentativeMedia.map((media) => (
-                  <a key={media.id || media.fileUrl} href={media.fileUrl} target="_blank" rel="noreferrer">
-                    기존 {toMediaTypeLabel(media.mediaType)} 보기
-                  </a>
-                ))
-              ) : (
-                <span>등록된 대표 미디어가 없습니다.</span>
-              )}
-            </div>
+            <ExistingMediaGallery
+              media={restaurant.existingRepresentativeMedia}
+              emptyText="등록된 대표 미디어가 없습니다."
+            />
 
             <div className="restaurant-media-grid">
               <MediaUploadField
-                label="식당 대표 이미지 추가"
+                label="가게 대표 이미지 추가"
                 accept="image/*"
                 file={restaurant.representativeImage}
                 emptyText="새 이미지를 선택하지 않으면 기존 미디어를 유지합니다."
@@ -370,7 +363,7 @@ function RestaurantDetail() {
               />
 
               <MediaUploadField
-                label="식당 대표 동영상 추가"
+                label="가게 대표 동영상 추가"
                 accept="video/*"
                 file={restaurant.representativeVideo}
                 emptyText="새 동영상을 선택하지 않으면 기존 미디어를 유지합니다."
@@ -445,17 +438,7 @@ function RestaurantDetail() {
                   />
                 </label>
 
-                <div className="restaurant-existing-media">
-                  {menu.existingMedia.length ? (
-                    menu.existingMedia.map((media) => (
-                      <a key={media.id || media.fileUrl} href={media.fileUrl} target="_blank" rel="noreferrer">
-                        기존 {toMediaTypeLabel(media.mediaType)} 보기
-                      </a>
-                    ))
-                  ) : (
-                    <span>등록된 메뉴 미디어가 없습니다.</span>
-                  )}
-                </div>
+                <ExistingMediaGallery media={menu.existingMedia} emptyText="등록된 메뉴 미디어가 없습니다." />
 
                 <div className="restaurant-media-grid">
                   <MediaUploadField
@@ -510,6 +493,63 @@ function RestaurantDetail() {
   );
 }
 
+function ExistingMediaGallery({ media, emptyText }) {
+  const visibleMedia = media.filter((item) => item.fileUrl);
+
+  if (!visibleMedia.length) {
+    return (
+      <div className="restaurant-existing-media restaurant-existing-media--empty">
+        <span className="restaurant-existing-media__empty">{emptyText}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="restaurant-existing-media">
+      {visibleMedia.map((item, index) => {
+        const isVideo = isVideoMedia(item);
+        const typeLabel = toMediaTypeLabel(isVideo ? "video" : "image");
+        const fileName = getMediaFileName(item);
+
+        return (
+          <article className="restaurant-existing-media__card" key={item.id || item.fileUrl || index}>
+            <div className="restaurant-existing-media__preview">
+              {isVideo ? (
+                <video src={item.fileUrl} controls muted playsInline preload="metadata">
+                  <a href={item.fileUrl} target="_blank" rel="noreferrer">
+                    동영상 보기
+                  </a>
+                </video>
+              ) : (
+                <img src={item.fileUrl} alt={`${typeLabel} 미리보기`} loading="lazy" />
+              )}
+            </div>
+            <div className="restaurant-existing-media__body">
+              <div className="restaurant-existing-media__meta">
+                <span
+                  className={
+                    isVideo
+                      ? "restaurant-existing-media__badge restaurant-existing-media__badge--video"
+                      : "restaurant-existing-media__badge"
+                  }
+                >
+                  {typeLabel}
+                </span>
+                <a className="restaurant-existing-media__link" href={item.fileUrl} target="_blank" rel="noreferrer">
+                  원본 열기
+                </a>
+              </div>
+              <strong className="restaurant-existing-media__name" title={fileName}>
+                {fileName}
+              </strong>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
 function normalizeRestaurantDetail(response) {
   const payload = response?.data || response || {};
   const representativeMedia = normalizeMediaArray(payload.media).filter(
@@ -537,11 +577,11 @@ function validateRestaurantForm(restaurant, menus) {
   const errors = {};
 
   if (!restaurant.title.trim()) {
-    errors.title = "식당 제목을 입력해 주세요.";
+    errors.title = "가게 이름을 입력해 주세요.";
   }
 
   if (!restaurant.address.trim()) {
-    errors.address = "식당 주소를 입력해 주세요.";
+    errors.address = "가게 주소를 입력해 주세요.";
   }
 
   if (restaurant.categories.length === 0) {
@@ -739,6 +779,25 @@ function toExposureStatusLabel(status) {
 
 function toMediaTypeLabel(mediaType) {
   return mediaType === "video" ? "동영상" : "이미지";
+}
+
+function isVideoMedia(media) {
+  return media.mediaType === "video" || String(media.mimeType || "").startsWith("video/");
+}
+
+function getMediaFileName(media) {
+  if (media.originalName) {
+    return media.originalName;
+  }
+
+  try {
+    const url = new URL(media.fileUrl, "http://localhost");
+    const fileName = url.pathname.split("/").filter(Boolean).pop();
+    return fileName ? decodeURIComponent(fileName) : "업로드 미디어";
+  } catch {
+    const fileName = String(media.fileUrl || "").split("?")[0].split("/").filter(Boolean).pop();
+    return fileName || "업로드 미디어";
+  }
 }
 
 export default RestaurantDetail;

@@ -1,19 +1,24 @@
 import React from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import {
   adminNavigationItems,
-  openAdminNavigationItems,
   publicNavigationItems,
+  restaurantNavigationItems,
 } from "../config/routes";
 
 function AppShell({ children }) {
+  const location = useLocation();
   const navigate = useNavigate();
   const { isAdmin, isAuthenticated, logout, user } = useAuth();
   const roleLabel = user?.roles?.length ? user.roles.join(", ") : user?.role;
-  const visibleAdminNavigationItems = isAdmin
-    ? [...openAdminNavigationItems, ...adminNavigationItems]
-    : openAdminNavigationItems;
+  const isRestaurantArea = location.pathname.startsWith("/admin/restaurant");
+  const visibleRestaurantNavigationItems = isAuthenticated ? restaurantNavigationItems : [];
+  const visibleAdminNavigationItems = isAdmin ? adminNavigationItems : [];
+  const headerTitle = isRestaurantArea ? "내 가게 관리" : "고객 지원 센터";
+  const headerDescription = isRestaurantArea
+    ? "매장 기본 정보, 메뉴, 사진과 노출 상태를 식당 담당자가 직접 관리할 수 있습니다."
+    : "이용 가이드와 정책 문서를 확인하고, 운영자는 관리자 화면에서 FAQ, Q&A, 회원 현황을 함께 관리할 수 있습니다.";
 
   function handleLogout() {
     logout();
@@ -24,14 +29,11 @@ function AppShell({ children }) {
     <div className="app-shell">
       <header className="app-header">
         <div className="app-header__inner">
-          <p className="app-header__eyebrow">PLATE SERVICE</p>
+          <p className="app-header__eyebrow">{isRestaurantArea ? "PLATE BUSINESS" : "PLATE SERVICE"}</p>
           <div className="app-header__topline">
             <div>
-              <h1 className="app-header__title">고객 지원 센터</h1>
-              <p className="app-header__description">
-                이용 가이드와 정책 문서를 확인하고, 운영자는 관리자 화면에서 FAQ, Q&amp;A,
-                회원 현황을 함께 관리할 수 있습니다.
-              </p>
+              <h1 className="app-header__title">{headerTitle}</h1>
+              <p className="app-header__description">{headerDescription}</p>
             </div>
 
             <div className="app-header__auth">
@@ -67,8 +69,26 @@ function AppShell({ children }) {
             ))}
           </nav>
 
+          {visibleRestaurantNavigationItems.length > 0 ? (
+            <nav className="app-nav app-nav--admin" aria-label="내 가게 메뉴">
+              {visibleRestaurantNavigationItems.map(({ path, label }) => (
+                <NavLink
+                  key={path}
+                  to={path}
+                  className={({ isActive }) =>
+                    isActive
+                      ? "app-nav__link app-nav__link--admin app-nav__link--active"
+                      : "app-nav__link app-nav__link--admin"
+                  }
+                >
+                  {label}
+                </NavLink>
+              ))}
+            </nav>
+          ) : null}
+
           {visibleAdminNavigationItems.length > 0 ? (
-            <nav className="app-nav app-nav--admin" aria-label="관리자 메뉴">
+            <nav className="app-nav app-nav--admin" aria-label="운영자 메뉴">
               {visibleAdminNavigationItems.map(({ path, label }) => (
                 <NavLink
                   key={path}
