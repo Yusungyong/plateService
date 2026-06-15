@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import {
   approveStore,
   getStoreApprovalDetail,
+  getStoreDocumentAccessUrl,
   getStoreApprovals,
   holdStore,
   rejectStore,
@@ -17,6 +18,10 @@ import { ADMIN_PERMISSIONS } from "../constants/adminPermissions";
 import {
   STORE_APPROVAL_STATUS,
   STORE_APPROVAL_STATUS_LABELS,
+  STORE_CATEGORY_OPTIONS,
+  STORE_REGION_OPTIONS,
+  STORE_REJECTION_REASON_OPTIONS,
+  VERIFICATION_STATUS,
   VERIFICATION_STATUS_LABELS,
 } from "../constants/adminStatuses";
 
@@ -55,6 +60,8 @@ function AdminStoreApprovals() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  const [documentAccessId, setDocumentAccessId] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [pendingAction, setPendingAction] = useState(null);
@@ -114,11 +121,13 @@ function AdminStoreApprovals() {
     event.preventDefault();
     setAppliedFilters(filters);
     setSuccessMessage("");
+    setIsMobileFiltersOpen(false);
   }
 
   function resetFilters() {
     setFilters(initialFilters);
     setAppliedFilters(initialFilters);
+    setIsMobileFiltersOpen(false);
   }
 
   async function openStoreDetail(storeId) {
@@ -147,7 +156,7 @@ function AdminStoreApprovals() {
     });
   }
 
-  async function executeAction(reason = "") {
+  async function executeAction(reason = "", reasonCode = "") {
     if (!pendingAction) {
       return;
     }
@@ -159,11 +168,21 @@ function AdminStoreApprovals() {
     try {
       let updatedStore;
       if (pendingAction.type === "approve") {
-        updatedStore = await approveStore(pendingAction.store.id);
+        updatedStore = await approveStore(pendingAction.store.id, {
+          version: pendingAction.store.version,
+          comment: "",
+        });
       } else if (pendingAction.type === "hold") {
-        updatedStore = await holdStore(pendingAction.store.id, reason);
+        updatedStore = await holdStore(pendingAction.store.id, {
+          version: pendingAction.store.version,
+          reason,
+        });
       } else {
-        updatedStore = await rejectStore(pendingAction.store.id, reason);
+        updatedStore = await rejectStore(pendingAction.store.id, {
+          version: pendingAction.store.version,
+          reasonCode,
+          reason,
+        });
       }
 
       setSelectedStore(updatedStore);
@@ -173,9 +192,63 @@ function AdminStoreApprovals() {
       setPendingAction(null);
       await loadApprovals(approvalPage.page, appliedFilters);
     } catch (error) {
-      setErrorMessage(error.message || "승인 상태 변경에 실패했습니다.");
+      if (error.status === 409 && pendingAction?.store?.id) {
+        try {
+          const refreshedStore = await getStoreApprovalDetail(
+            pendingAction.store.id
+          );
+          setSelectedStore(refreshedStore);
+          setPendingAction((current) =>
+            current ? { ...current, store: refreshedStore } : current
+          );
+          await loadApprovals(approvalPage.page, appliedFilters);
+        } catch (refreshError) {
+          // Preserve the original conflict message if the refresh also fails.
+        }
+      }
+
+      setErrorMessage(
+        error.code === "STORE_APPROVAL_VERSION_CONFLICT"
+          ? "다른 운영자가 먼저 처리했습니다. 최신 정보를 다시 불러왔습니다."
+          : error.message || "승인 상태 변경에 실패했습니다."
+      );
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function openDocument(document) {
+    if (!selectedStore || !document?.id) {
+      return;
+    }
+
+    const previewWindow =
+      typeof window !== "undefined" ? window.open("", "_blank") : null;
+
+    if (previewWindow) {
+      previewWindow.opener = null;
+    }
+
+    setDocumentAccessId(document.id);
+    setErrorMessage("");
+
+    try {
+      const result = await getStoreDocumentAccessUrl(
+        selectedStore.id,
+        document.id,
+        "preview"
+      );
+
+      if (previewWindow) {
+        previewWindow.location.replace(result.accessUrl);
+      } else if (typeof window !== "undefined") {
+        window.open(result.accessUrl, "_blank", "noopener,noreferrer");
+      }
+    } catch (error) {
+      previewWindow?.close();
+      setErrorMessage(error.message || "문서 접근 URL을 발급하지 못했습니다.");
+    } finally {
+      setDocumentAccessId(null);
     }
   }
 
@@ -187,6 +260,15 @@ function AdminStoreApprovals() {
     pendingAction?.type === "hold"
       ? "추가 확인이 필요한 내용을 기록하고 신청을 보류합니다."
       : "신청자에게 전달할 수 있도록 반려 사유를 구체적으로 입력해 주세요.";
+  const selectedStatus = selectedStore?.approvalStatus;
+  const canHold = selectedStatus === STORE_APPROVAL_STATUS.PENDING;
+  const canApprove =
+    selectedStatus === STORE_APPROVAL_STATUS.PENDING ||
+    selectedStatus === STORE_APPROVAL_STATUS.ON_HOLD;
+  const canReject = canApprove;
+  const isTerminalStatus =
+    selectedStatus === STORE_APPROVAL_STATUS.APPROVED ||
+    selectedStatus === STORE_APPROVAL_STATUS.REJECTED;
 
   return (
     <div className="admin-page">
@@ -217,7 +299,27 @@ function AdminStoreApprovals() {
       ) : null}
 
       <section className="admin-panel">
-        <form className="admin-filter-form" onSubmit={handleSearch}>
+        <div className="admin-mobile-filter-toolbar">
+          <div>
+            <strong>검색 및 필터</strong>
+            <span>적용 {activeFilterCount}개</span>
+          </div>
+          <button
+            type="button"
+            aria-expanded={isMobileFiltersOpen}
+            onClick={() => setIsMobileFiltersOpen((current) => !current)}
+          >
+            {isMobileFiltersOpen ? "상세 필터 닫기" : "상세 필터 열기"}
+          </button>
+        </div>
+        <form
+          className={
+            isMobileFiltersOpen
+              ? "admin-filter-form admin-filter-form--expanded"
+              : "admin-filter-form admin-filter-form--collapsed"
+          }
+          onSubmit={handleSearch}
+        >
           <label className="admin-filter-field admin-filter-field--wide">
             <span>검색어</span>
             <input
@@ -234,8 +336,10 @@ function AdminStoreApprovals() {
               onChange={(event) => updateFilter("region", event.target.value)}
             >
               <option value="">전체</option>
-              {["서울", "경기", "부산", "제주", "강원"].map((region) => (
-                <option value={region} key={region}>{region}</option>
+              {STORE_REGION_OPTIONS.map((region) => (
+                <option value={region.value} key={region.value}>
+                  {region.label}
+                </option>
               ))}
             </select>
           </label>
@@ -246,8 +350,10 @@ function AdminStoreApprovals() {
               onChange={(event) => updateFilter("category", event.target.value)}
             >
               <option value="">전체</option>
-              {["한식", "일식", "분식", "카페", "베이커리"].map((category) => (
-                <option value={category} key={category}>{category}</option>
+              {STORE_CATEGORY_OPTIONS.map((category) => (
+                <option value={category.value} key={category.value}>
+                  {category.label}
+                </option>
               ))}
             </select>
           </label>
@@ -307,7 +413,7 @@ function AdminStoreApprovals() {
       </section>
 
       <section className="admin-panel admin-panel--table">
-        <div className="admin-table-scroll">
+        <div className="admin-table-scroll admin-approval-table">
           <table className="admin-data-table admin-data-table--interactive">
             <thead>
               <tr>
@@ -393,6 +499,67 @@ function AdminStoreApprovals() {
           </table>
         </div>
 
+        <div
+          className="admin-mobile-card-list admin-mobile-approval-list"
+          aria-label="모바일 매장 승인 목록"
+        >
+          {isLoading ? (
+            <div className="admin-mobile-card-state">
+              매장 신청 목록을 불러오는 중입니다.
+            </div>
+          ) : approvalPage.content.length === 0 ? (
+            <div className="admin-mobile-card-state">
+              조건에 맞는 매장 신청이 없습니다.
+            </div>
+          ) : (
+            approvalPage.content.map((store) => (
+              <article
+                className={
+                  selectedStore?.id === store.id
+                    ? "admin-mobile-approval-card admin-mobile-approval-card--selected"
+                    : "admin-mobile-approval-card"
+                }
+                key={store.id}
+              >
+                <header>
+                  <div>
+                    <span>{[store.region, store.category].filter(Boolean).join(" · ")}</span>
+                    <h2>{store.name}</h2>
+                    <small>대표자 {store.ownerName}</small>
+                  </div>
+                  <StatusBadge
+                    status={store.approvalStatus}
+                    label={STORE_APPROVAL_STATUS_LABELS[store.approvalStatus]}
+                  />
+                </header>
+
+                <div className="admin-mobile-approval-card__meta">
+                  <div>
+                    <span>사업자 인증</span>
+                    <StatusBadge
+                      status={store.verificationStatus}
+                      label={VERIFICATION_STATUS_LABELS[store.verificationStatus]}
+                    />
+                  </div>
+                  <div>
+                    <span>신청일</span>
+                    <strong>{formatDate(store.appliedAt)}</strong>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="admin-mobile-approval-card__action"
+                  onClick={() => openStoreDetail(store.id)}
+                  aria-label={`${store.name} 신청 상세 검토`}
+                >
+                  신청 상세 검토
+                </button>
+              </article>
+            ))
+          )}
+        </div>
+
         <div className="admin-pagination">
           <span>
             {approvalPage.totalElements.toLocaleString()}건 중{" "}
@@ -432,43 +599,69 @@ function AdminStoreApprovals() {
             permission={ADMIN_PERMISSIONS.STORE_APPROVE}
             fallback={<p className="admin-permission-message">조회 권한만 있어 승인 상태를 변경할 수 없습니다.</p>}
           >
-            <div className="admin-drawer-actions">
-              <button
-                type="button"
-                className="admin-button admin-button--secondary"
-                onClick={() => requestAction("hold")}
-                disabled={isDetailLoading || isSubmitting}
-              >
-                보류
-              </button>
-              <button
-                type="button"
-                className="admin-button admin-button--danger-outline"
-                onClick={() => requestAction("reject")}
-                disabled={isDetailLoading || isSubmitting}
-              >
-                반려
-              </button>
-              <button
-                type="button"
-                className="admin-button admin-button--primary"
-                onClick={() => requestAction("approve")}
-                disabled={
-                  isDetailLoading ||
-                  isSubmitting ||
-                  selectedStore?.approvalStatus === STORE_APPROVAL_STATUS.APPROVED
-                }
-              >
-                승인
-              </button>
-            </div>
+            {isDetailLoading ? (
+              <p className="admin-permission-message">신청 상태를 확인하고 있습니다.</p>
+            ) : isTerminalStatus ? (
+              <p className="admin-permission-message">
+                승인 또는 반려가 완료된 신청은 다시 변경할 수 없습니다.
+              </p>
+            ) : (
+              <>
+                {canApprove &&
+                selectedStore?.verificationStatus !== VERIFICATION_STATUS.VERIFIED ? (
+                  <p className="admin-action-hint">
+                    사업자 인증 완료 후 승인할 수 있습니다.
+                  </p>
+                ) : null}
+                <div className="admin-drawer-actions">
+                  {canHold ? (
+                    <button
+                      type="button"
+                      className="admin-button admin-button--secondary"
+                      onClick={() => requestAction("hold")}
+                      disabled={isSubmitting}
+                    >
+                      보류
+                    </button>
+                  ) : null}
+                  {canReject ? (
+                    <button
+                      type="button"
+                      className="admin-button admin-button--danger-outline"
+                      onClick={() => requestAction("reject")}
+                      disabled={isSubmitting}
+                    >
+                      반려
+                    </button>
+                  ) : null}
+                  {canApprove ? (
+                    <button
+                      type="button"
+                      className="admin-button admin-button--primary"
+                      onClick={() => requestAction("approve")}
+                      disabled={
+                        isSubmitting ||
+                        selectedStore?.verificationStatus !==
+                          VERIFICATION_STATUS.VERIFIED
+                      }
+                    >
+                      승인
+                    </button>
+                  ) : null}
+                </div>
+              </>
+            )}
           </PermissionGuard>
         }
       >
         {isDetailLoading ? (
           <div className="admin-drawer-loading">상세 정보를 불러오는 중입니다.</div>
         ) : selectedStore ? (
-          <StoreApprovalDetail store={selectedStore} />
+          <StoreApprovalDetail
+            store={selectedStore}
+            documentAccessId={documentAccessId}
+            onDocumentOpen={openDocument}
+          />
         ) : null}
       </DetailDrawer>
 
@@ -487,6 +680,11 @@ function AdminStoreApprovals() {
         title={reasonDialogTitle}
         description={reasonDialogDescription}
         confirmLabel={pendingAction?.type === "hold" ? "보류하기" : "반려하기"}
+        reasonCodeOptions={
+          pendingAction?.type === "reject"
+            ? STORE_REJECTION_REASON_OPTIONS
+            : []
+        }
         isSubmitting={isSubmitting}
         onCancel={() => setPendingAction(null)}
         onConfirm={executeAction}
@@ -495,7 +693,11 @@ function AdminStoreApprovals() {
   );
 }
 
-function StoreApprovalDetail({ store }) {
+function StoreApprovalDetail({
+  store,
+  documentAccessId,
+  onDocumentOpen,
+}) {
   return (
     <div className="admin-store-detail">
       {store.mainImageUrl ? (
@@ -535,7 +737,14 @@ function StoreApprovalDetail({ store }) {
       <section>
         <h3>대표 메뉴</h3>
         <div className="admin-tag-list">
-          {store.representativeMenus.map((menu) => <span key={menu}>{menu}</span>)}
+          {store.representativeMenus.map((menu) => (
+            <span key={typeof menu === "string" ? menu : menu.id || menu.name}>
+              {typeof menu === "string" ? menu : menu.name}
+              {typeof menu === "object" && menu.price != null
+                ? ` · ${formatPrice(menu.price)}`
+                : ""}
+            </span>
+          ))}
         </div>
       </section>
 
@@ -543,9 +752,16 @@ function StoreApprovalDetail({ store }) {
         <h3>제출 서류</h3>
         <div className="admin-document-list">
           {store.documents.map((document) => (
-            <button type="button" key={document.id}>
+            <button
+              type="button"
+              key={document.id}
+              onClick={() => onDocumentOpen(document)}
+              disabled={documentAccessId === document.id}
+            >
               <span>{document.name}</span>
-              <strong>확인</strong>
+              <strong>
+                {documentAccessId === document.id ? "발급 중" : "미리보기"}
+              </strong>
             </button>
           ))}
         </div>
@@ -578,6 +794,10 @@ function formatDateTime(value) {
     minute: "2-digit",
     hour12: false,
   }).format(new Date(value));
+}
+
+function formatPrice(value) {
+  return `${Number(value).toLocaleString("ko-KR")}원`;
 }
 
 export default AdminStoreApprovals;

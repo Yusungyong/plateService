@@ -6,6 +6,9 @@ function DetailDrawer({ isOpen, title, description, onClose, children, footer })
       return undefined;
     }
 
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
     function handleKeyDown(event) {
       if (event.key === "Escape") {
         onClose();
@@ -13,7 +16,10 @@ function DetailDrawer({ isOpen, title, description, onClose, children, footer })
     }
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) {

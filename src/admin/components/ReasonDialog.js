@@ -5,19 +5,23 @@ function ReasonDialog({
   title,
   description,
   confirmLabel,
+  reasonCodeOptions = [],
   isSubmitting = false,
   onCancel,
   onConfirm,
 }) {
   const [reason, setReason] = useState("");
+  const [reasonCode, setReasonCode] = useState("");
   const [error, setError] = useState("");
+  const defaultReasonCode = reasonCodeOptions[0]?.value || "";
 
   useEffect(() => {
     if (isOpen) {
       setReason("");
+      setReasonCode(defaultReasonCode);
       setError("");
     }
-  }, [isOpen]);
+  }, [defaultReasonCode, isOpen]);
 
   if (!isOpen) {
     return null;
@@ -27,12 +31,17 @@ function ReasonDialog({
     event.preventDefault();
     const normalizedReason = reason.trim();
 
-    if (!normalizedReason) {
-      setError("처리 사유를 입력해 주세요.");
+    if (reasonCodeOptions.length > 0 && !reasonCode) {
+      setError("반려 사유 유형을 선택해 주세요.");
       return;
     }
 
-    onConfirm(normalizedReason);
+    if (normalizedReason.length < 10) {
+      setError("처리 사유를 10자 이상 입력해 주세요.");
+      return;
+    }
+
+    onConfirm(normalizedReason, reasonCode);
   }
 
   return (
@@ -43,6 +52,25 @@ function ReasonDialog({
           <p>{description}</p>
         </header>
         <form onSubmit={handleSubmit}>
+          {reasonCodeOptions.length > 0 ? (
+            <label>
+              <span>반려 사유 유형</span>
+              <select
+                value={reasonCode}
+                onChange={(event) => {
+                  setReasonCode(event.target.value);
+                  setError("");
+                }}
+                autoFocus
+              >
+                {reasonCodeOptions.map((option) => (
+                  <option value={option.value} key={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <label>
             <span>처리 사유</span>
             <textarea
@@ -53,7 +81,9 @@ function ReasonDialog({
                 setError("");
               }}
               placeholder="담당자가 확인할 수 있도록 구체적으로 입력해 주세요."
-              autoFocus
+              minLength={10}
+              maxLength={1000}
+              autoFocus={reasonCodeOptions.length === 0}
             />
           </label>
           {error ? <p className="admin-dialog__error">{error}</p> : null}

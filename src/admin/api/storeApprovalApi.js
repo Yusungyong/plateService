@@ -1,4 +1,9 @@
+import { apiClient } from "../../api";
 import { initialStoreApprovals } from "../mocks/storeApprovals";
+import {
+  shouldUseAdminMocks,
+  unwrapAdminResponse,
+} from "./adminApiUtils";
 import { mockRequest } from "./mockApiUtils";
 
 let storeApprovals = initialStoreApprovals.map((store) => ({ ...store }));
@@ -11,7 +16,26 @@ export function resetStoreApprovalMocks() {
   }));
 }
 
-export function getStoreApprovals(params = {}) {
+export async function getStoreApprovals(params = {}) {
+  if (!shouldUseAdminMocks()) {
+    const response = await apiClient.get("/api/admin/store-approvals", {
+      query: {
+        page: params.page ?? 0,
+        size: params.size ?? 20,
+        keyword: params.keyword,
+        region: params.region,
+        category: params.category,
+        status: params.status,
+        verificationStatus: params.verificationStatus,
+        appliedFrom: params.appliedFrom,
+        appliedTo: params.appliedTo,
+        sort: params.sort || "appliedAt,desc",
+      },
+    });
+
+    return normalizeStoreApprovalPage(unwrapAdminResponse(response));
+  }
+
   const {
     page = 0,
     size = 10,
@@ -68,12 +92,27 @@ export function getStoreApprovals(params = {}) {
   });
 }
 
-export function getStoreApprovalDetail(storeId) {
+export async function getStoreApprovalDetail(storeId) {
+  if (!shouldUseAdminMocks()) {
+    const response = await apiClient.get(`/api/admin/store-approvals/${storeId}`);
+    return normalizeStoreApprovalDetail(unwrapAdminResponse(response));
+  }
+
   const store = findStore(storeId);
   return mockRequest(store);
 }
 
-export function approveStore(storeId) {
+export async function approveStore(storeId, command = {}) {
+  if (!shouldUseAdminMocks()) {
+    unwrapAdminResponse(
+      await apiClient.post(
+        `/api/admin/store-approvals/${storeId}/approve`,
+        command
+      )
+    );
+    return getStoreApprovalDetail(storeId);
+  }
+
   return updateStoreApproval(storeId, {
     approvalStatus: "approved",
     verificationStatus: "verified",
@@ -81,7 +120,18 @@ export function approveStore(storeId) {
   });
 }
 
-export function holdStore(storeId, reason) {
+export async function holdStore(storeId, command) {
+  if (!shouldUseAdminMocks()) {
+    unwrapAdminResponse(
+      await apiClient.post(
+        `/api/admin/store-approvals/${storeId}/hold`,
+        command
+      )
+    );
+    return getStoreApprovalDetail(storeId);
+  }
+
+  const reason = typeof command === "string" ? command : command?.reason;
   requireReason(reason);
   return updateStoreApproval(storeId, {
     approvalStatus: "on_hold",
@@ -89,13 +139,84 @@ export function holdStore(storeId, reason) {
   });
 }
 
-export function rejectStore(storeId, reason) {
+export async function rejectStore(storeId, command) {
+  if (!shouldUseAdminMocks()) {
+    unwrapAdminResponse(
+      await apiClient.post(
+        `/api/admin/store-approvals/${storeId}/reject`,
+        command
+      )
+    );
+    return getStoreApprovalDetail(storeId);
+  }
+
+  const reason = typeof command === "string" ? command : command?.reason;
   requireReason(reason);
   return updateStoreApproval(storeId, {
     approvalStatus: "rejected",
     verificationStatus: "rejected",
     reviewReason: reason.trim(),
   });
+}
+
+export async function getStoreDocumentAccessUrl(
+  applicationId,
+  documentId,
+  purpose = "preview"
+) {
+  if (shouldUseAdminMocks()) {
+    return mockRequest({
+      accessUrl: "about:blank",
+      expiresAt: new Date(Date.now() + 60000).toISOString(),
+    });
+  }
+
+  const response = await apiClient.post(
+    `/api/admin/store-approvals/${applicationId}/documents/${documentId}/access-url`,
+    { purpose }
+  );
+
+  return unwrapAdminResponse(response);
+}
+
+export function normalizeStoreApprovalPage(page = {}) {
+  return {
+    content: (page.content || []).map(normalizeStoreApprovalListItem),
+    page: page.page ?? 0,
+    size: page.size ?? 20,
+    totalElements: page.totalElements ?? 0,
+    totalPages: Math.max(1, page.totalPages ?? 0),
+    hasNext: Boolean(page.hasNext),
+  };
+}
+
+export function normalizeStoreApprovalDetail(store = {}) {
+  const categories = store.categories || [];
+
+  return {
+    ...store,
+    categories,
+    category: categories[0]?.name || categories[0]?.code || "미분류",
+    categoryCode: categories[0]?.code || "",
+    regionInfo: store.region || null,
+    region: store.region?.name || store.region?.code || "미지정",
+    representativeMenus: store.representativeMenus || [],
+    documents: store.documents || [],
+    version: store.version,
+  };
+}
+
+function normalizeStoreApprovalListItem(store = {}) {
+  const categories = store.categories || [];
+
+  return {
+    ...store,
+    categories,
+    category: categories[0]?.name || categories[0]?.code || "미분류",
+    categoryCode: categories[0]?.code || "",
+    regionInfo: store.region || null,
+    region: store.region?.name || store.region?.code || "미지정",
+  };
 }
 
 function updateStoreApproval(storeId, changes) {

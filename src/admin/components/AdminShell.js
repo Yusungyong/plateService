@@ -59,16 +59,6 @@ function AdminShell({ children }) {
 
   return (
     <div className="admin-shell">
-      <button
-        type="button"
-        className="admin-mobile-menu"
-        onClick={() => setIsSidebarOpen((current) => !current)}
-        aria-expanded={isSidebarOpen}
-        aria-controls="admin-sidebar"
-      >
-        메뉴
-      </button>
-
       <aside
         id="admin-sidebar"
         className={
@@ -131,9 +121,20 @@ function AdminShell({ children }) {
 
       <div className="admin-workspace">
         <header className="admin-topbar">
-          <div className="admin-topbar__context">
-            <span>내부 운영</span>
-            <strong>{activeItem?.label || "관리자"}</strong>
+          <div className="admin-topbar__leading">
+            <button
+              type="button"
+              className="admin-mobile-menu"
+              onClick={() => setIsSidebarOpen((current) => !current)}
+              aria-expanded={isSidebarOpen}
+              aria-controls="admin-sidebar"
+            >
+              메뉴
+            </button>
+            <div className="admin-topbar__context">
+              <span>내부 운영</span>
+              <strong>{activeItem?.label || "관리자"}</strong>
+            </div>
           </div>
 
           <form className="admin-global-search" onSubmit={handleGlobalSearch}>

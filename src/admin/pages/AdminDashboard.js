@@ -172,7 +172,7 @@ function AdminDashboard() {
             전체 활동 보기
           </button>
         </div>
-        <div className="admin-table-scroll">
+        <div className="admin-table-scroll admin-recent-activity-table">
           <table className="admin-data-table">
             <thead>
               <tr>
@@ -204,6 +204,28 @@ function AdminDashboard() {
             </tbody>
           </table>
         </div>
+        <div
+          className="admin-mobile-card-list admin-mobile-activity-list"
+          aria-label="모바일 최근 활동 목록"
+        >
+          {dashboard.recentActivities.map((activity) => (
+            <article className="admin-mobile-activity-card" key={activity.id}>
+              <div>
+                <span>{formatTime(activity.occurredAt)}</span>
+                <StatusBadge
+                  status={activity.status}
+                  label={
+                    STORE_APPROVAL_STATUS_LABELS[activity.status] ||
+                    toActivityStatusLabel(activity.status)
+                  }
+                />
+              </div>
+              <strong>{activity.storeName}</strong>
+              <p>{activity.action}</p>
+              <small>담당자 {activity.operator}</small>
+            </article>
+          ))}
+        </div>
       </section>
     </div>
   );
@@ -223,6 +245,8 @@ function toActivityStatusLabel(status) {
       return "신고 접수";
     case "active":
       return "활성";
+    case "recorded":
+      return "기록";
     default:
       return status;
   }

@@ -48,7 +48,12 @@ test("redirects unauthenticated operators to login", () => {
 test("renders the internal operator dashboard and scoped navigation", async () => {
   storeAuth({
     roles: ["OPERATOR"],
-    permissions: ["DASHBOARD_READ", "STORE_READ", "STORE_APPROVE"],
+    permissions: [
+      "ADMIN_ACCESS",
+      "DASHBOARD_READ",
+      "STORE_READ",
+      "STORE_APPROVE",
+    ],
   });
 
   renderAt("/admin/dashboard");
@@ -64,15 +69,20 @@ test("renders the internal operator dashboard and scoped navigation", async () =
 test("approves a pending store from the detail drawer", async () => {
   storeAuth({
     roles: ["OPERATOR"],
-    permissions: ["STORE_READ", "STORE_APPROVE", "DASHBOARD_READ"],
+    permissions: [
+      "ADMIN_ACCESS",
+      "STORE_READ",
+      "STORE_APPROVE",
+      "DASHBOARD_READ",
+    ],
   });
 
   renderAt("/admin/store-approvals");
 
-  expect(await screen.findByText("오후의 식탁")).toBeInTheDocument();
-  fireEvent.click(screen.getAllByRole("button", { name: "검토" })[0]);
+  expect((await screen.findAllByText("모닝 베이크")).length).toBeGreaterThan(0);
+  fireEvent.click(screen.getAllByRole("button", { name: "검토" })[1]);
 
-  const drawer = await screen.findByRole("dialog", { name: "오후의 식탁" });
+  const drawer = await screen.findByRole("dialog", { name: "모닝 베이크" });
   expect(within(drawer).getByText("사업자등록증.pdf")).toBeInTheDocument();
   fireEvent.click(within(drawer).getByRole("button", { name: "승인" }));
 
@@ -80,7 +90,7 @@ test("approves a pending store from the detail drawer", async () => {
   fireEvent.click(within(confirmDialog).getByRole("button", { name: "승인하기" }));
 
   expect(
-    await screen.findByText("오후의 식탁 신청을 승인 처리했습니다.")
+    await screen.findByText("모닝 베이크 신청을 승인 처리했습니다.")
   ).toBeInTheDocument();
   expect(within(drawer).getAllByText("승인").length).toBeGreaterThan(0);
 });
@@ -88,12 +98,12 @@ test("approves a pending store from the detail drawer", async () => {
 test("keeps approval actions unavailable for viewer role", async () => {
   storeAuth({
     roles: ["VIEWER"],
-    permissions: ["STORE_READ", "DASHBOARD_READ"],
+    permissions: ["ADMIN_ACCESS", "STORE_READ", "DASHBOARD_READ"],
   });
 
   renderAt("/admin/store-approvals");
 
-  expect(await screen.findByText("오후의 식탁")).toBeInTheDocument();
+  expect((await screen.findAllByText("오후의 식탁")).length).toBeGreaterThan(0);
   fireEvent.click(screen.getAllByRole("button", { name: "검토" })[0]);
 
   const drawer = await screen.findByRole("dialog", { name: "오후의 식탁" });
@@ -101,4 +111,34 @@ test("keeps approval actions unavailable for viewer role", async () => {
     within(drawer).getByText("조회 권한만 있어 승인 상태를 변경할 수 없습니다.")
   ).toBeInTheDocument();
   expect(within(drawer).queryByRole("button", { name: "승인" })).not.toBeInTheDocument();
+});
+
+test("provides mobile approval cards and collapsible filters", async () => {
+  storeAuth({
+    roles: ["OPERATOR"],
+    permissions: [
+      "ADMIN_ACCESS",
+      "STORE_READ",
+      "STORE_APPROVE",
+      "DASHBOARD_READ",
+    ],
+  });
+
+  renderAt("/admin/store-approvals");
+
+  const filterToggle = screen.getByRole("button", {
+    name: "상세 필터 열기",
+  });
+  expect(filterToggle).toHaveAttribute("aria-expanded", "false");
+  fireEvent.click(filterToggle);
+  expect(
+    screen.getByRole("button", { name: "상세 필터 닫기" })
+  ).toHaveAttribute("aria-expanded", "true");
+
+  const mobileList = screen.getByLabelText("모바일 매장 승인 목록");
+  expect(
+    await within(mobileList).findByRole("button", {
+      name: "모닝 베이크 신청 상세 검토",
+    })
+  ).toBeInTheDocument();
 });
