@@ -170,7 +170,7 @@ function RestaurantManagement() {
               <span className="support-kicker">목록</span>
               <h3>총 {restaurantPage.totalElements.toLocaleString()}개</h3>
             </div>
-            <Link className="restaurant-text-link" to="/admin/restaurant-registration">
+            <Link className="restaurant-text-link" to="/business/stores/new">
               새 가게 등록
             </Link>
           </div>
@@ -220,7 +220,7 @@ function RestaurantManagement() {
                       <span role="cell" data-label="메뉴">{Number(restaurant.menuCount || 0).toLocaleString()}개</span>
                       <span role="cell" data-label="수정일">{formatDate(restaurant.updatedAt || restaurant.updated_at)}</span>
                       <div className="restaurant-row-actions" role="cell" data-label="작업">
-                        <Link to={`/admin/restaurants/${restaurantId}`}>상세</Link>
+                        <Link to={`/business/stores/${restaurantId}`}>상세</Link>
                         <button
                           type="button"
                           onClick={() => handleDelete(restaurant)}

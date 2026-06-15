@@ -195,10 +195,10 @@ function RestaurantRegistration() {
 
         {createdRestaurantId ? (
           <div className="restaurant-next-actions" role="group" aria-label="등록 후 다음 작업">
-            <Link className="restaurant-text-link" to={`/admin/restaurants/${createdRestaurantId}`}>
+            <Link className="restaurant-text-link" to={`/business/stores/${createdRestaurantId}`}>
               등록한 가게 수정
             </Link>
-            <Link className="restaurant-text-link restaurant-text-link--secondary" to="/admin/restaurants">
+            <Link className="restaurant-text-link restaurant-text-link--secondary" to="/business/stores">
               내 가게 목록
             </Link>
             <button type="button" onClick={resetForm}>

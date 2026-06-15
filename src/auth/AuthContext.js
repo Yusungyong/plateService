@@ -4,11 +4,13 @@ import {
   registerAuthFailureHandler,
   setAuthSession,
 } from "../api";
+import {
+  userHasAdminAccess,
+  userHasAdminPermission,
+} from "../admin/constants/adminPermissions";
 
 const AUTH_STORAGE_KEY = "plate-service.auth";
 const AuthContext = createContext(null);
-const ADMIN_ROLES = ["ADMIN", "SUPER_ADMIN"];
-const ADMIN_PERMISSIONS = ["ADMIN_ACCESS"];
 
 function decodeBase64Url(value) {
   const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
@@ -117,17 +119,6 @@ function hasAnyValue(values, allowedValues) {
   return normalizedAllowedValues.some((allowedValue) => normalizedValues.includes(allowedValue));
 }
 
-function isAdminUser(user) {
-  if (!user) {
-    return false;
-  }
-
-  return (
-    hasAnyValue(user.roles || user.role, ADMIN_ROLES) ||
-    hasAnyValue(user.permissions, ADMIN_PERMISSIONS)
-  );
-}
-
 function normalizeAuthState(authState) {
   if (!authState?.accessToken) {
     return null;
@@ -221,12 +212,15 @@ function AuthProvider({ children }) {
       user: authState?.user || null,
       accessToken: authState?.accessToken || null,
       refreshToken: authState?.refreshToken || null,
-      isAdmin: isAdminUser(authState?.user),
+      isAdmin: userHasAdminAccess(authState?.user),
       hasRole(role) {
         return hasAnyValue(authState?.user?.roles || authState?.user?.role, [role]);
       },
       hasPermission(permission) {
         return hasAnyValue(authState?.user?.permissions, [permission]);
+      },
+      canAdmin(permission) {
+        return userHasAdminPermission(authState?.user, permission);
       },
       login(nextAuthState) {
         setAuthState(normalizeAuthState(nextAuthState));

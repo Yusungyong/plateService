@@ -57,10 +57,10 @@ afterEach(() => {
 });
 
 test("redirects unauthenticated restaurant managers to login", () => {
-  renderAt("/admin/restaurants");
+  renderAt("/business/stores");
 
-  expect(screen.getByRole("heading", { name: "고객 지원 센터" })).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "로그인" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "비즈니스 로그인" })).toBeInTheDocument();
+  expect(screen.getByText("BUSINESS ACCESS")).toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "내 가게 관리" })).not.toBeInTheDocument();
 });
 
@@ -87,7 +87,7 @@ test("shows restaurant manager shell and loads linked stores", async () => {
     })
   );
 
-  renderAt("/admin/restaurants");
+  renderAt("/business/stores");
 
   expect(screen.getAllByRole("heading", { name: "내 가게 관리" }).length).toBeGreaterThan(0);
   expect(screen.getByRole("link", { name: "내 가게 등록" })).toBeInTheDocument();
@@ -104,7 +104,7 @@ test("shows restaurant manager shell and loads linked stores", async () => {
   );
 });
 
-test("shows operator menu when logged in with admin authority", async () => {
+test("keeps internal operator navigation separate from the business shell", async () => {
   storeAuth({
     roles: ["ADMIN"],
     permissions: ["ADMIN_ACCESS", "RESTAURANT_MANAGE"],
@@ -120,12 +120,14 @@ test("shows operator menu when logged in with admin authority", async () => {
     })
   );
 
-  renderAt("/admin/restaurants");
+  renderAt("/business/stores");
 
   expect(await screen.findByText("조회된 가게가 없습니다.")).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "FAQ 관리" })).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "Q&A 관리" })).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "회원 모니터링" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "내 가게 등록" })).toHaveAttribute(
+    "href",
+    "/business/stores/new"
+  );
+  expect(screen.queryByRole("link", { name: "승인 관리" })).not.toBeInTheDocument();
 });
 
 test("shows previews for existing image and video media on the detail page", async () => {
@@ -183,7 +185,7 @@ test("shows previews for existing image and video media on the detail page", asy
     })
   );
 
-  const { container } = renderAt("/admin/restaurants/42");
+  const { container } = renderAt("/business/stores/42");
 
   expect(await screen.findByText("store.jpg")).toBeInTheDocument();
   expect(screen.getByText("store.mp4")).toBeInTheDocument();
@@ -200,7 +202,7 @@ test("shows previews for existing image and video media on the detail page", asy
 
 test("validates required fields before creating a store", async () => {
   storeAuth();
-  renderAt("/admin/restaurant-registration");
+  renderAt("/business/stores/new");
 
   fireEvent.click(screen.getByRole("button", { name: "등록" }));
 
@@ -212,7 +214,7 @@ test("registers a store and exposes follow-up actions", async () => {
   storeAuth();
   global.fetch.mockResolvedValueOnce(await createJsonResponse({ data: { restaurantId: 42 } }));
 
-  renderAt("/admin/restaurant-registration");
+  renderAt("/business/stores/new");
 
   fireEvent.change(screen.getByLabelText(/가게 이름/), {
     target: { value: "테스트 비스트로" },
@@ -225,11 +227,11 @@ test("registers a store and exposes follow-up actions", async () => {
   expect(await screen.findByText("가게 정보가 등록되었습니다. 등록 ID: 42")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "등록한 가게 수정" })).toHaveAttribute(
     "href",
-    "/admin/restaurants/42"
+    "/business/stores/42"
   );
   expect(screen.getByRole("link", { name: "내 가게 목록" })).toHaveAttribute(
     "href",
-    "/admin/restaurants"
+    "/business/stores"
   );
   expect(global.fetch).toHaveBeenCalledWith(
     expect.stringContaining("/api/admin/restaurants"),

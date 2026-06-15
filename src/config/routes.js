@@ -8,6 +8,10 @@ import RestaurantDetail from "../pages/RestaurantDetail";
 import RestaurantManagement from "../pages/RestaurantManagement";
 import RestaurantRegistration from "../pages/RestaurantRegistration";
 import TermsOfService from "../pages/TermsOfService";
+import AdminDashboard from "../admin/pages/AdminDashboard";
+import AdminPlaceholderPage from "../admin/pages/AdminPlaceholderPage";
+import AdminStoreApprovals from "../admin/pages/AdminStoreApprovals";
+import { ADMIN_PERMISSIONS } from "../admin/constants/adminPermissions";
 
 export const publicNavigationItems = [
   { path: "/faq", label: "자주 묻는 질문" },
@@ -19,14 +23,68 @@ export const publicNavigationItems = [
 ];
 
 export const adminNavigationItems = [
-  { path: "/admin/faq", label: "FAQ 관리" },
-  { path: "/admin/qna", label: "Q&A 관리" },
-  { path: "/admin/member-monitoring", label: "회원 모니터링" },
+  {
+    path: "/admin/dashboard",
+    label: "대시보드",
+    icon: "dashboard",
+    permission: ADMIN_PERMISSIONS.DASHBOARD_READ,
+    group: "운영",
+  },
+  {
+    path: "/admin/store-approvals",
+    label: "승인 관리",
+    icon: "approval",
+    permission: ADMIN_PERMISSIONS.STORE_READ,
+    group: "운영",
+  },
+  {
+    path: "/admin/stores",
+    label: "매장 관리",
+    icon: "store",
+    permission: ADMIN_PERMISSIONS.STORE_READ,
+    group: "운영",
+  },
+  {
+    path: "/admin/feeds",
+    label: "피드 관리",
+    icon: "feed",
+    permission: ADMIN_PERMISSIONS.FEED_READ,
+    group: "운영",
+  },
+  {
+    path: "/admin/seasonal-curations",
+    label: "제철 큐레이션",
+    icon: "seasonal",
+    permission: ADMIN_PERMISSIONS.SEASONAL_READ,
+    group: "운영",
+    featured: true,
+  },
+  {
+    path: "/admin/faq",
+    label: "FAQ 관리",
+    icon: "support",
+    permission: ADMIN_PERMISSIONS.SUPPORT_MANAGE,
+    group: "고객 지원",
+  },
+  {
+    path: "/admin/qna",
+    label: "Q&A 관리",
+    icon: "support",
+    permission: ADMIN_PERMISSIONS.SUPPORT_MANAGE,
+    group: "고객 지원",
+  },
+  {
+    path: "/admin/member-monitoring",
+    label: "회원 모니터링",
+    icon: "member",
+    permission: ADMIN_PERMISSIONS.SUPPORT_MANAGE,
+    group: "고객 지원",
+  },
 ];
 
-export const restaurantNavigationItems = [
-  { path: "/admin/restaurant-registration", label: "내 가게 등록" },
-  { path: "/admin/restaurants", label: "내 가게 관리" },
+export const businessNavigationItems = [
+  { path: "/business/stores/new", label: "내 가게 등록" },
+  { path: "/business/stores", label: "내 가게 관리" },
 ];
 
 export const publicRoutes = [
@@ -42,28 +100,67 @@ export const policyRoutes = [
   { path: "/privacy-policy", component: PrivacyPolicy },
 ];
 
-export const restaurantRoutes = [
+export const businessRoutes = [
   {
-    path: "/admin/restaurant-registration",
+    path: "/business/stores/new",
     component: RestaurantRegistration,
   },
   {
-    path: "/admin/restaurants",
+    path: "/business/stores",
     component: RestaurantManagement,
   },
   {
-    path: "/admin/restaurants/:restaurantId",
+    path: "/business/stores/:restaurantId",
     component: RestaurantDetail,
   },
 ];
 
 export const adminRoutes = [
   {
+    path: "/admin/dashboard",
+    component: AdminDashboard,
+    permission: ADMIN_PERMISSIONS.DASHBOARD_READ,
+  },
+  {
+    path: "/admin/store-approvals",
+    component: AdminStoreApprovals,
+    permission: ADMIN_PERMISSIONS.STORE_READ,
+  },
+  {
+    path: "/admin/stores",
+    component: AdminPlaceholderPage,
+    props: {
+      title: "매장 관리",
+      description: "승인된 매장의 운영 상태와 콘텐츠 현황을 관리하는 화면을 준비하고 있습니다.",
+    },
+    permission: ADMIN_PERMISSIONS.STORE_READ,
+  },
+  {
+    path: "/admin/feeds",
+    component: AdminPlaceholderPage,
+    props: {
+      title: "피드 관리",
+      description: "신고, 숨김, 추천 노출 흐름을 포함한 콘텐츠 검수 화면을 준비하고 있습니다.",
+    },
+    permission: ADMIN_PERMISSIONS.FEED_READ,
+  },
+  {
+    path: "/admin/seasonal-curations",
+    component: AdminPlaceholderPage,
+    props: {
+      title: "제철 큐레이션",
+      description: "제철 식재료와 매장 메뉴를 연결하는 핵심 운영 화면을 준비하고 있습니다.",
+      featured: true,
+    },
+    permission: ADMIN_PERMISSIONS.SEASONAL_READ,
+  },
+  {
     path: "/admin/faq",
     component: FAQ,
     props: {
       adminMode: true,
     },
+    permission: ADMIN_PERMISSIONS.SUPPORT_MANAGE,
   },
   {
     path: "/admin/qna",
@@ -71,9 +168,26 @@ export const adminRoutes = [
     props: {
       adminMode: true,
     },
+    permission: ADMIN_PERMISSIONS.SUPPORT_MANAGE,
   },
   {
     path: "/admin/member-monitoring",
     component: MemberMonitoring,
+    permission: ADMIN_PERMISSIONS.SUPPORT_MANAGE,
+  },
+];
+
+export const legacyBusinessRedirects = [
+  {
+    path: "/admin/restaurant-registration",
+    to: "/business/stores/new",
+  },
+  {
+    path: "/admin/restaurants",
+    to: "/business/stores",
+  },
+  {
+    path: "/admin/restaurants/:restaurantId",
+    to: "/business/stores/:restaurantId",
   },
 ];

@@ -218,7 +218,7 @@ function RestaurantDetail() {
               <span className="support-kicker">기본 정보</span>
               <h3>{restaurant.title || "가게 이름 미입력"}</h3>
             </div>
-            <Link className="restaurant-text-link" to="/admin/restaurants">
+            <Link className="restaurant-text-link" to="/business/stores">
               목록으로
             </Link>
           </div>
