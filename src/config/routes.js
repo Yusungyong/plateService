@@ -6,8 +6,11 @@ import PrivacyPolicy from "../pages/PrivacyPolicy";
 import QnA from "../pages/QnA";
 import RestaurantDetail from "../pages/RestaurantDetail";
 import RestaurantManagement from "../pages/RestaurantManagement";
-import RestaurantRegistration from "../pages/RestaurantRegistration";
 import TermsOfService from "../pages/TermsOfService";
+import Signup from "../pages/Signup";
+import BusinessApplicationDetail from "../pages/BusinessApplicationDetail";
+import BusinessApplications from "../pages/BusinessApplications";
+import BusinessSignup from "../pages/BusinessSignup";
 import AdminDashboard from "../admin/pages/AdminDashboard";
 import AdminPlaceholderPage from "../admin/pages/AdminPlaceholderPage";
 import AdminStoreApprovals from "../admin/pages/AdminStoreApprovals";
@@ -17,7 +20,7 @@ export const publicNavigationItems = [
   { path: "/faq", label: "자주 묻는 질문" },
   { path: "/qna", label: "질문과 답변" },
   { path: "/feedback", label: "서비스 의견" },
-  { path: "/content-verification", label: "콘텐츠 검수" },
+  { path: "/content-verification", label: "콘텐츠 검증" },
   { path: "/terms-of-service", label: "이용약관" },
   { path: "/privacy-policy", label: "개인정보 처리방침" },
 ];
@@ -53,7 +56,7 @@ export const adminNavigationItems = [
   },
   {
     path: "/admin/seasonal-curations",
-    label: "제철 큐레이션",
+    label: "시즌 큐레이션",
     icon: "seasonal",
     permission: ADMIN_PERMISSIONS.SEASONAL_READ,
     group: "운영",
@@ -83,8 +86,9 @@ export const adminNavigationItems = [
 ];
 
 export const businessNavigationItems = [
-  { path: "/business/stores/new", label: "내 가게 등록" },
-  { path: "/business/stores", label: "내 가게 관리" },
+  { path: "/business/signup", label: "입점 신청" },
+  { path: "/business/applications", label: "신청 현황", requireAuth: true },
+  { path: "/business/stores", label: "매장 관리", requireBusiness: true },
 ];
 
 export const publicRoutes = [
@@ -93,6 +97,8 @@ export const publicRoutes = [
   { path: "/content-verification", component: ContentVerification },
 ];
 
+export const accountPublicRoutes = [{ path: "/signup", component: Signup }];
+
 export const openSupportRoutes = [{ path: "/qna", component: QnA }];
 
 export const policyRoutes = [
@@ -100,11 +106,25 @@ export const policyRoutes = [
   { path: "/privacy-policy", component: PrivacyPolicy },
 ];
 
-export const businessRoutes = [
+export const businessPublicRoutes = [
   {
-    path: "/business/stores/new",
-    component: RestaurantRegistration,
+    path: "/business/signup",
+    component: BusinessSignup,
   },
+];
+
+export const businessApplicationRoutes = [
+  {
+    path: "/business/applications",
+    component: BusinessApplications,
+  },
+  {
+    path: "/business/applications/:applicationId",
+    component: BusinessApplicationDetail,
+  },
+];
+
+export const businessOwnerRoutes = [
   {
     path: "/business/stores",
     component: RestaurantManagement,
@@ -148,8 +168,8 @@ export const adminRoutes = [
     path: "/admin/seasonal-curations",
     component: AdminPlaceholderPage,
     props: {
-      title: "제철 큐레이션",
-      description: "제철 식재료와 매장 메뉴를 연결하는 핵심 운영 화면을 준비하고 있습니다.",
+      title: "시즌 큐레이션",
+      description: "시즌 식재료와 매장 메뉴를 연결하는 운영 화면을 준비하고 있습니다.",
       featured: true,
     },
     permission: ADMIN_PERMISSIONS.SEASONAL_READ,
@@ -180,7 +200,7 @@ export const adminRoutes = [
 export const legacyBusinessRedirects = [
   {
     path: "/admin/restaurant-registration",
-    to: "/business/stores/new",
+    to: "/business/signup",
   },
   {
     path: "/admin/restaurants",

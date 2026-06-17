@@ -8,6 +8,7 @@ import {
   userHasAdminAccess,
   userHasAdminPermission,
 } from "../admin/constants/adminPermissions";
+import { userHasBusinessAccess } from "./businessAccess";
 
 const AUTH_STORAGE_KEY = "plate-service.auth";
 const AuthContext = createContext(null);
@@ -15,7 +16,16 @@ const AuthContext = createContext(null);
 function decodeBase64Url(value) {
   const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
   const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
-  return window.atob(padded);
+  const binary = window.atob(padded);
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+
+  if (typeof TextDecoder !== "undefined") {
+    return new TextDecoder("utf-8").decode(bytes);
+  }
+
+  return decodeURIComponent(
+    Array.from(bytes, (byte) => `%${byte.toString(16).padStart(2, "0")}`).join("")
+  );
 }
 
 function parseJwtClaims(accessToken) {
@@ -213,6 +223,7 @@ function AuthProvider({ children }) {
       accessToken: authState?.accessToken || null,
       refreshToken: authState?.refreshToken || null,
       isAdmin: userHasAdminAccess(authState?.user),
+      isBusinessUser: userHasBusinessAccess(authState?.user),
       hasRole(role) {
         return hasAnyValue(authState?.user?.roles || authState?.user?.role, [role]);
       },
@@ -223,7 +234,13 @@ function AuthProvider({ children }) {
         return userHasAdminPermission(authState?.user, permission);
       },
       login(nextAuthState) {
-        setAuthState(normalizeAuthState(nextAuthState));
+        const normalizedAuthState = normalizeAuthState(nextAuthState);
+
+        if (normalizedAuthState?.accessToken) {
+          setAuthSession(normalizedAuthState.accessToken, normalizedAuthState.refreshToken);
+        }
+
+        setAuthState(normalizedAuthState);
       },
       logout() {
         setAuthState(null);

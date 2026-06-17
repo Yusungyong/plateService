@@ -9,13 +9,25 @@ import {
 function AppShell({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, logout, user } = useAuth();
+  const { isAuthenticated, isBusinessUser, logout, user } = useAuth();
   const roleLabel = user?.roles?.length ? user.roles.join(", ") : user?.role;
   const isBusinessArea = location.pathname.startsWith("/business");
-  const visibleBusinessNavigationItems = isAuthenticated ? businessNavigationItems : [];
-  const headerTitle = isBusinessArea ? "내 가게 관리" : "고객 지원 센터";
+  const visibleBusinessNavigationItems = isBusinessArea
+    ? businessNavigationItems.filter((item) => {
+        if (item.requireBusiness) {
+          return isBusinessUser;
+        }
+
+        if (item.requireAuth) {
+          return isAuthenticated;
+        }
+
+        return true;
+      })
+    : [];
+  const headerTitle = isBusinessArea ? "식당 비즈니스 센터" : "고객 지원 센터";
   const headerDescription = isBusinessArea
-    ? "매장 기본 정보, 메뉴, 사진과 노출 상태를 식당 담당자가 직접 관리할 수 있습니다."
+    ? "입점 신청부터 승인된 매장 관리까지 식당 담당자의 작업 흐름을 제공합니다."
     : "이용 가이드와 정책 문서를 확인하고, 운영자는 관리자 화면에서 FAQ, Q&A, 회원 현황을 함께 관리할 수 있습니다.";
 
   function handleLogout() {
@@ -68,7 +80,7 @@ function AppShell({ children }) {
           </nav>
 
           {visibleBusinessNavigationItems.length > 0 ? (
-            <nav className="app-nav app-nav--admin" aria-label="내 가게 메뉴">
+            <nav className="app-nav app-nav--admin" aria-label="식당 비즈니스 메뉴">
               {visibleBusinessNavigationItems.map(({ path, label }) => (
                 <NavLink
                   key={path}

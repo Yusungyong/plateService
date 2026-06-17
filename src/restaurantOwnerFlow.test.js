@@ -1,6 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import App from "./App";
-import MediaUploadField from "./components/MediaUploadField";
 
 const AUTH_STORAGE_KEY = "plate-service.auth";
 
@@ -18,17 +17,23 @@ function createJsonResponse(payload, options = {}) {
 }
 
 function createAccessToken(claims = {}) {
-  const header = window.btoa(JSON.stringify({ alg: "none", typ: "JWT" }));
-  const payload = window.btoa(
-    JSON.stringify({
+  const header = encodeBase64UrlJson({ alg: "none", typ: "JWT" });
+  const payload = encodeBase64UrlJson({
       sub: "owner@example.com",
       displayName: "Store Owner",
-      permissions: ["RESTAURANT_MANAGE"],
+      permissions: ["OWNER_ACCESS"],
       ...claims,
-    })
-  );
+  });
 
   return `${header}.${payload}.signature`;
+}
+
+function encodeBase64UrlJson(value) {
+  return window
+    .btoa(unescape(encodeURIComponent(JSON.stringify(value))))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
 }
 
 function storeAuth(claims) {
@@ -48,6 +53,7 @@ function renderAt(path) {
 
 beforeEach(() => {
   window.localStorage.clear();
+  window.sessionStorage.clear();
   window.history.pushState({}, "", "/");
   global.fetch = jest.fn();
 });
@@ -61,40 +67,54 @@ test("redirects unauthenticated restaurant managers to login", () => {
 
   expect(screen.getByRole("heading", { name: "비즈니스 로그인" })).toBeInTheDocument();
   expect(screen.getByText("BUSINESS ACCESS")).toBeInTheDocument();
-  expect(screen.queryByRole("link", { name: "내 가게 관리" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "매장 관리" })).not.toBeInTheDocument();
 });
 
-test("shows restaurant manager shell and loads linked stores", async () => {
+test("decodes Korean display names from JWT claims", () => {
+  storeAuth({
+    displayName: "김사장",
+    permissions: [],
+  });
+
+  renderAt("/business/signup");
+
+  expect(screen.getByText("김사장")).toBeInTheDocument();
+});
+
+test("shows owner shell and loads linked stores", async () => {
   storeAuth();
   global.fetch.mockResolvedValueOnce(
     await createJsonResponse({
-      content: [
-        {
-          id: 7,
-          title: "플레이팅 키친 강남점",
-          address: "서울 강남구 테헤란로 123",
-          categories: ["한식", "카페"],
-          exposureStatus: "published",
-          menuCount: 3,
-          updatedAt: "2026-06-12T09:00:00Z",
-        },
-      ],
-      page: 0,
-      size: 20,
-      totalElements: 1,
-      totalPages: 1,
-      hasNext: false,
+      data: {
+        content: [
+          {
+            id: 7,
+            title: "플레이팅 키친 강남점",
+            address: "서울 강남구 테헤란로 123",
+            categories: ["한식", "카페"],
+            exposureStatus: "published",
+            menuCount: 3,
+            updatedAt: "2026-06-12T09:00:00Z",
+          },
+        ],
+        page: 0,
+        size: 20,
+        totalElements: 1,
+        totalPages: 1,
+        hasNext: false,
+      },
     })
   );
 
   renderAt("/business/stores");
 
-  expect(screen.getAllByRole("heading", { name: "내 가게 관리" }).length).toBeGreaterThan(0);
-  expect(screen.getByRole("link", { name: "내 가게 등록" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "식당 비즈니스 센터" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "매장 관리" })).toHaveAttribute("href", "/business/stores");
+  expect(screen.getByRole("link", { name: "새 가게 등록" })).toHaveAttribute("href", "/business/signup");
   expect(await screen.findByText("플레이팅 키친 강남점")).toBeInTheDocument();
   expect(screen.getAllByText("즉시 노출").length).toBeGreaterThan(0);
   expect(global.fetch).toHaveBeenCalledWith(
-    expect.stringContaining("/api/admin/restaurants?page=0&size=20"),
+    expect.stringContaining("/api/owner/stores?page=0&size=20"),
     expect.objectContaining({
       method: "GET",
       headers: expect.objectContaining({
@@ -104,191 +124,286 @@ test("shows restaurant manager shell and loads linked stores", async () => {
   );
 });
 
-test("keeps internal operator navigation separate from the business shell", async () => {
+test("keeps internal operators out of owner-only business routes", async () => {
   storeAuth({
     roles: ["ADMIN"],
-    permissions: ["ADMIN_ACCESS", "RESTAURANT_MANAGE"],
+    permissions: ["ADMIN_ACCESS", "STORE_READ"],
   });
-  global.fetch.mockResolvedValueOnce(
-    await createJsonResponse({
-      content: [],
-      page: 0,
-      size: 20,
-      totalElements: 0,
-      totalPages: 1,
-      hasNext: false,
-    })
-  );
 
   renderAt("/business/stores");
 
-  expect(await screen.findByText("조회된 가게가 없습니다.")).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "내 가게 등록" })).toHaveAttribute(
-    "href",
-    "/business/stores/new"
-  );
-  expect(screen.queryByRole("link", { name: "승인 관리" })).not.toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "자주 묻는 질문" })).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "매장 관리" })).not.toBeInTheDocument();
 });
 
-test("shows previews for existing image and video media on the detail page", async () => {
-  storeAuth();
+test("allows signed-in applicants without owner permission to see application status", async () => {
+  storeAuth({
+    permissions: [],
+  });
   global.fetch.mockResolvedValueOnce(
     await createJsonResponse({
       data: {
-        id: 42,
-        title: "프리뷰 테스트 매장",
-        address: "서울 중구 테스트로 1",
-        categories: ["한식"],
-        exposureStatus: "draft",
-        media: [
+        content: [
           {
-            id: 1,
-            mediaType: "image",
-            usageType: "representative",
-            fileUrl: "https://cdn.example.com/store.jpg",
-            originalName: "store.jpg",
-          },
-          {
-            id: 2,
-            mediaType: "video",
-            usageType: "representative",
-            fileUrl: "https://cdn.example.com/store.mp4",
-            originalName: "store.mp4",
-            mimeType: "video/mp4",
+            applicationId: 100,
+            storeName: "검토 중인 식당",
+            approvalStatus: "pending",
+            verificationStatus: "reviewing",
+            updatedAt: "2026-06-17T09:00:00Z",
+            version: 1,
           },
         ],
-        menus: [
-          {
-            id: 9,
-            name: "테스트 메뉴",
-            price: 12000,
-            media: [
-              {
-                id: 3,
-                mediaType: "image",
-                usageType: "menu",
-                fileUrl: "https://cdn.example.com/menu.jpg",
-                originalName: "menu.jpg",
-              },
-              {
-                id: 4,
-                mediaType: "video",
-                usageType: "menu",
-                fileUrl: "https://cdn.example.com/menu.mp4",
-                originalName: "menu.mp4",
-                mimeType: "video/mp4",
-              },
-            ],
-          },
-        ],
+        page: 0,
+        size: 20,
+        totalElements: 1,
+        totalPages: 1,
+        hasNext: false,
       },
     })
   );
 
-  const { container } = renderAt("/business/stores/42");
+  renderAt("/business/applications");
 
-  expect(await screen.findByText("store.jpg")).toBeInTheDocument();
-  expect(screen.getByText("store.mp4")).toBeInTheDocument();
-  expect(screen.getByText("menu.jpg")).toBeInTheDocument();
-  expect(screen.getByText("menu.mp4")).toBeInTheDocument();
-  expect(screen.getAllByAltText("이미지 미리보기")).toHaveLength(2);
-  expect(container.querySelectorAll(".restaurant-existing-media__preview video")).toHaveLength(2);
-  expect(screen.getAllByRole("link", { name: "원본 열기" })).toHaveLength(4);
-
-  fireEvent.error(screen.getAllByAltText("이미지 미리보기")[0]);
-  expect(screen.getByText("미리보기 불가")).toBeInTheDocument();
-  expect(screen.getByText("원본 파일을 열어 확인해 주세요.")).toBeInTheDocument();
-});
-
-test("validates required fields before creating a store", async () => {
-  storeAuth();
-  renderAt("/business/stores/new");
-
-  fireEvent.click(screen.getByRole("button", { name: "등록" }));
-
-  expect((await screen.findAllByText("가게 이름을 입력해 주세요.")).length).toBeGreaterThan(0);
-  expect(global.fetch).not.toHaveBeenCalled();
-});
-
-test("registers a store and exposes follow-up actions", async () => {
-  storeAuth();
-  global.fetch.mockResolvedValueOnce(await createJsonResponse({ data: { restaurantId: 42 } }));
-
-  renderAt("/business/stores/new");
-
-  fireEvent.change(screen.getByLabelText(/가게 이름/), {
-    target: { value: "테스트 비스트로" },
-  });
-  fireEvent.change(screen.getByLabelText(/주소/), {
-    target: { value: "서울 중구 테스트로 1" },
-  });
-  fireEvent.click(screen.getByRole("button", { name: "등록" }));
-
-  expect(await screen.findByText("가게 정보가 등록되었습니다. 등록 ID: 42")).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "등록한 가게 수정" })).toHaveAttribute(
-    "href",
-    "/business/stores/42"
-  );
-  expect(screen.getByRole("link", { name: "내 가게 목록" })).toHaveAttribute(
-    "href",
-    "/business/stores"
-  );
+  expect(await screen.findByText("검토 중인 식당")).toBeInTheDocument();
+  expect(screen.getByText("검토 중")).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "매장 관리" })).not.toBeInTheDocument();
   expect(global.fetch).toHaveBeenCalledWith(
-    expect.stringContaining("/api/admin/restaurants"),
+    expect.stringContaining("/api/owner/store-applications?page=0&size=20"),
     expect.objectContaining({
-      method: "POST",
-      body: expect.stringContaining('"title":"테스트 비스트로"'),
+      method: "GET",
+      headers: expect.objectContaining({
+        Authorization: expect.stringContaining("Bearer "),
+      }),
     })
   );
 });
 
-test("previews selected media and supports clearing the file", () => {
-  URL.createObjectURL = jest.fn(() => "blob:preview");
-  URL.revokeObjectURL = jest.fn();
-  const handleChange = jest.fn();
-  const file = new File(["x".repeat(2048)], "store.jpg", { type: "image/jpeg" });
-  const { container, rerender } = render(
-    <MediaUploadField
-      label="가게 대표 이미지"
-      accept="image/*"
-      file={null}
-      emptyText="대표 이미지를 선택해 주세요."
-      onChange={handleChange}
-    />
-  );
+test("redirects legacy new-store route to business signup", () => {
+  storeAuth();
 
-  fireEvent.change(container.querySelector('input[type="file"]'), {
-    target: { files: [file] },
+  renderAt("/business/stores/new");
+
+  expect(screen.getByRole("heading", { name: "식당 입점 신청" })).toBeInTheDocument();
+  expect(screen.getByText("담당자 정보")).toBeInTheDocument();
+});
+
+test("submits a public business signup through the owner application API", async () => {
+  const uploadedFile = new File(["registration"], "business.pdf", {
+    type: "application/pdf",
   });
+  global.fetch
+    .mockResolvedValueOnce(
+      await createJsonResponse({
+        data: {
+          verified: true,
+          verificationStatus: "verified",
+          message: "사업자 정보가 확인되었습니다.",
+          provider: "NTS",
+          verifiedAt: "2026-06-17T09:10:00Z",
+        },
+      })
+    )
+    .mockResolvedValueOnce(await createJsonResponse({ data: { applicationId: 100, approvalStatus: "draft" } }))
+    .mockResolvedValueOnce(
+      await createJsonResponse({
+        data: {
+          accessToken: createAccessToken({ permissions: [] }),
+          refreshToken: "next-refresh-token",
+        },
+      })
+    )
+    .mockResolvedValueOnce(await createJsonResponse({ data: { applicationId: 100, version: 1 } }))
+    .mockResolvedValueOnce(
+      await createJsonResponse({
+        data: {
+          documentId: 10,
+          documentType: "business_registration",
+          originalName: "business.pdf",
+          verificationStatus: "submitted",
+        },
+      })
+    )
+    .mockResolvedValueOnce(
+      await createJsonResponse({
+        data: {
+          applicationId: 100,
+          approvalStatus: "pending",
+          verificationStatus: "reviewing",
+          version: 2,
+        },
+      })
+    )
+    .mockResolvedValueOnce(
+      await createJsonResponse({
+        data: {
+          applicationId: 100,
+          store: {
+            storeName: "새로운 식당",
+            address: "서울 강남구 테헤란로 123",
+          },
+          ownerProfile: {
+            ownerName: "김사장",
+            ownerPhone: "010-1234-5678",
+            ownerEmail: "owner@example.com",
+          },
+          business: {
+            businessName: "플레이트컴퍼니",
+            businessNumber: "123-**-*****",
+          },
+          categories: [{ categoryCode: "KOREAN", displayOrder: 0 }],
+          menus: [],
+          documents: [
+            {
+              id: 10,
+              documentType: "business_registration",
+              originalName: "business.pdf",
+              verificationStatus: "submitted",
+            },
+          ],
+          approvalStatus: "pending",
+          verificationStatus: "reviewing",
+          appliedAt: "2026-06-17T09:00:00Z",
+          updatedAt: "2026-06-17T09:00:00Z",
+          version: 2,
+        },
+      })
+    );
 
-  expect(handleChange).toHaveBeenCalledWith(file);
+  renderAt("/business/signup");
 
-  rerender(
-    <MediaUploadField
-      label="가게 대표 이미지"
-      accept="image/*"
-      file={file}
-      emptyText="대표 이미지를 선택해 주세요."
-      onChange={handleChange}
-    />
+  fireEvent.change(screen.getByLabelText("회원 ID"), {
+    target: { value: "owner01" },
+  });
+  fireEvent.change(screen.getByLabelText("이메일"), {
+    target: { value: "owner@example.com" },
+  });
+  fireEvent.change(screen.getByLabelText("비밀번호"), {
+    target: { value: "password123" },
+  });
+  fireEvent.change(screen.getByLabelText("비밀번호 확인"), {
+    target: { value: "password123" },
+  });
+  fireEvent.change(screen.getByLabelText("닉네임"), {
+    target: { value: "김사장" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "다음" }));
+
+  fireEvent.change(screen.getByLabelText("담당자 이름"), {
+    target: { value: "김사장" },
+  });
+  fireEvent.change(screen.getByLabelText("담당자 연락처"), {
+    target: { value: "01012345678" },
+  });
+  expect(screen.getByLabelText("담당자 연락처")).toHaveValue("010-1234-5678");
+  fireEvent.click(screen.getByRole("button", { name: "다음" }));
+
+  fireEvent.change(screen.getByLabelText("사업자등록번호"), {
+    target: { value: "1234567890" },
+  });
+  expect(screen.getByLabelText("사업자등록번호")).toHaveValue("123-45-67890");
+  fireEvent.change(screen.getByLabelText("대표자명"), {
+    target: { value: "김대표" },
+  });
+  fireEvent.change(screen.getByLabelText("개업일자"), {
+    target: { value: "2024-01-15" },
+  });
+  fireEvent.change(screen.getByLabelText("상호명"), {
+    target: { value: "플레이트컴퍼니" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "사업자등록번호 확인" }));
+  expect(await screen.findByText("사업자 정보가 확인되었습니다.")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "다음" }));
+
+  fireEvent.change(screen.getByLabelText("매장명"), {
+    target: { value: "새로운 식당" },
+  });
+  fireEvent.change(screen.getByLabelText("매장 연락처"), {
+    target: { value: "0212345678" },
+  });
+  expect(screen.getByLabelText("매장 연락처")).toHaveValue("02-1234-5678");
+  fireEvent.change(screen.getByLabelText("주소"), {
+    target: { value: "서울 강남구 테헤란로 123" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "다음" }));
+  fireEvent.click(screen.getByRole("button", { name: "다음" }));
+
+  fireEvent.change(screen.getByLabelText(/사업자등록증/), {
+    target: { files: [uploadedFile] },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "다음" }));
+  fireEvent.click(screen.getByRole("button", { name: "입점 신청 제출" }));
+
+  expect(await screen.findByText("입점 신청이 접수되었습니다. 운영팀 검토가 끝나면 상태가 변경됩니다.")).toBeInTheDocument();
+  await waitFor(() => {
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/owner/business-verifications"),
+      expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining('"representativeName":"김대표"'),
+      })
+    );
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/owner/signup-applications"),
+      expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining('"storeName":"새로운 식당"'),
+      })
+    );
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/owner/signup-applications"),
+      expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining('"ownerPhone":"010-1234-5678"'),
+      })
+    );
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/owner/signup-applications"),
+      expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining('"businessNumber":"123-45-67890"'),
+      })
+    );
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/owner/signup-applications"),
+      expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining('"openingDate":"2024-01-15"'),
+      })
+    );
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/owner/signup-applications"),
+      expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining('"phone":"02-1234-5678"'),
+      })
+    );
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/owner/signup-applications"),
+      expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining('"username":"owner01"'),
+      })
+    );
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/owner/signup-applications"),
+      expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining('"email":"owner@example.com"'),
+      })
+    );
+  });
+  expect(global.fetch).toHaveBeenCalledWith(
+    expect.stringContaining("/api/owner/store-applications/100/documents?documentType=business_registration"),
+    expect.objectContaining({
+      method: "POST",
+      body: expect.any(FormData),
+    })
   );
-
-  expect(screen.getByAltText("가게 대표 이미지 미리보기")).toHaveAttribute("src", "blob:preview");
-  expect(screen.getByText("store.jpg")).toBeInTheDocument();
-  expect(screen.getByText("2.0KB")).toBeInTheDocument();
-
-  fireEvent.click(screen.getByRole("button", { name: "선택 취소" }));
-  rerender(
-    <MediaUploadField
-      label="가게 대표 이미지"
-      accept="image/*"
-      file={null}
-      emptyText="대표 이미지를 선택해 주세요."
-      onChange={handleChange}
-    />
+  expect(global.fetch).toHaveBeenCalledWith(
+    expect.stringContaining("/api/owner/store-applications/100/submit"),
+    expect.objectContaining({
+      method: "POST",
+      body: expect.stringContaining('"version":1'),
+    })
   );
-
-  expect(handleChange).toHaveBeenLastCalledWith(null);
-  expect(URL.createObjectURL).toHaveBeenCalledWith(file);
-  expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:preview");
 });

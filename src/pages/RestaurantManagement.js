@@ -170,7 +170,7 @@ function RestaurantManagement() {
               <span className="support-kicker">목록</span>
               <h3>총 {restaurantPage.totalElements.toLocaleString()}개</h3>
             </div>
-            <Link className="restaurant-text-link" to="/business/stores/new">
+            <Link className="restaurant-text-link" to="/business/signup">
               새 가게 등록
             </Link>
           </div>

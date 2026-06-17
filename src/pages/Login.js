@@ -66,37 +66,36 @@ function Login() {
             접시 운영 공간
           </h1>
           <p>
-            매장과 콘텐츠, 제철 큐레이션을 한곳에서 관리하고
-            사용자에게 더 좋은 맛집 경험을 전달합니다.
+            매장과 콘텐츠, 시즌 큐레이션을 한곳에서 관리하고 사용자에게 더 좋은 맛집 경험을 전달합니다.
           </p>
 
           <div className="login-feature-list">
             <article>
               <span aria-hidden="true">01</span>
               <div>
-                <strong>매장 운영</strong>
-                <p>신규 매장 신청부터 정보와 메뉴 관리까지</p>
+                <strong>입점 신청</strong>
+                <p>식당 담당자가 계정 생성부터 서류 제출까지 직접 진행합니다.</p>
               </div>
             </article>
             <article>
               <span aria-hidden="true">02</span>
               <div>
-                <strong>콘텐츠 관리</strong>
-                <p>피드 검수와 신고 처리, 추천 노출 편성</p>
+                <strong>매장 관리</strong>
+                <p>승인된 매장은 기본 정보와 메뉴를 owner 권한으로 관리합니다.</p>
               </div>
             </article>
             <article>
               <span aria-hidden="true">03</span>
               <div>
-                <strong>제철 큐레이션</strong>
-                <p>계절의 맛을 매장과 메뉴에 연결하는 운영</p>
+                <strong>운영자 관리</strong>
+                <p>내부 운영자는 별도 관리자 권한으로 승인과 콘텐츠를 관리합니다.</p>
               </div>
             </article>
           </div>
         </div>
 
         <p className="login-showcase__footer">
-          접시 내부 운영자와 등록된 비즈니스 사용자를 위한 공간입니다.
+          접시 내부 운영자와 식당 비즈니스 사용자를 위한 공간입니다.
         </p>
       </section>
 
@@ -108,6 +107,12 @@ function Login() {
               <h2 id="login-title">{loginContext.title}</h2>
               <p>{loginContext.description}</p>
             </div>
+
+            {location.state?.notice ? (
+              <div className="api-status api-status--success login-notice" role="status">
+                {location.state.notice}
+              </div>
+            ) : null}
 
             <form className="login-form" onSubmit={handleSubmit}>
               <label className="login-field">
@@ -160,9 +165,19 @@ function Login() {
               </button>
             </form>
 
-            <div className="login-card__footer">
-              <span>접시가 처음이신가요?</span>
-              <Link to="/qna">고객지원 문의하기</Link>
+            <div className="login-card__footer login-card__footer--links" aria-label="계정 관련 링크">
+              <span className="login-card__footer-label">접시가 처음이신가요?</span>
+              <div className="login-card__footer-actions">
+                <Link className="login-card__footer-action" to="/signup">
+                  회원가입
+                </Link>
+                <Link className="login-card__footer-action login-card__footer-action--primary" to="/business/signup">
+                  식당 입점 신청
+                </Link>
+                <Link className="login-card__footer-action login-card__footer-action--secondary" to="/qna">
+                  문의하기
+                </Link>
+              </div>
             </div>
           </div>
 
@@ -191,7 +206,7 @@ function getLoginContext(path) {
     return {
       eyebrow: "BUSINESS ACCESS",
       title: "비즈니스 로그인",
-      description: "등록한 매장과 메뉴를 관리하려면 비즈니스 계정으로 로그인해 주세요.",
+      description: "입점 신청 현황 또는 승인된 매장을 관리하려면 비즈니스 계정으로 로그인해 주세요.",
     };
   }
 

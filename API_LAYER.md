@@ -15,6 +15,8 @@ Added a shared API module so future requests can use one path instead of each pa
 - Auth token can be set with `setAuthToken`
 - Query strings are built in one place
 - Errors are normalized to `ApiError`
+- Internal operator pages use `/api/admin/**`
+- Business owner pages use `/api/owner/**` and require store ownership on the server
 
 ## Recommended usage
 

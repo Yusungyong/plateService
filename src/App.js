@@ -14,8 +14,11 @@ import { AuthProvider } from "./auth/AuthContext";
 import { useAuth } from "./auth/AuthContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import {
+  accountPublicRoutes,
   adminRoutes,
-  businessRoutes,
+  businessApplicationRoutes,
+  businessOwnerRoutes,
+  businessPublicRoutes,
   legacyBusinessRedirects,
   openSupportRoutes,
   policyRoutes,
@@ -74,16 +77,30 @@ function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/faq" replace />} />
             <Route path="/login" element={<Login />} />
+            {accountPublicRoutes.map(({ path, component: Component }) => (
+              <Route key={path} path={path} element={<Component />} />
+            ))}
             {policyRoutes.map(({ path, component: Component }) => (
               <Route key={path} path={path} element={<Component />} />
             ))}
             {openSupportRoutes.map(({ path, component: Component }) => (
               <Route key={path} path={path} element={<Component />} />
             ))}
+            {businessPublicRoutes.map(({ path, component: Component }) => (
+              <Route key={path} path={path} element={<Component />} />
+            ))}
+            <Route path="/business/stores/new" element={<Navigate to="/business/signup" replace />} />
             <Route element={<ProtectedRoute />}>
-              {businessRoutes.map(({ path, component: Component }) => (
+              {businessApplicationRoutes.map(({ path, component: Component }) => (
                 <Route key={path} path={path} element={<Component />} />
               ))}
+            </Route>
+            <Route element={<ProtectedRoute requireBusiness />}>
+              {businessOwnerRoutes.map(({ path, component: Component }) => (
+                <Route key={path} path={path} element={<Component />} />
+              ))}
+            </Route>
+            <Route element={<ProtectedRoute />}>
               {legacyBusinessRedirects
                 .filter(({ path }) => !path.includes(":restaurantId"))
                 .map(({ path, to }) => (
