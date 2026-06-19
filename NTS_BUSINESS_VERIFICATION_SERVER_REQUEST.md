@@ -6,7 +6,7 @@
 
 ## 1. 목적
 
-식당 입점 신청 중 사업자등록증 파일을 기본 필수로 받기 전에, 국세청 사업자등록정보 진위확인 API로 사업자 정보를 먼저 검증한다.
+식당 입점 신청 중 사업자등록증 파일을 받지 않고, 국세청 사업자등록정보 진위확인 API로 사업자 정보를 검증한다.
 
 프론트는 국세청 API를 직접 호출하지 않고 접시 서버 API만 호출한다.
 
@@ -143,22 +143,19 @@ store_applications.business_verified_at timestamptz
 store_applications.business_verification_message varchar(300)
 ```
 
-## 5. 제출 조건 변경
+## 5. 제출 조건
 
-현재 서버는 제출 시 `business_registration` 문서가 없으면 차단한다.
-
-변경 요청:
+입점 신청 제출 조건:
 
 ```txt
-국세청 검증 성공 OR 사업자등록증 파일 제출
+국세청 검증 성공
 ```
 
-즉, 아래 둘 중 하나면 제출 가능하다.
+즉, 아래 조건을 만족해야 제출 가능하다.
 
 - `business_verification_status = verified`
-- `business_registration` 문서가 존재함
 
-국세청 검증 성공 시 사업자등록증 업로드는 선택이다.
+사업자등록증 업로드는 기본 입점 신청 플로우에서 사용하지 않는다. 예외적인 수동심사 증빙 수집이 필요하면 별도 운영자 요청 플로우로 분리한다.
 
 ## 6. 보안과 운영 정책
 
@@ -167,7 +164,7 @@ store_applications.business_verification_message varchar(300)
 - 국세청 API 원문 응답 전체를 로그에 남기지 않는다.
 - 실패 응답에는 입력한 대표자명/사업자번호를 되돌려주지 않는다.
 - 공개 API이므로 IP/user-agent 기반 rate limit을 둔다.
-- 신규 사업자 또는 국세청 API 장애 시 수동심사 경로를 제공한다.
+- 신규 사업자 또는 국세청 API 장애 시 재시도 안내 또는 별도 수동심사 경로를 제공한다.
 
 ## 7. 프론트 의존성
 
@@ -184,4 +181,4 @@ verifyBusinessRegistration({
 
 검증 성공 전에는 사업자 단계에서 다음 단계로 이동할 수 없다.
 
-검증 성공 시 사업자등록증 업로드 단계는 선택 안내로 표시한다.
+검증 성공 시 첨부파일 없이 다음 단계로 진행한다.

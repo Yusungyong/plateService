@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import App from "./App";
 
 const AUTH_STORAGE_KEY = "plate-service.auth";
@@ -14,6 +14,15 @@ function createJsonResponse(payload, options = {}) {
     },
     json: () => Promise.resolve(payload),
   });
+}
+
+function createDeferred() {
+  let resolve;
+  const promise = new Promise((nextResolve) => {
+    resolve = nextResolve;
+  });
+
+  return { promise, resolve };
 }
 
 function createAccessToken(claims = {}) {
@@ -68,6 +77,91 @@ test("redirects unauthenticated restaurant managers to login", () => {
   expect(screen.getByRole("heading", { name: "비즈니스 로그인" })).toBeInTheDocument();
   expect(screen.getByText("BUSINESS ACCESS")).toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "매장 관리" })).not.toBeInTheDocument();
+});
+
+test("hides application status link during public business signup", () => {
+  renderAt("/business/signup");
+
+  expect(screen.getByRole("heading", { name: "식당 입점 신청" })).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "신청 현황 보기" })).not.toBeInTheDocument();
+});
+
+test("checks business signup account fields on blur", async () => {
+  global.fetch.mockResolvedValueOnce(
+    await createJsonResponse({
+      data: {
+        field: "username",
+        available: false,
+        message: "이미 사용 중인 회원 ID입니다.",
+      },
+    })
+  );
+
+  renderAt("/business/signup");
+
+  fireEvent.change(screen.getByLabelText("회원 ID"), {
+    target: { value: "owner01" },
+  });
+  fireEvent.blur(screen.getByLabelText("회원 ID"));
+
+  expect(await screen.findAllByText("이미 사용 중인 회원 ID입니다.")).toHaveLength(2);
+  expect(global.fetch).toHaveBeenCalledWith(
+    expect.stringContaining("/api/owner/signup-account-validations"),
+    expect.objectContaining({
+      method: "POST",
+      body: expect.stringContaining('"value":"owner01"'),
+    })
+  );
+
+});
+
+test("ignores an outdated account validation response", async () => {
+  const firstRequest = createDeferred();
+  global.fetch
+    .mockReturnValueOnce(firstRequest.promise)
+    .mockResolvedValueOnce(
+      await createJsonResponse({
+        data: {
+          field: "username",
+          value: "owner02",
+          available: true,
+          message: "사용 가능한 회원 ID입니다.",
+        },
+      })
+    );
+
+  renderAt("/business/signup");
+
+  const usernameInput = screen.getByLabelText("회원 ID");
+  fireEvent.change(usernameInput, {
+    target: { value: "owner01" },
+  });
+  fireEvent.blur(usernameInput);
+  fireEvent.blur(usernameInput);
+  expect(global.fetch).toHaveBeenCalledTimes(1);
+
+  fireEvent.change(usernameInput, {
+    target: { value: "owner02" },
+  });
+  fireEvent.blur(usernameInput);
+
+  expect(await screen.findByText("사용 가능한 회원 ID입니다.")).toBeInTheDocument();
+
+  const outdatedResponse = await createJsonResponse({
+    data: {
+      field: "username",
+      value: "owner01",
+      available: false,
+      message: "이미 사용 중인 회원 ID입니다.",
+    },
+  });
+  await act(async () => {
+    firstRequest.resolve(outdatedResponse);
+    await Promise.resolve();
+  });
+
+  expect(screen.queryByText("이미 사용 중인 회원 ID입니다.")).not.toBeInTheDocument();
+  expect(screen.getByText("사용 가능한 회원 ID입니다.")).toBeInTheDocument();
 });
 
 test("decodes Korean display names from JWT claims", () => {
@@ -188,10 +282,34 @@ test("redirects legacy new-store route to business signup", () => {
 });
 
 test("submits a public business signup through the owner application API", async () => {
-  const uploadedFile = new File(["registration"], "business.pdf", {
-    type: "application/pdf",
-  });
   global.fetch
+    .mockResolvedValueOnce(
+      await createJsonResponse({
+        data: {
+          field: "username",
+          available: true,
+          message: "사용 가능한 회원 ID입니다.",
+        },
+      })
+    )
+    .mockResolvedValueOnce(
+      await createJsonResponse({
+        data: {
+          field: "email",
+          available: true,
+          message: "사용 가능한 이메일입니다.",
+        },
+      })
+    )
+    .mockResolvedValueOnce(
+      await createJsonResponse({
+        data: {
+          field: "nickname",
+          available: true,
+          message: "사용 가능한 닉네임입니다.",
+        },
+      })
+    )
     .mockResolvedValueOnce(
       await createJsonResponse({
         data: {
@@ -213,16 +331,6 @@ test("submits a public business signup through the owner application API", async
       })
     )
     .mockResolvedValueOnce(await createJsonResponse({ data: { applicationId: 100, version: 1 } }))
-    .mockResolvedValueOnce(
-      await createJsonResponse({
-        data: {
-          documentId: 10,
-          documentType: "business_registration",
-          originalName: "business.pdf",
-          verificationStatus: "submitted",
-        },
-      })
-    )
     .mockResolvedValueOnce(
       await createJsonResponse({
         data: {
@@ -252,14 +360,7 @@ test("submits a public business signup through the owner application API", async
           },
           categories: [{ categoryCode: "KOREAN", displayOrder: 0 }],
           menus: [],
-          documents: [
-            {
-              id: 10,
-              documentType: "business_registration",
-              originalName: "business.pdf",
-              verificationStatus: "submitted",
-            },
-          ],
+          documents: [],
           approvalStatus: "pending",
           verificationStatus: "reviewing",
           appliedAt: "2026-06-17T09:00:00Z",
@@ -274,9 +375,11 @@ test("submits a public business signup through the owner application API", async
   fireEvent.change(screen.getByLabelText("회원 ID"), {
     target: { value: "owner01" },
   });
+  fireEvent.blur(screen.getByLabelText("회원 ID"));
   fireEvent.change(screen.getByLabelText("이메일"), {
     target: { value: "owner@example.com" },
   });
+  fireEvent.blur(screen.getByLabelText("이메일"));
   fireEvent.change(screen.getByLabelText("비밀번호"), {
     target: { value: "password123" },
   });
@@ -286,6 +389,10 @@ test("submits a public business signup through the owner application API", async
   fireEvent.change(screen.getByLabelText("닉네임"), {
     target: { value: "김사장" },
   });
+  fireEvent.blur(screen.getByLabelText("닉네임"));
+  expect(await screen.findByText("사용 가능한 회원 ID입니다.")).toBeInTheDocument();
+  expect(await screen.findByText("사용 가능한 이메일입니다.")).toBeInTheDocument();
+  expect(await screen.findByText("사용 가능한 닉네임입니다.")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "다음" }));
 
   fireEvent.change(screen.getByLabelText("담당자 이름"), {
@@ -326,15 +433,31 @@ test("submits a public business signup through the owner application API", async
   });
   fireEvent.click(screen.getByRole("button", { name: "다음" }));
   fireEvent.click(screen.getByRole("button", { name: "다음" }));
-
-  fireEvent.change(screen.getByLabelText(/사업자등록증/), {
-    target: { files: [uploadedFile] },
-  });
-  fireEvent.click(screen.getByRole("button", { name: "다음" }));
   fireEvent.click(screen.getByRole("button", { name: "입점 신청 제출" }));
 
   expect(await screen.findByText("입점 신청이 접수되었습니다. 운영팀 검토가 끝나면 상태가 변경됩니다.")).toBeInTheDocument();
   await waitFor(() => {
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/owner/signup-account-validations"),
+      expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining('"field":"username"'),
+      })
+    );
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/owner/signup-account-validations"),
+      expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining('"field":"email"'),
+      })
+    );
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/owner/signup-account-validations"),
+      expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining('"field":"nickname"'),
+      })
+    );
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/owner/business-verifications"),
       expect.objectContaining({
@@ -392,12 +515,9 @@ test("submits a public business signup through the owner application API", async
       })
     );
   });
-  expect(global.fetch).toHaveBeenCalledWith(
+  expect(global.fetch).not.toHaveBeenCalledWith(
     expect.stringContaining("/api/owner/store-applications/100/documents?documentType=business_registration"),
-    expect.objectContaining({
-      method: "POST",
-      body: expect.any(FormData),
-    })
+    expect.anything()
   );
   expect(global.fetch).toHaveBeenCalledWith(
     expect.stringContaining("/api/owner/store-applications/100/submit"),

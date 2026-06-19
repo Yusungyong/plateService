@@ -1836,6 +1836,25 @@ video.media-upload__preview {
   line-height: 1.5;
 }
 
+.account-availability {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.account-availability--checking {
+  color: #6b7280;
+}
+
+.account-availability--success {
+  color: #15803d;
+}
+
+.account-availability--error {
+  color: #b91c1c;
+}
+
 .restaurant-summary {
   display: grid;
   gap: 12px;

@@ -1,9 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
   fetchBusinessApplicationDetail,
   submitBusinessApplication,
-  uploadBusinessApplicationDocument,
 } from "../api/businessApplicationApi";
 import PageLayout from "../components/PageLayout";
 import {
@@ -18,16 +17,10 @@ function BusinessApplicationDetail() {
   const { applicationId } = useParams();
   const location = useLocation();
   const [application, setApplication] = useState(null);
-  const [documentFile, setDocumentFile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState(location.state?.notice || "");
   const [messageType, setMessageType] = useState(location.state?.notice ? "success" : "error");
-
-  const businessRegistrationDocument = useMemo(() => {
-    const documents = Array.isArray(application?.documents) ? application.documents : [];
-    return documents.find((document) => document.documentType === "business_registration");
-  }, [application]);
 
   const canSubmit = editableStatuses.has(application?.approvalStatus);
 
@@ -56,29 +49,16 @@ function BusinessApplicationDetail() {
       return;
     }
 
-    if (!businessRegistrationDocument && !documentFile) {
-      setMessageType("error");
-      setMessage("사업자등록증 파일을 업로드해 주세요.");
-      return;
-    }
-
     setIsSubmitting(true);
     setMessage("");
 
     try {
-      if (documentFile) {
-        await uploadBusinessApplicationDocument(application.applicationId, documentFile, {
-          documentType: "business_registration",
-        });
-      }
-
       await submitBusinessApplication(application.applicationId, {
         version: application.version,
       });
 
       setMessageType("success");
       setMessage("입점 신청이 제출되었습니다.");
-      setDocumentFile(null);
       await loadDetail();
     } catch (error) {
       setMessageType("error");
@@ -216,45 +196,24 @@ function BusinessApplicationDetail() {
           </div>
         </section>
 
-        <section className="support-panel">
-          <div className="support-panel__header">
-            <span className="support-kicker">DOCUMENTS</span>
-            <h3>제출 서류</h3>
-          </div>
-          <div className="business-document-list">
-            {(application.documents || []).length === 0 ? (
-              <p className="restaurant-field-hint">업로드된 서류가 없습니다.</p>
-            ) : (
-              application.documents.map((document) => (
-                <div key={document.id} className="business-document-row">
-                  <strong>{toDocumentTypeLabel(document.documentType)}</strong>
-                  <span>{document.originalName}</span>
-                  <span>{toVerificationStatusLabel(document.verificationStatus)}</span>
-                </div>
-              ))
-            )}
-          </div>
-
-          {canSubmit ? (
+        {canSubmit ? (
+          <section className="support-panel">
+            <div className="support-panel__header">
+              <span className="support-kicker">SUBMIT</span>
+              <h3>{application.approvalStatus === "on_hold" ? "보완 제출" : "검토 제출"}</h3>
+            </div>
             <form className="business-resubmit-form" onSubmit={handleSubmitReview}>
-              <label className="business-document-upload">
-                <span>사업자등록증 보완 업로드</span>
-                <input
-                  type="file"
-                  accept="application/pdf,image/jpeg,image/png"
-                  onChange={(event) => setDocumentFile(event.target.files?.[0] || null)}
-                />
-                <small>새 파일을 선택하면 기존 사업자등록증을 대체합니다.</small>
-              </label>
-              {documentFile ? <p className="business-document-file">{documentFile.name}</p> : null}
+              <p className="restaurant-field-hint">
+                사업자 정보 검증이 완료된 신청은 첨부파일 없이 제출할 수 있습니다.
+              </p>
               <div className="admin-actions">
                 <button className="button-primary" type="submit" disabled={isSubmitting}>
                   {isSubmitting ? "제출 중" : application.approvalStatus === "on_hold" ? "보완 제출" : "검토 제출"}
                 </button>
               </div>
             </form>
-          ) : null}
-        </section>
+          </section>
+        ) : null}
       </div>
     </PageLayout>
   );
@@ -267,21 +226,6 @@ function SummaryRow({ label, value }) {
       <dd>{value || "-"}</dd>
     </div>
   );
-}
-
-function toDocumentTypeLabel(type) {
-  switch (type) {
-    case "business_registration":
-      return "사업자등록증";
-    case "sales_permit":
-      return "영업신고증";
-    case "identity_verification":
-      return "신원 확인";
-    case "other":
-      return "기타";
-    default:
-      return type || "-";
-  }
 }
 
 function formatPrice(value) {

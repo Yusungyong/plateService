@@ -33,7 +33,7 @@ store_application_categories
 store_application_menus
 store_application_documents
 store_application_reviews
-- 신청 하위 데이터와 심사 기록
+- 신청 하위 데이터, 선택 보완 문서와 심사 기록
 
 store_owners
 - 승인된 운영 매장 소유권
@@ -112,15 +112,12 @@ rejected
 
 문서 원본은 private S3에 저장하고 DB에는 object key만 저장한다.
 
-필수 문서:
+기본 입점 신청 플로우에서는 사업자등록증을 받지 않는다. 국세청 사업자 검증을 통과한 신청은 첨부파일 없이 제출한다.
+
+후속 선택 또는 운영자 보완 요청 문서:
 
 ```txt
 business_registration
-```
-
-후속 선택 문서:
-
-```txt
 sales_permit
 identity_verification
 other
@@ -167,7 +164,87 @@ Content-Type: application/json
 - 성공 후 토큰을 발급하지 않는다.
 - 프론트는 가입 후 로그인하도록 안내한다.
 
-### 4.2 비즈니스 가입 통합 API
+### 4.2 비즈니스 가입 계정 중복 확인 API
+
+비로그인 입점 신청의 계정 단계에서 회원 ID, 이메일, 닉네임 입력칸을 벗어날 때마다 호출한다. 버튼형 중복확인이 아니라 필드 단위 blur 검증용 API다.
+
+```http
+POST /api/owner/signup-account-validations
+Content-Type: application/json
+```
+
+인증:
+
+- 공개 API다.
+- 계정 생성 전 호출되므로 `Authorization` 헤더 없이 동작해야 한다.
+- 공개 API이므로 IP/세션/필드별 rate limit을 적용한다.
+
+요청:
+
+```json
+{
+  "field": "username",
+  "value": "owner01"
+}
+```
+
+허용 field:
+
+```txt
+username
+email
+nickname
+```
+
+정규화:
+
+- `username`: trim 후 영문/숫자 4~30자만 허용한다.
+- `email`: trim 후 lower-case 정규화 값으로 중복 확인한다.
+- `nickname`: trim 후 공백 문자열을 거부한다.
+
+사용 가능 응답:
+
+```json
+{
+  "success": true,
+  "data": {
+    "field": "username",
+    "value": "owner01",
+    "available": true,
+    "message": "사용 가능한 회원 ID입니다."
+  }
+}
+```
+
+중복 응답:
+
+```json
+{
+  "success": true,
+  "data": {
+    "field": "username",
+    "value": "owner01",
+    "available": false,
+    "message": "이미 사용 중인 회원 ID입니다."
+  }
+}
+```
+
+권장 메시지:
+
+| field | 중복 메시지 |
+|---|---|
+| `username` | 이미 사용 중인 회원 ID입니다. |
+| `email` | 이미 가입된 이메일입니다. |
+| `nickname` | 이미 사용 중인 닉네임입니다. |
+
+주의:
+
+- 이 API는 UX 보조용이다. 최종 가입 성공을 보장하지 않는다.
+- `POST /api/owner/signup-applications`와 `POST /api/auth/signup`에서도 같은 중복 검사를 트랜잭션 안에서 다시 수행해야 한다.
+- DB unique constraint 또는 unique index로 `username`, 정규화된 `email`, `nickname` 중복을 최종 차단해야 한다.
+
+### 4.3 비즈니스 가입 통합 API
 
 프론트 편의를 위해 계정 생성과 신청 제출을 한 번에 처리하는 API를 제공할 수 있다.
 
@@ -237,7 +314,9 @@ Content-Type: application/json
 }
 ```
 
-이 API는 문서 업로드를 별도 단계로 둘 경우 `draft` 상태를 생성하고 문서 제출 후 `submit`을 호출하는 방식이 더 안전하다.
+이 API는 최종 계정 생성 시 `username`, 정규화된 `email`, `nickname` 중복을 다시 확인해야 한다. blur 중복 확인 API가 성공했더라도 이후 다른 사용자가 같은 값을 선점할 수 있으므로, 중복이면 409와 fieldErrors를 반환한다.
+
+이 API는 문서 업로드를 별도 단계로 둘 경우 `draft` 상태를 생성하고 문서 제출 후 `submit`을 호출하는 방식이 더 안전하다. 현재 기본 플로우에서는 국세청 사업자 검증을 통과하면 사업자등록증 첨부 없이 제출한다.
 
 ## 5. Owner 신청 API
 
@@ -366,6 +445,8 @@ documentType
 }
 ```
 
+문서는 예외적인 보완 요청 또는 후속 심사에서만 사용한다. 기본 입점 신청 화면에서는 호출하지 않는다.
+
 문서는 private object로 저장한다. 프론트에 공개 URL을 반환하지 않는다.
 
 ### 5.6 제출
@@ -384,7 +465,7 @@ POST /api/owner/store-applications/{applicationId}/submit
 
 처리:
 
-- 국세청 검증 성공 또는 필수 문서 존재 확인
+- 국세청 검증 성공 확인
 - 필수 매장/사업자 정보 확인
 - `approval_status = pending`
 - `verification_status = reviewing`
@@ -464,6 +545,7 @@ revoked_at = null
 |---|---:|---|
 | 회원 ID 중복 | 409 | `COMMON_CONFLICT` |
 | 이메일 중복 | 409 | `COMMON_CONFLICT` |
+| 닉네임 중복 | 409 | `COMMON_CONFLICT` |
 | 사업자번호 형식 오류 | 400 | `BUSINESS_NUMBER_INVALID` |
 | 중복 신청 | 409 | `STORE_APPLICATION_DUPLICATE_BUSINESS` |
 | 신청 없음 | 404 | `STORE_APPROVAL_NOT_FOUND` |
@@ -482,6 +564,7 @@ revoked_at = null
 ```http
 POST /api/auth/signup
 POST /api/owner/business-verifications
+POST /api/owner/signup-account-validations
 POST /api/owner/signup-applications
 ```
 
@@ -528,8 +611,8 @@ PUT  /api/owner/stores/{storeId}
 
 기존 관리자 P0 정책을 따른다.
 
-- 반려된 신청 문서: 반려 후 90일 뒤 삭제
-- 승인된 신청 문서: 사장님-매장 관계 종료 후 1년 뒤 삭제
+- 선택 보완 문서가 있는 경우: 반려 후 90일 뒤 삭제
+- 선택 보완 문서가 있는 경우: 사장님-매장 관계 종료 후 1년 뒤 삭제
 - 신청 기본 정보와 상태 이력: 5년
 - 감사 로그: 5년
 
@@ -539,7 +622,7 @@ PUT  /api/owner/stores/{storeId}
 2. `store_applications`에 `draft` 상태를 추가할지 결정
 3. owner 신청 API 구현
 4. 국세청 사업자 검증 API 구현
-5. 문서 업로드 API 구현
+5. 선택 보완 문서 업로드 API는 후속 운영 요구 시 구현
 6. 승인 트랜잭션에서 `store_owners` 생성
 7. JWT 권장 claim 보강
 8. `/api/owner/stores` 소유권 API 구현
@@ -551,7 +634,7 @@ PUT  /api/owner/stores/{storeId}
 - 일반 회원가입은 기존대로 계정만 생성한다.
 - 비즈니스 신청 생성 시 `fp_100`과 신청 데이터가 분리 저장된다.
 - 국세청 사업자 검증 성공 전에는 검증 완료 상태로 저장하지 않는다.
-- 국세청 사업자 검증 성공 시 사업자등록증 없이 제출할 수 있다.
+- 국세청 사업자 검증 성공 시 첨부파일 없이 제출할 수 있다.
 - 로그인 사용자는 본인 신청만 조회한다.
 - 보류 상태 신청은 수정 후 재제출할 수 있다.
 - 반려 후 재신청은 새 신청을 만든다.

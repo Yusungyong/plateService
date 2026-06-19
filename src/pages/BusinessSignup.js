@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   createBusinessApplication,
   fetchBusinessApplicationDetail,
   signupAndCreateBusinessApplication,
   submitBusinessApplication,
-  uploadBusinessApplicationDocument,
+  validateBusinessSignupAccountField,
   verifyBusinessRegistration,
 } from "../api/businessApplicationApi";
 import { loginWithPassword } from "../api/authApi";
@@ -13,6 +13,7 @@ import { useAuth } from "../auth/AuthContext";
 import PageLayout from "../components/PageLayout";
 
 const DRAFT_STORAGE_KEY = "plate-service.business-signup-draft";
+const accountAvailabilityFields = new Set(["username", "email", "nickname"]);
 
 const categoryOptions = [
   { code: "KOREAN", label: "한식" },
@@ -26,8 +27,8 @@ const categoryOptions = [
   { code: "ETC", label: "기타" },
 ];
 
-const fullStepOrder = ["account", "owner", "business", "store", "menus", "documents", "review"];
-const signedInStepOrder = ["owner", "business", "store", "menus", "documents", "review"];
+const fullStepOrder = ["account", "owner", "business", "store", "menus", "review"];
+const signedInStepOrder = ["owner", "business", "store", "menus", "review"];
 
 const stepLabels = {
   account: "계정",
@@ -35,7 +36,6 @@ const stepLabels = {
   business: "사업자",
   store: "매장",
   menus: "메뉴",
-  documents: "서류",
   review: "검토",
 };
 
@@ -82,12 +82,14 @@ function BusinessSignup() {
   const stepOrder = isAuthenticated ? signedInStepOrder : fullStepOrder;
   const [stepIndex, setStepIndex] = useState(0);
   const [form, setForm] = useState(() => readDraft());
-  const [documentFile, setDocumentFile] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [businessVerification, setBusinessVerification] = useState(() => createBusinessVerificationState());
   const [isVerifyingBusiness, setIsVerifyingBusiness] = useState(false);
+  const [accountAvailability, setAccountAvailability] = useState(() => createAccountAvailabilityState());
+  const accountValidationRequests = useRef(createAccountValidationRequestState());
+  const latestAccountValues = useRef({ ...form.account });
   const currentStep = stepOrder[Math.min(stepIndex, stepOrder.length - 1)];
   const isLastStep = stepIndex === stepOrder.length - 1;
 
@@ -110,6 +112,10 @@ function BusinessSignup() {
   }, [isAuthenticated, stepIndex, stepOrder]);
 
   function updateNested(section, field, value) {
+    if (section === "account") {
+      latestAccountValues.current[field] = value;
+    }
+
     setForm((current) => ({
       ...current,
       [section]: {
@@ -118,6 +124,11 @@ function BusinessSignup() {
       },
     }));
     clearError(`${section}.${field}`);
+
+    if (section === "account" && accountAvailabilityFields.has(field)) {
+      accountValidationRequests.current[field] = createAccountValidationRequestFieldState();
+      resetAccountAvailability(field);
+    }
 
     if (section === "business") {
       clearError("business.verification");
@@ -197,8 +208,114 @@ function BusinessSignup() {
     });
   }
 
+  function resetAccountAvailability(field) {
+    setAccountAvailability((current) => ({
+      ...current,
+      [field]: createAccountAvailabilityFieldState(),
+    }));
+  }
+
+  function setAccountAvailabilityField(field, nextState) {
+    setAccountAvailability((current) => ({
+      ...current,
+      [field]: nextState,
+    }));
+  }
+
+  async function handleValidateAccountField(field) {
+    if (isAuthenticated || !accountAvailabilityFields.has(field)) {
+      return;
+    }
+
+    const value = normalizeAccountValidationValue(field, latestAccountValues.current[field]);
+    const localError = getAccountLocalError(field, value);
+
+    if (localError) {
+      setAccountAvailabilityField(field, createAccountAvailabilityFieldState());
+      setFieldErrors((current) => ({
+        ...current,
+        [`account.${field}`]: localError,
+      }));
+      return;
+    }
+
+    const activeRequest = accountValidationRequests.current[field];
+    if (activeRequest.value === value && (activeRequest.status === "checking" || activeRequest.status === "available")) {
+      return;
+    }
+
+    const requestId = activeRequest.requestId + 1;
+    accountValidationRequests.current[field] = {
+      requestId,
+      status: "checking",
+      value,
+    };
+
+    clearError(`account.${field}`);
+    setAccountAvailabilityField(field, {
+      status: "checking",
+      message: "사용 가능 여부를 확인하고 있습니다.",
+      checkedValue: value,
+    });
+
+    try {
+      const result = await validateBusinessSignupAccountField({ field, value });
+      const responseValue = normalizeAccountValidationValue(field, result?.value ?? value);
+      const currentValue = normalizeAccountValidationValue(field, latestAccountValues.current[field]);
+
+      if (accountValidationRequests.current[field].requestId !== requestId || responseValue !== currentValue) {
+        return;
+      }
+
+      const available = Boolean(result?.available);
+      const message =
+        result?.message || (available ? getAccountAvailableMessage(field) : getAccountUnavailableMessage(field));
+
+      setAccountAvailabilityField(field, {
+        status: available ? "available" : "duplicate",
+        message,
+        checkedValue: responseValue,
+      });
+      accountValidationRequests.current[field] = {
+        requestId,
+        status: available ? "available" : "duplicate",
+        value: responseValue,
+      };
+
+      if (!available) {
+        setFieldErrors((current) => ({
+          ...current,
+          [`account.${field}`]: message,
+        }));
+      }
+    } catch (error) {
+      if (accountValidationRequests.current[field].requestId !== requestId) {
+        return;
+      }
+
+      const message =
+        error.status === 429
+          ? "요청이 많습니다. 잠시 후 다시 확인해 주세요."
+          : error.message || "중복 확인에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+      accountValidationRequests.current[field] = {
+        requestId,
+        status: "error",
+        value,
+      };
+      setAccountAvailabilityField(field, {
+        status: "error",
+        message,
+        checkedValue: value,
+      });
+      setFieldErrors((current) => ({
+        ...current,
+        [`account.${field}`]: message,
+      }));
+    }
+  }
+
   function handleNext() {
-    const errors = validateStep(currentStep, form, documentFile, isAuthenticated, businessVerification);
+    const errors = validateStep(currentStep, form, isAuthenticated, businessVerification, accountAvailability);
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -214,6 +331,42 @@ function BusinessSignup() {
   function handlePrevious() {
     setMessage("");
     setStepIndex((current) => Math.max(0, current - 1));
+  }
+
+  function handleAccountConflict(error) {
+    const conflictErrors = error?.payload?.data?.fieldErrors;
+    if (isAuthenticated || error?.status !== 409 || error?.code !== "ACCOUNT_CONFLICT" || !conflictErrors) {
+      return false;
+    }
+
+    const nextFieldErrors = {};
+    const nextAvailability = { ...accountAvailability };
+
+    accountAvailabilityFields.forEach((field) => {
+      const fieldMessage = conflictErrors[field];
+      if (!fieldMessage) {
+        return;
+      }
+
+      const value = normalizeAccountValidationValue(field, latestAccountValues.current[field]);
+      nextFieldErrors[`account.${field}`] = fieldMessage;
+      nextAvailability[field] = {
+        status: "duplicate",
+        message: fieldMessage,
+        checkedValue: value,
+      };
+      accountValidationRequests.current[field] = {
+        requestId: accountValidationRequests.current[field].requestId + 1,
+        status: "duplicate",
+        value,
+      };
+    });
+
+    setFieldErrors(nextFieldErrors);
+    setAccountAvailability(nextAvailability);
+    setStepIndex(fullStepOrder.indexOf("account"));
+    setMessage(error.message || "이미 사용 중인 계정 정보가 있습니다.");
+    return true;
   }
 
   async function handleVerifyBusiness() {
@@ -278,7 +431,7 @@ function BusinessSignup() {
   async function handleSubmit(event) {
     event.preventDefault();
 
-    const errors = validateAll(form, documentFile, isAuthenticated, businessVerification);
+    const errors = validateAll(form, isAuthenticated, businessVerification, accountAvailability);
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       setMessage("입점 신청에 필요한 정보를 모두 입력해 주세요.");
@@ -310,12 +463,6 @@ function BusinessSignup() {
       const applicationId = createdApplication.applicationId;
       const detail = await fetchBusinessApplicationDetail(applicationId);
 
-      if (documentFile) {
-        await uploadBusinessApplicationDocument(applicationId, documentFile, {
-          documentType: "business_registration",
-        });
-      }
-
       await submitBusinessApplication(applicationId, {
         version: detail.version,
       });
@@ -328,6 +475,10 @@ function BusinessSignup() {
         },
       });
     } catch (error) {
+      if (handleAccountConflict(error)) {
+        return;
+      }
+
       setMessage(error.message || "입점 신청 제출에 실패했습니다.");
     } finally {
       setIsSubmitting(false);
@@ -337,7 +488,7 @@ function BusinessSignup() {
   return (
     <PageLayout
       title="식당 입점 신청"
-      description="계정 생성부터 사업자 정보, 매장 정보, 필수 서류 제출까지 한 번에 진행합니다."
+      description="계정 생성부터 사업자 정보 검증, 매장 정보 입력까지 한 번에 진행합니다."
     >
       <form className="stack-layout business-signup" onSubmit={handleSubmit}>
         <StepIndicator stepOrder={stepOrder} currentStep={currentStep} />
@@ -355,7 +506,13 @@ function BusinessSignup() {
         ) : null}
 
         {currentStep === "account" ? (
-          <AccountStep form={form} errors={fieldErrors} onChange={updateNested} />
+          <AccountStep
+            form={form}
+            errors={fieldErrors}
+            availability={accountAvailability}
+            onBlur={handleValidateAccountField}
+            onChange={updateNested}
+          />
         ) : null}
         {currentStep === "owner" ? (
           <OwnerStep form={form} errors={fieldErrors} onChange={updateNested} />
@@ -383,29 +540,19 @@ function BusinessSignup() {
             onUpdateMenu={updateMenu}
           />
         ) : null}
-        {currentStep === "documents" ? (
-          <DocumentsStep
-            documentFile={documentFile}
-            error={fieldErrors.documentFile}
-            isBusinessVerified={businessVerification.status === "verified"}
-            onChange={(file) => {
-              setDocumentFile(file);
-              clearError("documentFile");
-            }}
-          />
-        ) : null}
         {currentStep === "review" ? (
           <ReviewStep
             form={form}
-            documentFile={documentFile}
             selectedCategoryLabels={selectedCategoryLabels}
           />
         ) : null}
 
         <div className="admin-actions signup-actions">
-          <Link className="restaurant-text-link restaurant-text-link--secondary" to="/business/applications">
-            신청 현황 보기
-          </Link>
+          {isAuthenticated ? (
+            <Link className="restaurant-text-link restaurant-text-link--secondary" to="/business/applications">
+              신청 현황 보기
+            </Link>
+          ) : null}
           <button type="button" onClick={handlePrevious} disabled={stepIndex === 0 || isSubmitting}>
             이전
           </button>
@@ -440,7 +587,7 @@ function StepIndicator({ stepOrder, currentStep }) {
   );
 }
 
-function AccountStep({ form, errors, onChange }) {
+function AccountStep({ form, errors, availability, onBlur, onChange }) {
   return (
     <section className="support-panel">
       <div className="support-panel__header">
@@ -455,9 +602,11 @@ function AccountStep({ form, errors, onChange }) {
             autoComplete="username"
             value={form.account.username}
             onChange={(event) => onChange("account", "username", event.target.value)}
+            onBlur={() => onBlur("username")}
             aria-invalid={Boolean(errors["account.username"])}
             placeholder="영문, 숫자 조합"
           />
+          <AccountAvailabilityStatus state={availability.username} />
           <FieldError message={errors["account.username"]} />
         </label>
         <label className="admin-field">
@@ -467,8 +616,10 @@ function AccountStep({ form, errors, onChange }) {
             autoComplete="email"
             value={form.account.email}
             onChange={(event) => onChange("account", "email", event.target.value)}
+            onBlur={() => onBlur("email")}
             aria-invalid={Boolean(errors["account.email"])}
           />
+          <AccountAvailabilityStatus state={availability.email} />
           <FieldError message={errors["account.email"]} />
         </label>
         <div className="admin-inline-fields">
@@ -501,12 +652,29 @@ function AccountStep({ form, errors, onChange }) {
             type="text"
             value={form.account.nickname}
             onChange={(event) => onChange("account", "nickname", event.target.value)}
+            onBlur={() => onBlur("nickname")}
             aria-invalid={Boolean(errors["account.nickname"])}
           />
+          <AccountAvailabilityStatus state={availability.nickname} />
           <FieldError message={errors["account.nickname"]} />
         </label>
       </div>
     </section>
+  );
+}
+
+function AccountAvailabilityStatus({ state }) {
+  if (!state || state.status === "idle") {
+    return null;
+  }
+
+  const tone = state.status === "available" ? "success" : state.status === "checking" ? "checking" : "error";
+  const role = state.status === "available" || state.status === "checking" ? "status" : "alert";
+
+  return (
+    <small className={`account-availability account-availability--${tone}`} role={role}>
+      {state.message}
+    </small>
   );
 }
 
@@ -784,38 +952,7 @@ function MenusStep({ form, errors, onToggleCategory, onUpdateMenu, onAddMenu, on
   );
 }
 
-function DocumentsStep({ documentFile, error, isBusinessVerified, onChange }) {
-  return (
-    <section className="support-panel">
-      <div className="support-panel__header">
-        <span className="support-kicker">DOCUMENTS</span>
-        <h3>{isBusinessVerified ? "추가 서류" : "필수 서류"}</h3>
-      </div>
-      {isBusinessVerified ? (
-        <div className="api-status api-status--success" role="status">
-          사업자 정보가 확인되어 사업자등록증 업로드는 선택입니다.
-        </div>
-      ) : null}
-      <label className="business-document-upload">
-        <span>사업자등록증</span>
-        <input
-          type="file"
-          accept="application/pdf,image/jpeg,image/png"
-          onChange={(event) => onChange(event.target.files?.[0] || null)}
-        />
-        <small>
-          {isBusinessVerified
-            ? "수동 심사 보완이 필요할 때만 업로드해 주세요."
-            : "PDF, JPG, PNG 파일을 업로드할 수 있습니다."}
-        </small>
-      </label>
-      {documentFile ? <p className="business-document-file">{documentFile.name}</p> : null}
-      <FieldError message={error} />
-    </section>
-  );
-}
-
-function ReviewStep({ form, documentFile, selectedCategoryLabels }) {
+function ReviewStep({ form, selectedCategoryLabels }) {
   return (
     <section className="support-panel">
       <div className="support-panel__header">
@@ -832,7 +969,6 @@ function ReviewStep({ form, documentFile, selectedCategoryLabels }) {
         <SummaryRow label="주소" value={form.store.address} />
         <SummaryRow label="카테고리" value={selectedCategoryLabels || "-"} />
         <SummaryRow label="대표 메뉴" value={`${countCompletedMenus(form.menus)}개`} />
-        <SummaryRow label="서류" value={documentFile?.name || "-"} />
       </dl>
     </section>
   );
@@ -909,11 +1045,18 @@ function mergeForm(base, draft) {
   };
 }
 
-function validateStep(step, form, documentFile, isAuthenticated, businessVerification = createBusinessVerificationState()) {
+function validateStep(
+  step,
+  form,
+  isAuthenticated,
+  businessVerification = createBusinessVerificationState(),
+  accountAvailability = createAccountAvailabilityState()
+) {
   const errors = {};
 
   if (step === "account" && !isAuthenticated) {
     validateAccount(form.account, errors);
+    validateAccountAvailabilityRequirements(form.account, errors, accountAvailability);
   }
 
   if (step === "owner") {
@@ -932,32 +1075,26 @@ function validateStep(step, form, documentFile, isAuthenticated, businessVerific
     validateCategoriesAndMenus(form, errors);
   }
 
-  if (step === "documents") {
-    validateDocuments(documentFile, errors, businessVerification);
-  }
-
   return errors;
 }
 
-function validateAll(form, documentFile, isAuthenticated, businessVerification) {
+function validateAll(form, isAuthenticated, businessVerification, accountAvailability) {
   return {
-    ...validateStep("account", form, documentFile, isAuthenticated, businessVerification),
-    ...validateStep("owner", form, documentFile, isAuthenticated, businessVerification),
-    ...validateStep("business", form, documentFile, isAuthenticated, businessVerification),
-    ...validateStep("store", form, documentFile, isAuthenticated, businessVerification),
-    ...validateStep("menus", form, documentFile, isAuthenticated, businessVerification),
-    ...validateStep("documents", form, documentFile, isAuthenticated, businessVerification),
+    ...validateStep("account", form, isAuthenticated, businessVerification, accountAvailability),
+    ...validateStep("owner", form, isAuthenticated, businessVerification, accountAvailability),
+    ...validateStep("business", form, isAuthenticated, businessVerification, accountAvailability),
+    ...validateStep("store", form, isAuthenticated, businessVerification, accountAvailability),
+    ...validateStep("menus", form, isAuthenticated, businessVerification, accountAvailability),
   };
 }
 
 function validateAccount(account, errors) {
-  if (!isValidUsername(account.username)) {
-    errors["account.username"] = "회원 ID는 영문과 숫자 조합 4~30자로 입력해 주세요.";
-  }
-
-  if (!isValidEmail(account.email)) {
-    errors["account.email"] = "올바른 이메일을 입력해 주세요.";
-  }
+  ["username", "email", "nickname"].forEach((field) => {
+    const localError = getAccountLocalError(field, account[field]);
+    if (localError) {
+      errors[`account.${field}`] = localError;
+    }
+  });
 
   if (String(account.password || "").length < 8) {
     errors["account.password"] = "비밀번호는 8자 이상이어야 합니다.";
@@ -967,8 +1104,25 @@ function validateAccount(account, errors) {
     errors["account.passwordConfirm"] = "비밀번호가 일치하지 않습니다.";
   }
 
-  if (!String(account.nickname || "").trim()) {
-    errors["account.nickname"] = "닉네임을 입력해 주세요.";
+}
+
+function validateAccountAvailabilityRequirements(account, errors, accountAvailability) {
+  requireAccountAvailability(account, errors, accountAvailability, "username", "회원 ID 중복 확인을 완료해 주세요.");
+  requireAccountAvailability(account, errors, accountAvailability, "email", "이메일 중복 확인을 완료해 주세요.");
+  requireAccountAvailability(account, errors, accountAvailability, "nickname", "닉네임 중복 확인을 완료해 주세요.");
+}
+
+function requireAccountAvailability(account, errors, accountAvailability, field, message) {
+  const errorKey = `account.${field}`;
+  const value = normalizeAccountValidationValue(field, account[field]);
+  const availability = accountAvailability?.[field];
+
+  if (errors[errorKey]) {
+    return;
+  }
+
+  if (availability?.status !== "available" || availability.checkedValue !== value) {
+    errors[errorKey] = message;
   }
 }
 
@@ -1040,12 +1194,6 @@ function validateCategoriesAndMenus(form, errors) {
   });
 }
 
-function validateDocuments(documentFile, errors, businessVerification) {
-  if (!documentFile && businessVerification.status !== "verified") {
-    errors.documentFile = "사업자등록증 파일을 업로드해 주세요.";
-  }
-}
-
 function buildAccountPayload(account) {
   return {
     username: account.username.trim(),
@@ -1108,6 +1256,38 @@ function createBusinessVerificationState() {
     status: "idle",
     message: "",
     verifiedAt: null,
+  };
+}
+
+function createAccountAvailabilityState() {
+  return {
+    username: createAccountAvailabilityFieldState(),
+    email: createAccountAvailabilityFieldState(),
+    nickname: createAccountAvailabilityFieldState(),
+  };
+}
+
+function createAccountAvailabilityFieldState() {
+  return {
+    status: "idle",
+    message: "",
+    checkedValue: "",
+  };
+}
+
+function createAccountValidationRequestState() {
+  return {
+    username: createAccountValidationRequestFieldState(),
+    email: createAccountValidationRequestFieldState(),
+    nickname: createAccountValidationRequestFieldState(),
+  };
+}
+
+function createAccountValidationRequestFieldState() {
+  return {
+    requestId: 0,
+    status: "idle",
+    value: "",
   };
 }
 
@@ -1194,6 +1374,51 @@ function isValidDateString(value) {
 
 function isValidUsername(value) {
   return /^[A-Za-z0-9]{4,30}$/.test(String(value || "").trim());
+}
+
+function getAccountLocalError(field, value) {
+  if (field === "username" && !isValidUsername(value)) {
+    return "회원 ID는 영문과 숫자 조합 4~30자로 입력해 주세요.";
+  }
+
+  if (field === "email" && (!isValidEmail(value) || String(value).length > 320)) {
+    return "올바른 이메일을 입력해 주세요.";
+  }
+
+  if (field === "nickname" && (!String(value || "").trim() || String(value).trim().length > 100)) {
+    return "닉네임은 1~100자로 입력해 주세요.";
+  }
+
+  return "";
+}
+
+function normalizeAccountValidationValue(field, value) {
+  const normalized = String(value || "").trim();
+  return field === "email" ? normalized.toLowerCase() : normalized;
+}
+
+function getAccountAvailableMessage(field) {
+  if (field === "username") {
+    return "사용 가능한 회원 ID입니다.";
+  }
+
+  if (field === "email") {
+    return "사용 가능한 이메일입니다.";
+  }
+
+  return "사용 가능한 닉네임입니다.";
+}
+
+function getAccountUnavailableMessage(field) {
+  if (field === "username") {
+    return "이미 사용 중인 회원 ID입니다.";
+  }
+
+  if (field === "email") {
+    return "이미 가입된 이메일입니다.";
+  }
+
+  return "이미 사용 중인 닉네임입니다.";
 }
 
 export default BusinessSignup;

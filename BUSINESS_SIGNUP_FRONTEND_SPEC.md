@@ -85,8 +85,7 @@ privacyAccepted
 3. 사업자 정보
 4. 매장 기본 정보
 5. 대표 메뉴 및 이미지
-6. 제출 서류
-7. 검토 및 제출
+6. 검토 및 제출
 ```
 
 이미 로그인한 사용자는 1단계를 건너뛰고 기존 계정으로 신청을 생성한다.
@@ -120,7 +119,7 @@ storeId nullable
 
 ### 4.4 신청 상세 `/business/applications/:applicationId`
 
-상세 정보, 제출 서류, 최근 검토 사유를 보여준다.
+상세 정보와 최근 검토 사유를 보여준다.
 
 보류 상태(`on_hold`)에서는 "보완 제출" 버튼을 노출한다. 승인 또는 반려 상태에서는 수정하지 않는다.
 
@@ -158,13 +157,13 @@ src/api/businessApplicationApi.js
 
 ```js
 signup({ username, email, password, nickname })
+validateBusinessSignupAccountField({ field, value })
 verifyBusinessRegistration({ businessNumber, representativeName, openingDate, businessName })
 createBusinessSignupDraft(payload)
 submitBusinessApplication(payload)
 getMyBusinessApplications(params)
 getBusinessApplicationDetail(applicationId)
 updateBusinessApplication(applicationId, payload)
-uploadBusinessApplicationDocument(applicationId, file, metadata)
 resubmitBusinessApplication(applicationId, payload)
 ```
 
@@ -179,6 +178,7 @@ resubmitBusinessApplication(applicationId, payload)
 - `password`: 8~64자
 - `passwordConfirm`: password와 일치
 - `nickname`: 필수
+- `username`, `email`, `nickname`: 포커스 아웃 시 `POST /api/owner/signup-account-validations`로 중복 확인. `available=true`가 확인된 값만 다음 단계로 이동 가능
 - `ownerName`: 필수
 - `ownerPhone`: 필수
 - `businessNumber`: 필수, 숫자 10자리 또는 하이픈 허용
@@ -190,8 +190,7 @@ resubmitBusinessApplication(applicationId, payload)
 - `regionCode`: 필수
 - `address`: 필수
 - `categories`: 1개 이상, 4개 이하
-- `documents.business_registration`: 국세청 검증 성공 시 선택, 검증 미완료 또는 수동심사 시 필수
-- 파일: 서버 허용 MIME type과 크기를 프론트에서도 1차 제한
+- 사업자등록증 첨부는 기본 플로우에서 받지 않는다.
 
 서버 검증이 최종 기준이다.
 
@@ -204,19 +203,20 @@ resubmitBusinessApplication(applicationId, payload)
 | 403 | 권한 안내 후 `/faq` 또는 `/business/applications` 이동 |
 | 409 중복 회원 ID | 계정 단계에 "이미 사용 중인 회원 ID입니다" 표시 |
 | 409 중복 이메일 | 계정 단계에 "이미 등록된 이메일입니다" 표시 |
+| 409 중복 닉네임 | 계정 단계에 "이미 사용 중인 닉네임입니다" 표시 |
 | 409 중복 사업자번호 | 사업자 정보 단계에 안내 |
 | 사업자 검증 실패 | 사업자 정보 단계에 불일치 사유 표시 |
-| 사업자 검증 API 장애 | 재시도 안내 또는 사업자등록증 수동심사 안내 |
+| 사업자 검증 API 장애 | 재시도 안내 |
 | 409 버전 충돌 | 최신 상세 재조회 후 입력 유지 |
-| 파일 업로드 실패 | 해당 파일 카드에 재시도 버튼 |
 
 ## 9. UX 원칙
 
 - 제출 전까지 사용자가 입력한 값은 단계 이동 시 보존한다.
 - 서버 draft가 구현되기 전에는 `sessionStorage` 임시 저장을 사용한다.
+- 비로그인 입점 신청의 계정 단계는 회원 ID, 이메일, 닉네임 입력칸을 벗어날 때마다 서버 중복 확인을 요청하고 확인 중/사용 가능/중복 상태를 필드 아래에 표시한다.
 - 사업자등록번호 원문은 화면 상태에만 보관하고 로그에 남기지 않는다.
 - 국세청 서비스키는 프론트에 두지 않으며 프론트는 접시 서버 검증 API만 호출한다.
-- 문서 미리보기는 서버가 허용하는 signed URL 또는 local object URL만 사용한다.
+- 사업자등록증 등 증빙서류는 기본 가입 플로우에서 수집하지 않는다.
 - 반려 후 재신청은 기존 신청을 수정하지 않고 새 신청을 생성한다.
 
 ## 10. 권한과 토큰
@@ -250,7 +250,7 @@ role: BUSINESS_APPLICANT
 - 내부 운영자 메뉴와 비즈니스 메뉴가 섞이지 않는다.
 - 사업자등록번호, 대표자명, 개업일자를 입력하면 서버 검증 API를 호출한다.
 - 사업자 검증 성공 전에는 다음 단계 이동이 막힌다.
-- 사업자 검증 성공 시 사업자등록증 업로드는 선택으로 표시된다.
+- 사업자 검증 성공 시 첨부파일 없이 검토 단계로 이동한다.
 
 ## 12. 구현 순서
 
@@ -272,7 +272,6 @@ role: BUSINESS_APPLICANT
 - `GET /api/owner/store-applications`
 - `GET /api/owner/store-applications/{applicationId}`
 - `PUT /api/owner/store-applications/{applicationId}`
-- `POST /api/owner/store-applications/{applicationId}/documents`
 - `POST /api/owner/store-applications/{applicationId}/submit`
 - 승인 시 `store_owners` 생성
 

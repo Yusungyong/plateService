@@ -12,6 +12,14 @@ export async function signupAndCreateBusinessApplication(payload) {
   return unwrapData(response);
 }
 
+export async function validateBusinessSignupAccountField(payload) {
+  const response = await apiClient.post("/api/owner/signup-account-validations", payload, {
+    withAuth: false,
+  });
+
+  return unwrapData(response);
+}
+
 export async function createBusinessApplication(payload) {
   return unwrapData(await apiClient.post("/api/owner/store-applications", payload));
 }
@@ -39,19 +47,6 @@ export async function fetchBusinessApplicationDetail(applicationId) {
 
 export async function updateBusinessApplication(applicationId, payload) {
   return unwrapData(await apiClient.put(`/api/owner/store-applications/${applicationId}`, payload));
-}
-
-export async function uploadBusinessApplicationDocument(applicationId, file, { documentType }) {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  return unwrapData(
-    await apiClient.post(`/api/owner/store-applications/${applicationId}/documents`, formData, {
-      query: {
-        documentType,
-      },
-    })
-  );
 }
 
 export async function submitBusinessApplication(applicationId, { version }) {
