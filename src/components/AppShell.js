@@ -12,19 +12,20 @@ function AppShell({ children }) {
   const { isAuthenticated, isBusinessUser, logout, user } = useAuth();
   const roleLabel = user?.roles?.length ? user.roles.join(", ") : user?.role;
   const isBusinessArea = location.pathname.startsWith("/business");
-  const visibleBusinessNavigationItems = isBusinessArea
-    ? businessNavigationItems.filter((item) => {
-        if (item.requireBusiness) {
-          return isBusinessUser;
-        }
+  const visiblePublicNavigationItems = publicNavigationItems.filter(
+    (item) => item.available !== false
+  );
+  const visibleBusinessNavigationItems = businessNavigationItems.filter((item) => {
+    if (item.requireBusiness) {
+      return isBusinessUser;
+    }
 
-        if (item.requireAuth) {
-          return isAuthenticated;
-        }
+    if (item.requireAuth) {
+      return isAuthenticated;
+    }
 
-        return true;
-      })
-    : [];
+    return true;
+  });
   const headerTitle = isBusinessArea ? "식당 비즈니스 센터" : "고객 지원 센터";
   const headerDescription = isBusinessArea
     ? "입점 신청부터 승인된 매장 관리까지 식당 담당자의 작업 흐름을 제공합니다."
@@ -66,7 +67,7 @@ function AppShell({ children }) {
           </div>
 
           <nav className="app-nav" aria-label="고객 지원 메뉴">
-            {publicNavigationItems.map(({ path, label }) => (
+            {visiblePublicNavigationItems.map(({ path, label }) => (
               <NavLink
                 key={path}
                 to={path}
@@ -80,21 +81,24 @@ function AppShell({ children }) {
           </nav>
 
           {visibleBusinessNavigationItems.length > 0 ? (
-            <nav className="app-nav app-nav--admin" aria-label="식당 비즈니스 메뉴">
-              {visibleBusinessNavigationItems.map(({ path, label }) => (
-                <NavLink
-                  key={path}
-                  to={path}
-                  className={({ isActive }) =>
-                    isActive
-                      ? "app-nav__link app-nav__link--admin app-nav__link--active"
-                      : "app-nav__link app-nav__link--admin"
-                  }
-                >
-                  {label}
-                </NavLink>
-              ))}
-            </nav>
+            <div className="app-partner-navigation">
+              <span className="app-partner-navigation__label">식당 파트너</span>
+              <nav className="app-nav app-nav--admin" aria-label="식당 비즈니스 메뉴">
+                {visibleBusinessNavigationItems.map(({ path, label }) => (
+                  <NavLink
+                    key={path}
+                    to={path}
+                    className={({ isActive }) =>
+                      isActive
+                        ? "app-nav__link app-nav__link--admin app-nav__link--active"
+                        : "app-nav__link app-nav__link--admin"
+                    }
+                  >
+                    {label}
+                  </NavLink>
+                ))}
+              </nav>
+            </div>
           ) : null}
         </div>
       </header>

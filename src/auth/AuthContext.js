@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import {
   clearAuthSession,
   registerAuthFailureHandler,
+  registerAuthSessionRefreshHandler,
   setAuthSession,
 } from "../api";
 import {
@@ -11,7 +12,26 @@ import {
 import { userHasBusinessAccess } from "./businessAccess";
 
 const AUTH_STORAGE_KEY = "plate-service.auth";
+const AUTH_NOTICE_STORAGE_KEY = "plate-service.auth-notice";
 const AuthContext = createContext(null);
+
+function writeAuthNotice(message) {
+  try {
+    window.sessionStorage.setItem(AUTH_NOTICE_STORAGE_KEY, message);
+  } catch (error) {
+    // A storage restriction must not prevent session cleanup.
+  }
+}
+
+function consumeAuthNotice() {
+  try {
+    const message = window.sessionStorage.getItem(AUTH_NOTICE_STORAGE_KEY) || "";
+    window.sessionStorage.removeItem(AUTH_NOTICE_STORAGE_KEY);
+    return message;
+  } catch (error) {
+    return "";
+  }
+}
 
 function decodeBase64Url(value) {
   const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
@@ -203,8 +223,19 @@ function AuthProvider({ children }) {
   }, [authState]);
 
   useEffect(() => {
+    registerAuthSessionRefreshHandler((nextSession) => {
+      setAuthState((current) =>
+        normalizeAuthState({
+          ...current,
+          accessToken: nextSession.accessToken,
+          refreshToken: nextSession.refreshToken,
+        })
+      );
+    });
+
     registerAuthFailureHandler(() => {
       setAuthState(null);
+      writeAuthNotice("로그인 세션이 만료되었습니다. 다시 로그인해 주세요.");
 
       if (typeof window !== "undefined" && window.location.pathname !== "/login") {
         window.location.assign("/login");
@@ -213,6 +244,7 @@ function AuthProvider({ children }) {
 
     return () => {
       registerAuthFailureHandler(null);
+      registerAuthSessionRefreshHandler(null);
     };
   }, []);
 
@@ -261,4 +293,4 @@ function useAuth() {
   return context;
 }
 
-export { AuthProvider, useAuth };
+export { AuthProvider, consumeAuthNotice, useAuth };

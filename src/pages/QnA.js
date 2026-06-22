@@ -16,25 +16,6 @@ const initialAnswerDraft = {
   isPublic: true,
 };
 
-const fallbackEntries = [
-  {
-    qnaId: "fallback-1",
-    statusCode: "answered",
-    category: "이용문의",
-    question: "콘텐츠 검수 결과는 어디에서 확인할 수 있나요?",
-    answer:
-      "현재는 고객지원 메뉴 안에서 검수 흐름을 확인할 수 있습니다. 서버 연동이 준비되면 실제 문의 데이터로 교체됩니다.",
-    guestName: "운영팀",
-    guestEmail: null,
-    username: null,
-    answeredBy: "운영팀",
-    createdAt: "",
-    updatedAt: "",
-    answeredAt: "",
-    isPublic: true,
-  },
-];
-
 function getStatusLabel(statusCode) {
   switch (statusCode) {
     case "answered":
@@ -124,13 +105,16 @@ function QnA({ adminMode = false }) {
     try {
       const response = await fetchQna({ page: 0, size: 10 });
       const nextEntries = normalizeEntries(response);
-      const resolvedEntries = nextEntries.length ? nextEntries : fallbackEntries;
-      setEntries(resolvedEntries);
-      setSelectedQnaId((current) => current || resolvedEntries[0]?.qnaId || null);
+      setEntries(nextEntries);
+      setSelectedQnaId((current) =>
+        nextEntries.some((entry) => entry.qnaId === current)
+          ? current
+          : nextEntries[0]?.qnaId || null
+      );
     } catch (error) {
-      setEntries(fallbackEntries);
-      setSelectedQnaId(fallbackEntries[0]?.qnaId || null);
-      setLoadError("Q&A 목록을 불러오지 못해 임시 데이터를 표시합니다.");
+      setEntries([]);
+      setSelectedQnaId(null);
+      setLoadError("Q&A 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {
       setIsLoading(false);
     }
@@ -236,7 +220,14 @@ function QnA({ adminMode = false }) {
         title="Q&A 관리"
         description="접수된 질문을 선택하고 답변과 상태를 관리하는 관리자 화면입니다."
       >
-        {loadError ? <div className="api-status api-status--error">{loadError}</div> : null}
+        {loadError ? (
+          <div className="api-status api-status--error" role="alert">
+            <span>{loadError}</span>
+            <button type="button" onClick={loadEntries} disabled={isLoading}>
+              다시 시도
+            </button>
+          </div>
+        ) : null}
         {submitMessage ? (
           <div
             className={
@@ -477,10 +468,19 @@ function QnA({ adminMode = false }) {
           </form>
         </section>
 
-        {loadError ? <div className="api-status api-status--error">{loadError}</div> : null}
+        {loadError ? (
+          <div className="api-status api-status--error" role="alert">
+            <span>{loadError}</span>
+            <button type="button" onClick={loadEntries} disabled={isLoading}>
+              다시 시도
+            </button>
+          </div>
+        ) : null}
 
         {isLoading ? (
           <div className="board-empty">Q&A 목록을 불러오는 중입니다.</div>
+        ) : entries.length === 0 ? (
+          <div className="board-empty">등록된 질문이 없습니다.</div>
         ) : (
           <div className="stack-layout">
             {entries.map((entry) => {

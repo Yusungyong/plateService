@@ -19,8 +19,8 @@ import { ADMIN_PERMISSIONS } from "../admin/constants/adminPermissions";
 export const publicNavigationItems = [
   { path: "/faq", label: "자주 묻는 질문" },
   { path: "/qna", label: "질문과 답변" },
-  { path: "/feedback", label: "서비스 의견" },
-  { path: "/content-verification", label: "콘텐츠 검증" },
+  { path: "/feedback", label: "서비스 의견", available: false },
+  { path: "/content-verification", label: "콘텐츠 검증", available: false },
   { path: "/terms-of-service", label: "이용약관" },
   { path: "/privacy-policy", label: "개인정보 처리방침" },
 ];
@@ -46,6 +46,7 @@ export const adminNavigationItems = [
     icon: "store",
     permission: ADMIN_PERMISSIONS.STORE_READ,
     group: "운영",
+    available: false,
   },
   {
     path: "/admin/feeds",
@@ -53,6 +54,7 @@ export const adminNavigationItems = [
     icon: "feed",
     permission: ADMIN_PERMISSIONS.FEED_READ,
     group: "운영",
+    available: false,
   },
   {
     path: "/admin/seasonal-curations",
@@ -61,6 +63,7 @@ export const adminNavigationItems = [
     permission: ADMIN_PERMISSIONS.SEASONAL_READ,
     group: "운영",
     featured: true,
+    available: false,
   },
   {
     path: "/admin/faq",

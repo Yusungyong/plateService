@@ -6,6 +6,7 @@ export {
   clearAuthSession,
   clearAuthToken,
   registerAuthFailureHandler,
+  registerAuthSessionRefreshHandler,
   request,
   setAuthSession,
   setAuthToken,

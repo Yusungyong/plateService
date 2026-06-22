@@ -66,6 +66,7 @@ function Signup() {
 
   return (
     <PageLayout
+      className="signup-page"
       title="회원가입"
       description="접시 서비스 계정을 만들고 고객지원 또는 입점 신청을 이어서 진행할 수 있습니다."
     >
@@ -76,7 +77,7 @@ function Signup() {
           </div>
         ) : null}
 
-        <section className="support-panel">
+        <section className="support-panel signup-account-panel">
           <div className="support-panel__header">
             <span className="support-kicker">ACCOUNT</span>
             <h3>계정 정보</h3>
@@ -99,6 +100,18 @@ function Signup() {
             </label>
 
             <label className="admin-field">
+              <span>닉네임</span>
+              <input
+                type="text"
+                autoComplete="nickname"
+                value={form.nickname}
+                onChange={(event) => updateField("nickname", event.target.value)}
+                aria-invalid={Boolean(fieldErrors.nickname)}
+              />
+              {fieldErrors.nickname ? <small className="restaurant-field-error">{fieldErrors.nickname}</small> : null}
+            </label>
+
+            <label className="admin-field signup-email-field">
               <span>이메일</span>
               <input
                 type="email"
@@ -140,21 +153,10 @@ function Signup() {
               </label>
             </div>
 
-            <label className="admin-field">
-              <span>닉네임</span>
-              <input
-                type="text"
-                autoComplete="nickname"
-                value={form.nickname}
-                onChange={(event) => updateField("nickname", event.target.value)}
-                aria-invalid={Boolean(fieldErrors.nickname)}
-              />
-              {fieldErrors.nickname ? <small className="restaurant-field-error">{fieldErrors.nickname}</small> : null}
-            </label>
           </div>
         </section>
 
-        <section className="support-panel">
+        <section className="support-panel signup-completion-panel">
           <div className="signup-agreements">
             <label className="admin-toggle">
               <input
@@ -180,16 +182,16 @@ function Signup() {
               <small className="restaurant-field-error">{fieldErrors.privacyAccepted}</small>
             ) : null}
           </div>
-        </section>
 
-        <div className="admin-actions signup-actions">
-          <Link className="restaurant-text-link restaurant-text-link--secondary" to="/login">
-            이미 계정이 있어요
-          </Link>
-          <button className="button-primary" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "가입 중" : "가입하기"}
-          </button>
-        </div>
+          <div className="admin-actions signup-actions">
+            <Link className="restaurant-text-link restaurant-text-link--secondary" to="/login">
+              이미 계정이 있어요
+            </Link>
+            <button className="button-primary" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "가입 중" : "가입하기"}
+            </button>
+          </div>
+        </section>
       </form>
     </PageLayout>
   );

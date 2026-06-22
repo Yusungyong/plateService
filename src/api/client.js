@@ -18,6 +18,7 @@ let authToken = null;
 let refreshToken = null;
 let refreshPromise = null;
 let authFailureHandler = null;
+let authSessionRefreshHandler = null;
 
 function setAuthSession(nextAccessToken, nextRefreshToken) {
   authToken = nextAccessToken || null;
@@ -39,6 +40,10 @@ function clearAuthSession() {
 
 function registerAuthFailureHandler(handler) {
   authFailureHandler = typeof handler === "function" ? handler : null;
+}
+
+function registerAuthSessionRefreshHandler(handler) {
+  authSessionRefreshHandler = typeof handler === "function" ? handler : null;
 }
 
 function buildQueryString(params = {}) {
@@ -184,6 +189,13 @@ async function refreshAuthSession() {
 
       setAuthSession(nextAccessToken, nextRefreshToken);
 
+      if (authSessionRefreshHandler) {
+        authSessionRefreshHandler({
+          accessToken: nextAccessToken,
+          refreshToken: nextRefreshToken,
+        });
+      }
+
       return {
         accessToken: nextAccessToken,
         refreshToken: nextRefreshToken,
@@ -197,6 +209,7 @@ async function refreshAuthSession() {
 }
 
 async function request(path, options = {}) {
+  const hadAuthSession = Boolean(authToken || refreshToken);
   const { response, payload } = await executeRequest(path, options);
 
   if (response.ok) {
@@ -207,8 +220,7 @@ async function request(path, options = {}) {
   const shouldRefresh =
     options.withAuth !== false &&
     !options._retry &&
-    response.status === 401 &&
-    (error.code === "AUTH_402" || error.code === "AUTH_401" || error.code === "HTTP_ERROR");
+    response.status === 401;
 
   if (shouldRefresh && refreshToken) {
     try {
@@ -222,6 +234,14 @@ async function request(path, options = {}) {
       }
 
       throw refreshError;
+    }
+  }
+
+  if (response.status === 401 && options.withAuth !== false && hadAuthSession) {
+    clearAuthSession();
+
+    if (authFailureHandler) {
+      authFailureHandler(error);
     }
   }
 
@@ -254,6 +274,7 @@ export {
   clearAuthSession,
   clearAuthToken,
   registerAuthFailureHandler,
+  registerAuthSessionRefreshHandler,
   request,
   setAuthSession,
   setAuthToken,

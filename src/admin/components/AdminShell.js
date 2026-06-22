@@ -21,7 +21,10 @@ function AdminShell({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const visibleNavigationItems = useMemo(
-    () => adminNavigationItems.filter((item) => canAdmin(item.permission)),
+    () =>
+      adminNavigationItems.filter(
+        (item) => item.available !== false && canAdmin(item.permission)
+      ),
     [canAdmin]
   );
   const navigationGroups = useMemo(

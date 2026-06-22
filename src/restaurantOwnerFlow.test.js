@@ -86,6 +86,28 @@ test("hides application status link during public business signup", () => {
   expect(screen.queryByRole("link", { name: "신청 현황 보기" })).not.toBeInTheDocument();
 });
 
+test("shows the application status navigation from regular pages after login", async () => {
+  storeAuth();
+  global.fetch.mockResolvedValue(
+    await createJsonResponse({
+      content: [],
+      page: 0,
+      size: 20,
+      totalElements: 0,
+      totalPages: 1,
+    })
+  );
+
+  renderAt("/faq");
+
+  expect(screen.getByText("식당 파트너")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "신청 현황" })).toHaveAttribute(
+    "href",
+    "/business/applications"
+  );
+  expect(await screen.findByText("조회된 FAQ가 없습니다.")).toBeInTheDocument();
+});
+
 test("checks business signup account fields on blur", async () => {
   global.fetch.mockResolvedValueOnce(
     await createJsonResponse({

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { loginWithPassword } from "../api/authApi";
-import { useAuth } from "../auth/AuthContext";
+import { consumeAuthNotice, useAuth } from "../auth/AuthContext";
 
 const LOGIN_USERNAME_STORAGE_KEY = "plate-service.remembered-username";
 
@@ -20,6 +20,7 @@ function Login() {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [sessionNotice] = useState(() => consumeAuthNotice());
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -111,6 +112,12 @@ function Login() {
             {location.state?.notice ? (
               <div className="api-status api-status--success login-notice" role="status">
                 {location.state.notice}
+              </div>
+            ) : null}
+
+            {sessionNotice ? (
+              <div className="api-status api-status--error login-notice" role="alert">
+                {sessionNotice}
               </div>
             ) : null}
 
