@@ -123,6 +123,23 @@ test("normalizes nested store approval codes and names", () => {
   );
 });
 
+test("normalizes the latest rejection reason from review history", () => {
+  const detail = normalizeStoreApprovalDetail({
+    id: 10,
+    reviews: [
+      {
+        reasonCode: "BUSINESS_INFO_MISMATCH",
+        reason: "사업자 정보와 신청 정보가 일치하지 않습니다.",
+      },
+    ],
+  });
+
+  expect(detail.reviewReason).toBe(
+    "사업자 정보와 신청 정보가 일치하지 않습니다."
+  );
+  expect(detail.reviewReasonCode).toBe("BUSINESS_INFO_MISMATCH");
+});
+
 test("requires ADMIN_ACCESS together with each granular permission", () => {
   const incompleteUser = {
     roles: ["OPERATOR"],

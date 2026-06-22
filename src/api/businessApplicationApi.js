@@ -42,7 +42,11 @@ export async function fetchBusinessApplications({ page = 0, size = 20 } = {}) {
 }
 
 export async function fetchBusinessApplicationDetail(applicationId) {
-  return unwrapData(await apiClient.get(`/api/owner/store-applications/${applicationId}`));
+  const application = unwrapData(
+    await apiClient.get(`/api/owner/store-applications/${applicationId}`)
+  );
+
+  return normalizeBusinessApplicationDetail(application);
 }
 
 export async function updateBusinessApplication(applicationId, payload) {
@@ -55,4 +59,39 @@ export async function submitBusinessApplication(applicationId, { version }) {
       version,
     })
   );
+}
+
+export function normalizeBusinessApplicationDetail(application = {}) {
+  const reviews = Array.isArray(application.reviews) ? application.reviews : [];
+  const latestReview =
+    application.latestReview ||
+    application.review ||
+    reviews[reviews.length - 1] ||
+    {};
+
+  return {
+    ...application,
+    reviewReason: firstNonEmptyString(
+      application.reviewReason,
+      application.review_reason,
+      application.rejectionReason,
+      application.reason,
+      latestReview.reason
+    ),
+    reviewReasonCode: firstNonEmptyString(
+      application.reviewReasonCode,
+      application.review_reason_code,
+      application.reasonCode,
+      latestReview.reasonCode,
+      latestReview.reason_code
+    ),
+  };
+}
+
+function firstNonEmptyString(...values) {
+  const value = values.find(
+    (candidate) => typeof candidate === "string" && candidate.trim()
+  );
+
+  return value?.trim() || "";
 }

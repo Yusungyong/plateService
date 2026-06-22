@@ -13,6 +13,15 @@ import {
 
 const editableStatuses = new Set(["draft", "on_hold"]);
 
+const REVIEW_REASON_LABELS = {
+  MISSING_DOCUMENT: "필수 서류 누락",
+  INVALID_DOCUMENT: "유효하지 않은 서류",
+  BUSINESS_INFO_MISMATCH: "사업자 정보 불일치",
+  DUPLICATE_STORE: "중복 매장",
+  UNSUPPORTED_BUSINESS: "지원하지 않는 업종",
+  OTHER: "기타",
+};
+
 function BusinessApplicationDetail() {
   const { applicationId } = useParams();
   const location = useLocation();
@@ -23,6 +32,9 @@ function BusinessApplicationDetail() {
   const [messageType, setMessageType] = useState(location.state?.notice ? "success" : "error");
 
   const canSubmit = editableStatuses.has(application?.approvalStatus);
+  const shouldShowReviewReason =
+    application?.approvalStatus === "rejected" ||
+    application?.approvalStatus === "on_hold";
 
   const loadDetail = useCallback(async () => {
     setIsLoading(true);
@@ -125,6 +137,37 @@ function BusinessApplicationDetail() {
             </Link>
           </div>
         </section>
+
+        {shouldShowReviewReason ? (
+          <section
+            className={`support-panel business-review-result business-review-result--${application.approvalStatus}`}
+            aria-labelledby="business-review-result-title"
+          >
+            <div className="business-review-result__icon" aria-hidden="true">!</div>
+            <div>
+              <span className="support-kicker">REVIEW RESULT</span>
+              <h3 id="business-review-result-title">
+                {application.approvalStatus === "rejected"
+                  ? "입점 신청이 반려되었습니다."
+                  : "입점 신청에 보완이 필요합니다."}
+              </h3>
+              {application.reviewReasonCode ? (
+                <strong className="business-review-result__reason-type">
+                  {toReviewReasonLabel(application.reviewReasonCode)}
+                </strong>
+              ) : null}
+              <p className="business-review-result__reason">
+                {application.reviewReason ||
+                  "등록된 상세 사유가 없습니다. 자세한 내용은 운영팀에 문의해 주세요."}
+              </p>
+              {application.approvalStatus === "rejected" ? (
+                <Link className="restaurant-text-link" to="/qna">
+                  운영팀에 문의하기
+                </Link>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
 
         <div className="business-detail-grid">
           <section className="support-panel">
@@ -235,6 +278,10 @@ function formatPrice(value) {
 
   const price = Number(value);
   return Number.isFinite(price) ? `${price.toLocaleString()}원` : String(value);
+}
+
+function toReviewReasonLabel(reasonCode) {
+  return REVIEW_REASON_LABELS[reasonCode] || reasonCode;
 }
 
 export default BusinessApplicationDetail;

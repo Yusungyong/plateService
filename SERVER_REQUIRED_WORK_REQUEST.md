@@ -152,6 +152,42 @@ Content-Type: application/json
 
 게시 상태는 최소 `DRAFT`, `SCHEDULED`, `PUBLISHED`, `ARCHIVED`를 지원하고, 게시 기간과 연결된 매장·메뉴 유효성을 서버에서 검증해 주세요.
 
+### 5.6 매장 승인 상태 직접 변경
+
+운영자가 신청을 재검토 대기 상태로 되돌리지 않고 승인과 반려 사이에서 직접 변경할 수 있어야 합니다.
+
+```http
+POST /api/admin/store-approvals/{applicationId}/approve
+Content-Type: application/json
+
+{
+  "version": 4,
+  "comment": ""
+}
+```
+
+```http
+POST /api/admin/store-approvals/{applicationId}/reject
+Content-Type: application/json
+
+{
+  "version": 5,
+  "reasonCode": "BUSINESS_INFO_MISMATCH",
+  "reason": "신청 정보와 실제 운영 정보가 일치하지 않습니다."
+}
+```
+
+- 필요 권한은 최소 `STORE_APPROVE`입니다.
+- `pending`, `on_hold`, `rejected` 상태에서 `approve`를 허용하고 성공 시 `approved`로 변경합니다.
+- `pending`, `on_hold`, `approved` 상태에서 `reject`를 허용하고 성공 시 `rejected`로 변경합니다. 반려 사유 코드와 상세 사유는 필수입니다.
+- `rejected → approved`, `approved → rejected` 전환은 중간 `pending` 상태를 거치지 않습니다.
+- 사업자 인증 상태는 입점 신청 시 별도 API로 이미 검증된 값이므로 승인 상태 변경과 함께 임의로 변경하지 않습니다.
+- 기존 승인·반려 이력을 덮어쓰거나 삭제하지 않고 처리자, 이전 상태, 다음 상태, 사유, 처리 시각을 감사 이력에 추가합니다.
+- `approved → rejected`에서는 연결된 운영 매장과 `store_owners`를 hard delete하지 않습니다. 운영 매장을 비활성화하고 소유권 상태를 하나의 트랜잭션에서 조정해야 합니다.
+- `rejected → approved`에서는 기존 운영 매장이 있으면 중복 생성하지 않고 재활성화하며, 없을 때만 새로 생성합니다.
+- 버전 충돌은 `409 STORE_APPROVAL_VERSION_CONFLICT`, 안전하게 전환할 수 없는 상태는 `409 STORE_APPROVAL_INVALID_TRANSITION`으로 반환합니다.
+- 성공 후 `GET /api/admin/store-approvals/{applicationId}`에서 갱신된 `approvalStatus`, `version`, 최신 처리 이력을 조회할 수 있어야 합니다.
+
 ## 6. 통합 검증 지원
 
 서버 완료 후 다음 자료가 필요합니다.
