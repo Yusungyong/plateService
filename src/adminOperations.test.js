@@ -90,9 +90,145 @@ test("approves a pending store from the detail drawer", async () => {
   fireEvent.click(within(confirmDialog).getByRole("button", { name: "승인하기" }));
 
   expect(
+    screen.queryByRole("dialog", { name: "매장 신청 승인" })
+  ).not.toBeInTheDocument();
+
+  expect(
     await screen.findByText("모닝 베이크 신청을 승인 처리했습니다.")
   ).toBeInTheDocument();
   expect(within(drawer).getAllByText("승인").length).toBeGreaterThan(0);
+});
+
+test("allows approval after the application-level business verification", async () => {
+  storeAuth({
+    roles: ["OPERATOR"],
+    permissions: [
+      "ADMIN_ACCESS",
+      "STORE_READ",
+      "STORE_APPROVE",
+      "DASHBOARD_READ",
+    ],
+  });
+
+  renderAt("/admin/store-approvals");
+
+  expect((await screen.findAllByText("오후의 식탁")).length).toBeGreaterThan(0);
+  fireEvent.click(screen.getAllByRole("button", { name: "검토" })[0]);
+
+  const drawer = await screen.findByRole("dialog", { name: "오후의 식탁" });
+  const approveButton = within(drawer).getByRole("button", { name: "승인" });
+  expect(approveButton).toBeEnabled();
+
+  fireEvent.click(approveButton);
+  expect(screen.getByRole("dialog", { name: "매장 신청 승인" })).toBeInTheDocument();
+});
+
+test("closes the rejection dialog and keeps the submitted reason in the detail", async () => {
+  storeAuth({
+    roles: ["OPERATOR"],
+    permissions: [
+      "ADMIN_ACCESS",
+      "STORE_READ",
+      "STORE_APPROVE",
+      "DASHBOARD_READ",
+    ],
+  });
+
+  renderAt("/admin/store-approvals");
+
+  expect((await screen.findAllByText("오후의 식탁")).length).toBeGreaterThan(0);
+  fireEvent.click(screen.getAllByRole("button", { name: "검토" })[0]);
+
+  const drawer = await screen.findByRole("dialog", { name: "오후의 식탁" });
+  fireEvent.click(within(drawer).getByRole("button", { name: "반려" }));
+
+  const rejectDialog = screen.getByRole("dialog", { name: "매장 신청 반려" });
+  fireEvent.change(within(rejectDialog).getByLabelText("처리 사유"), {
+    target: { value: "사업자 정보와 신청 정보가 일치하지 않습니다." },
+  });
+  fireEvent.click(within(rejectDialog).getByRole("button", { name: "반려하기" }));
+
+  expect(
+    screen.queryByRole("dialog", { name: "매장 신청 반려" })
+  ).not.toBeInTheDocument();
+  expect(
+    await within(drawer).findByText("사업자 정보와 신청 정보가 일치하지 않습니다.")
+  ).toBeInTheDocument();
+  expect(within(drawer).getByText("필수 서류 누락")).toBeInTheDocument();
+});
+
+test("changes an approved application directly to rejected with a reason", async () => {
+  storeAuth({
+    roles: ["OPERATOR"],
+    permissions: [
+      "ADMIN_ACCESS",
+      "STORE_READ",
+      "STORE_APPROVE",
+      "DASHBOARD_READ",
+    ],
+  });
+
+  renderAt("/admin/store-approvals");
+
+  expect((await screen.findAllByText("제주 초록상")).length).toBeGreaterThan(0);
+  fireEvent.click(screen.getAllByRole("button", { name: "검토" })[3]);
+
+  const drawer = await screen.findByRole("dialog", { name: "제주 초록상" });
+  fireEvent.click(within(drawer).getByRole("button", { name: "반려" }));
+
+  const rejectDialog = screen.getByRole("dialog", { name: "매장 신청 반려" });
+  fireEvent.change(within(rejectDialog).getByLabelText("처리 사유"), {
+    target: { value: "운영 정책상 승인할 수 없는 정보가 확인됐습니다." },
+  });
+  fireEvent.click(
+    within(rejectDialog).getByRole("button", { name: "반려하기" })
+  );
+
+  expect(
+    screen.queryByRole("dialog", { name: "매장 신청 반려" })
+  ).not.toBeInTheDocument();
+  expect(
+    await screen.findByText("제주 초록상 신청을 반려 처리했습니다.")
+  ).toBeInTheDocument();
+  expect(
+    within(drawer).getByText("운영 정책상 승인할 수 없는 정보가 확인됐습니다.")
+  ).toBeInTheDocument();
+  expect(within(drawer).getByRole("button", { name: "승인" })).toBeEnabled();
+});
+
+test("changes a rejected application directly back to approved", async () => {
+  storeAuth({
+    roles: ["OPERATOR"],
+    permissions: [
+      "ADMIN_ACCESS",
+      "STORE_READ",
+      "STORE_APPROVE",
+      "DASHBOARD_READ",
+    ],
+  });
+
+  renderAt("/admin/store-approvals");
+
+  expect((await screen.findAllByText("산골 국수")).length).toBeGreaterThan(0);
+  fireEvent.click(screen.getAllByRole("button", { name: "검토" })[4]);
+
+  const drawer = await screen.findByRole("dialog", { name: "산골 국수" });
+  fireEvent.click(within(drawer).getByRole("button", { name: "승인" }));
+
+  const approveDialog = screen.getByRole("dialog", { name: "매장 신청 승인" });
+  expect(
+    within(approveDialog).getByText(
+      "산골 국수의 반려 상태를 승인으로 변경하고 운영 매장으로 전환할까요?"
+    )
+  ).toBeInTheDocument();
+  fireEvent.click(
+    within(approveDialog).getByRole("button", { name: "승인하기" })
+  );
+
+  expect(
+    await screen.findByText("산골 국수 신청을 승인 처리했습니다.")
+  ).toBeInTheDocument();
+  expect(within(drawer).getByRole("button", { name: "반려" })).toBeEnabled();
 });
 
 test("keeps approval actions unavailable for viewer role", async () => {

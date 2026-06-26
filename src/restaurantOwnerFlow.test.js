@@ -308,6 +308,50 @@ test("allows signed-in applicants without owner permission to see application st
   );
 });
 
+test("shows the rejection reason to the applicant on the application detail", async () => {
+  storeAuth({ permissions: [] });
+  global.fetch.mockResolvedValueOnce(
+    await createJsonResponse({
+      data: {
+        applicationId: 100,
+        store: {
+          storeName: "반려된 식당",
+          address: "서울 강남구 테헤란로 123",
+        },
+        ownerProfile: {},
+        business: {},
+        categories: [],
+        menus: [],
+        approvalStatus: "rejected",
+        verificationStatus: "verified",
+        reviews: [
+          {
+            reasonCode: "BUSINESS_INFO_MISMATCH",
+            reason: "사업자 정보와 신청 정보가 일치하지 않습니다.",
+          },
+        ],
+        appliedAt: "2026-06-17T09:00:00Z",
+        updatedAt: "2026-06-18T09:00:00Z",
+        version: 2,
+      },
+    })
+  );
+
+  renderAt("/business/applications/100");
+
+  expect(
+    await screen.findByRole("heading", { name: "입점 신청이 반려되었습니다." })
+  ).toBeInTheDocument();
+  expect(screen.getByText("사업자 정보 불일치")).toBeInTheDocument();
+  expect(
+    screen.getByText("사업자 정보와 신청 정보가 일치하지 않습니다.")
+  ).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "운영팀에 문의하기" })).toHaveAttribute(
+    "href",
+    "/qna"
+  );
+});
+
 test("redirects legacy new-store route to business signup", () => {
   storeAuth();
 

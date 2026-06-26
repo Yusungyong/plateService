@@ -2590,6 +2590,69 @@ video.media-upload__preview {
   white-space: nowrap;
 }
 
+.business-review-result {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  border-width: 1px;
+  border-style: solid;
+}
+
+.business-review-result--rejected {
+  border-color: #fecaca;
+  background-color: #fff7f7;
+}
+
+.business-review-result--on_hold {
+  border-color: #fde68a;
+  background-color: #fffbeb;
+}
+
+.business-review-result__icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 999px;
+  background-color: #991b1b;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.business-review-result--on_hold .business-review-result__icon {
+  background-color: #a36b00;
+}
+
+.business-review-result h3 {
+  margin: 5px 0 10px;
+  color: #7f1d1d;
+}
+
+.business-review-result--on_hold h3 {
+  color: #854d0e;
+}
+
+.business-review-result__reason-type {
+  display: inline-flex;
+  border-radius: 999px;
+  background-color: #fee2e2;
+  padding: 5px 9px;
+  color: #991b1b;
+  font-size: 0.78rem;
+}
+
+.business-review-result--on_hold .business-review-result__reason-type {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.business-review-result__reason {
+  margin: 10px 0 12px;
+  color: #4b5563;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
 .business-chip-list {
   display: flex;
   flex-wrap: wrap;

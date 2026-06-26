@@ -1017,6 +1017,22 @@
   margin: 0;
 }
 
+.admin-status-transition-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-status-transition-actions .admin-permission-message {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.admin-status-transition-actions .admin-button {
+  flex: 0 0 auto;
+}
+
 .admin-drawer-layer,
 .admin-dialog-layer {
   position: fixed;
@@ -1089,14 +1105,6 @@
   display: flex;
   gap: 9px;
   justify-content: flex-end;
-}
-
-.admin-action-hint {
-  margin: 0 0 10px;
-  color: #c7a578;
-  font-size: 0.78rem;
-  font-weight: 750;
-  text-align: right;
 }
 
 .admin-drawer-loading {
@@ -1223,6 +1231,23 @@
   border-radius: 10px;
   background: #271f14;
   padding: 13px;
+}
+
+.admin-review-reason span {
+  display: inline-flex;
+  margin: 8px 0 0;
+  border-radius: 999px;
+  background: #4a351b;
+  padding: 4px 8px;
+  color: #e4bd82;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.admin-review-reason p {
+  margin: 8px 0 0;
+  color: #dbc7a7;
+  line-height: 1.6;
 }
 
 .admin-dialog-layer {
@@ -1674,11 +1699,13 @@
   }
 
   .admin-drawer-actions,
+  .admin-status-transition-actions,
   .admin-dialog__actions {
     flex-direction: column;
   }
 
   .admin-drawer-actions .admin-button,
+  .admin-status-transition-actions .admin-button,
   .admin-dialog__actions .admin-button,
   .admin-dialog__actions > button {
     width: 100%;

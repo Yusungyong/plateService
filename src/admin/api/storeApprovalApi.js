@@ -154,7 +154,6 @@ export async function rejectStore(storeId, command) {
   requireReason(reason);
   return updateStoreApproval(storeId, {
     approvalStatus: "rejected",
-    verificationStatus: "rejected",
     reviewReason: reason.trim(),
   });
 }
@@ -192,6 +191,9 @@ export function normalizeStoreApprovalPage(page = {}) {
 
 export function normalizeStoreApprovalDetail(store = {}) {
   const categories = store.categories || [];
+  const reviews = Array.isArray(store.reviews) ? store.reviews : [];
+  const latestReview =
+    store.latestReview || store.review || reviews[reviews.length - 1] || {};
 
   return {
     ...store,
@@ -202,6 +204,20 @@ export function normalizeStoreApprovalDetail(store = {}) {
     region: store.region?.name || store.region?.code || "미지정",
     representativeMenus: store.representativeMenus || [],
     documents: store.documents || [],
+    reviewReason: firstNonEmptyString(
+      store.reviewReason,
+      store.review_reason,
+      store.rejectionReason,
+      store.reason,
+      latestReview.reason
+    ),
+    reviewReasonCode: firstNonEmptyString(
+      store.reviewReasonCode,
+      store.review_reason_code,
+      store.reasonCode,
+      latestReview.reasonCode,
+      latestReview.reason_code
+    ),
     version: store.version,
   };
 }
@@ -248,4 +264,12 @@ function requireReason(reason) {
   if (!String(reason || "").trim()) {
     throw new Error("처리 사유를 입력해 주세요.");
   }
+}
+
+function firstNonEmptyString(...values) {
+  const value = values.find(
+    (candidate) => typeof candidate === "string" && candidate.trim()
+  );
+
+  return value?.trim() || "";
 }

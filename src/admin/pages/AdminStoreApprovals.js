@@ -21,7 +21,6 @@ import {
   STORE_CATEGORY_OPTIONS,
   STORE_REGION_OPTIONS,
   STORE_REJECTION_REASON_OPTIONS,
-  VERIFICATION_STATUS,
   VERIFICATION_STATUS_LABELS,
 } from "../constants/adminStatuses";
 
@@ -161,46 +160,56 @@ function AdminStoreApprovals() {
       return;
     }
 
+    const action = pendingAction;
+    setPendingAction(null);
     setIsSubmitting(true);
     setErrorMessage("");
     setSuccessMessage("");
 
     try {
       let updatedStore;
-      if (pendingAction.type === "approve") {
-        updatedStore = await approveStore(pendingAction.store.id, {
-          version: pendingAction.store.version,
+      if (action.type === "approve") {
+        updatedStore = await approveStore(action.store.id, {
+          version: action.store.version,
           comment: "",
         });
-      } else if (pendingAction.type === "hold") {
-        updatedStore = await holdStore(pendingAction.store.id, {
-          version: pendingAction.store.version,
+      } else if (action.type === "hold") {
+        updatedStore = await holdStore(action.store.id, {
+          version: action.store.version,
           reason,
         });
-      } else {
-        updatedStore = await rejectStore(pendingAction.store.id, {
-          version: pendingAction.store.version,
+      } else if (action.type === "reject") {
+        updatedStore = await rejectStore(action.store.id, {
+          version: action.store.version,
           reasonCode,
           reason,
         });
       }
 
-      setSelectedStore(updatedStore);
+      const storeWithReview = {
+        ...updatedStore,
+        reviewReason:
+          updatedStore.reviewReason ||
+          (action.type === "hold" || action.type === "reject"
+            ? reason
+            : ""),
+        reviewReasonCode:
+          updatedStore.reviewReasonCode ||
+          (action.type === "reject" ? reasonCode : ""),
+      };
+
+      setSelectedStore(storeWithReview);
       setSuccessMessage(
-        `${updatedStore.name} 신청을 ${STORE_APPROVAL_STATUS_LABELS[updatedStore.approvalStatus]} 처리했습니다.`
+        `${storeWithReview.name} 신청을 ${STORE_APPROVAL_STATUS_LABELS[storeWithReview.approvalStatus]} 처리했습니다.`
       );
-      setPendingAction(null);
       await loadApprovals(approvalPage.page, appliedFilters);
     } catch (error) {
-      if (error.status === 409 && pendingAction?.store?.id) {
+      if (error.status === 409 && action.store?.id) {
         try {
           const refreshedStore = await getStoreApprovalDetail(
-            pendingAction.store.id
+            action.store.id
           );
           setSelectedStore(refreshedStore);
-          setPendingAction((current) =>
-            current ? { ...current, store: refreshedStore } : current
-          );
           await loadApprovals(approvalPage.page, appliedFilters);
         } catch (refreshError) {
           // Preserve the original conflict message if the refresh also fails.
@@ -252,23 +261,21 @@ function AdminStoreApprovals() {
     }
   }
 
-  const reasonDialogOpen =
-    pendingAction?.type === "hold" || pendingAction?.type === "reject";
-  const reasonDialogTitle =
-    pendingAction?.type === "hold" ? "매장 신청 보류" : "매장 신청 반려";
-  const reasonDialogDescription =
-    pendingAction?.type === "hold"
-      ? "추가 확인이 필요한 내용을 기록하고 신청을 보류합니다."
-      : "신청자에게 전달할 수 있도록 반려 사유를 구체적으로 입력해 주세요.";
+  const reasonDialogOpen = ["hold", "reject"].includes(
+    pendingAction?.type
+  );
+  const reasonDialogTitle = getReasonDialogTitle(pendingAction);
+  const reasonDialogDescription = getReasonDialogDescription(pendingAction);
   const selectedStatus = selectedStore?.approvalStatus;
   const canHold = selectedStatus === STORE_APPROVAL_STATUS.PENDING;
   const canApprove =
     selectedStatus === STORE_APPROVAL_STATUS.PENDING ||
-    selectedStatus === STORE_APPROVAL_STATUS.ON_HOLD;
-  const canReject = canApprove;
-  const isTerminalStatus =
-    selectedStatus === STORE_APPROVAL_STATUS.APPROVED ||
+    selectedStatus === STORE_APPROVAL_STATUS.ON_HOLD ||
     selectedStatus === STORE_APPROVAL_STATUS.REJECTED;
+  const canReject =
+    selectedStatus === STORE_APPROVAL_STATUS.PENDING ||
+    selectedStatus === STORE_APPROVAL_STATUS.ON_HOLD ||
+    selectedStatus === STORE_APPROVAL_STATUS.APPROVED;
 
   return (
     <div className="admin-page">
@@ -601,16 +608,15 @@ function AdminStoreApprovals() {
           >
             {isDetailLoading ? (
               <p className="admin-permission-message">신청 상태를 확인하고 있습니다.</p>
-            ) : isTerminalStatus ? (
-              <p className="admin-permission-message">
-                승인 또는 반려가 완료된 신청은 다시 변경할 수 없습니다.
-              </p>
             ) : (
-              <>
-                {canApprove &&
-                selectedStore?.verificationStatus !== VERIFICATION_STATUS.VERIFIED ? (
-                  <p className="admin-action-hint">
-                    사업자 인증 완료 후 승인할 수 있습니다.
+              <div className="admin-status-transition-actions">
+                {selectedStatus === STORE_APPROVAL_STATUS.APPROVED ? (
+                  <p className="admin-permission-message">
+                    현재 승인 상태입니다. 반려로 변경하려면 신청자에게 전달할 사유를 입력해야 합니다.
+                  </p>
+                ) : selectedStatus === STORE_APPROVAL_STATUS.REJECTED ? (
+                  <p className="admin-permission-message">
+                    현재 반려 상태입니다. 다시 승인하면 운영 매장으로 전환됩니다.
                   </p>
                 ) : null}
                 <div className="admin-drawer-actions">
@@ -639,17 +645,13 @@ function AdminStoreApprovals() {
                       type="button"
                       className="admin-button admin-button--primary"
                       onClick={() => requestAction("approve")}
-                      disabled={
-                        isSubmitting ||
-                        selectedStore?.verificationStatus !==
-                          VERIFICATION_STATUS.VERIFIED
-                      }
+                      disabled={isSubmitting}
                     >
                       승인
                     </button>
                   ) : null}
                 </div>
-              </>
+              </div>
             )}
           </PermissionGuard>
         }
@@ -668,7 +670,7 @@ function AdminStoreApprovals() {
       <ConfirmDialog
         isOpen={pendingAction?.type === "approve"}
         title="매장 신청 승인"
-        description={`${pendingAction?.store?.name || "선택한 매장"}을 승인하고 운영 매장으로 전환할까요?`}
+        description={getApproveDialogDescription(pendingAction)}
         confirmLabel="승인하기"
         isSubmitting={isSubmitting}
         onCancel={() => setPendingAction(null)}
@@ -679,7 +681,7 @@ function AdminStoreApprovals() {
         isOpen={reasonDialogOpen}
         title={reasonDialogTitle}
         description={reasonDialogDescription}
-        confirmLabel={pendingAction?.type === "hold" ? "보류하기" : "반려하기"}
+        confirmLabel={getReasonDialogConfirmLabel(pendingAction)}
         reasonCodeOptions={
           pendingAction?.type === "reject"
             ? STORE_REJECTION_REASON_OPTIONS
@@ -770,6 +772,9 @@ function StoreApprovalDetail({
       {store.reviewReason ? (
         <section className="admin-review-reason">
           <h3>최근 처리 사유</h3>
+          {store.reviewReasonCode ? (
+            <span>{getReviewReasonCodeLabel(store.reviewReasonCode)}</span>
+          ) : null}
           <p>{store.reviewReason}</p>
         </section>
       ) : null}
@@ -798,6 +803,56 @@ function formatDateTime(value) {
 
 function formatPrice(value) {
   return `${Number(value).toLocaleString("ko-KR")}원`;
+}
+
+function getReviewReasonCodeLabel(reasonCode) {
+  return (
+    STORE_REJECTION_REASON_OPTIONS.find((option) => option.value === reasonCode)
+      ?.label || reasonCode
+  );
+}
+
+function getReasonDialogTitle(action) {
+  if (action?.type === "hold") {
+    return "매장 신청 보류";
+  }
+  if (action?.type === "reject") {
+    return "매장 신청 반려";
+  }
+
+  return "매장 상태 변경";
+}
+
+function getReasonDialogDescription(action) {
+  if (action?.type === "hold") {
+    return "추가 확인이 필요한 내용을 기록하고 신청을 보류합니다.";
+  }
+  if (action?.type === "reject") {
+    return action?.store?.approvalStatus === STORE_APPROVAL_STATUS.APPROVED
+      ? "승인 상태를 반려로 변경합니다. 신청자에게 전달할 반려 사유를 구체적으로 입력해 주세요."
+      : "신청자에게 전달할 수 있도록 반려 사유를 구체적으로 입력해 주세요.";
+  }
+
+  return "변경할 상태를 확인해 주세요.";
+}
+
+function getReasonDialogConfirmLabel(action) {
+  if (action?.type === "hold") {
+    return "보류하기";
+  }
+  if (action?.type === "reject") {
+    return "반려하기";
+  }
+
+  return "변경하기";
+}
+
+function getApproveDialogDescription(action) {
+  const storeName = action?.store?.name || "선택한 매장";
+
+  return action?.store?.approvalStatus === STORE_APPROVAL_STATUS.REJECTED
+    ? `${storeName}의 반려 상태를 승인으로 변경하고 운영 매장으로 전환할까요?`
+    : `${storeName}을 승인하고 운영 매장으로 전환할까요?`;
 }
 
 export default AdminStoreApprovals;
