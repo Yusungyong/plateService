@@ -155,7 +155,7 @@ function RestaurantRegistration() {
     setCreatedRestaurantId(null);
     setIsSubmitting(true);
     setMessageType("success");
-    setMessage("파일 업로드와 가게 등록을 진행 중입니다.");
+    setMessage("파일 업로드와 매장 등록을 진행 중입니다.");
 
     try {
       const payload = await buildRestaurantPayload(restaurant, menus);
@@ -166,12 +166,12 @@ function RestaurantRegistration() {
       setCreatedRestaurantId(restaurantId || null);
       setMessage(
         restaurantId
-          ? `가게 정보가 등록되었습니다. 등록 ID: ${restaurantId}`
-          : "가게 정보가 등록되었습니다."
+          ? `매장 정보가 등록되었습니다. 등록 ID: ${restaurantId}`
+          : "매장 정보가 등록되었습니다."
       );
     } catch (error) {
       setMessageType("error");
-      setMessage(error.message || "가게 정보 등록에 실패했습니다.");
+      setMessage(error.message || "매장 정보 등록에 실패했습니다.");
     } finally {
       setIsSubmitting(false);
     }
@@ -179,7 +179,7 @@ function RestaurantRegistration() {
 
   return (
     <PageLayout
-      title="내 가게 등록"
+      title="내 매장 등록"
       description="앱에 노출될 매장 기본 정보, 대표 메뉴, 사진과 영상을 등록합니다."
     >
       <form key={formVersion} className="stack-layout restaurant-registration" onSubmit={handleSubmit}>
@@ -196,13 +196,13 @@ function RestaurantRegistration() {
         {createdRestaurantId ? (
           <div className="restaurant-next-actions" role="group" aria-label="등록 후 다음 작업">
             <Link className="restaurant-text-link" to={`/business/stores/${createdRestaurantId}`}>
-              등록한 가게 수정
+              등록한 매장 수정
             </Link>
             <Link className="restaurant-text-link restaurant-text-link--secondary" to="/business/stores">
-              내 가게 목록
+              내 매장 목록
             </Link>
             <button type="button" onClick={resetForm}>
-              새 가게 계속 등록
+              새 매장 계속 등록
             </button>
           </div>
         ) : null}
@@ -219,7 +219,7 @@ function RestaurantRegistration() {
                 <div className="admin-inline-fields">
                   <label className="admin-field">
                     <span>
-                      가게 이름 <em className="field-required" aria-label="필수">*</em>
+                      매장 이름 <em className="field-required" aria-label="필수">*</em>
                     </span>
                     <input
                       ref={(element) => {
@@ -353,7 +353,7 @@ function RestaurantRegistration() {
 
               <div className="restaurant-media-grid">
                 <MediaUploadField
-                  label="가게 대표 이미지"
+                  label="매장 대표 이미지"
                   accept="image/*"
                   file={restaurant.representativeImage}
                   emptyText="대표 이미지를 선택해 주세요."
@@ -361,7 +361,7 @@ function RestaurantRegistration() {
                 />
 
                 <MediaUploadField
-                  label="가게 대표 동영상"
+                  label="매장 대표 동영상"
                   accept="video/*"
                   file={restaurant.representativeVideo}
                   emptyText="대표 동영상을 선택해 주세요."
@@ -466,7 +466,7 @@ function RestaurantRegistration() {
           <aside className="support-panel restaurant-registration-aside">
             <div className="support-panel__header">
               <span className="support-kicker">요약</span>
-              <h3>{restaurant.name.trim() || "가게 이름 미입력"}</h3>
+              <h3>{restaurant.name.trim() || "매장 이름 미입력"}</h3>
             </div>
             <dl className="restaurant-summary">
               <div>
@@ -568,11 +568,11 @@ function validateRestaurantForm(restaurant, menus) {
   const errors = {};
 
   if (!restaurant.name.trim()) {
-    errors.name = "가게 이름을 입력해 주세요.";
+    errors.name = "매장 이름을 입력해 주세요.";
   }
 
   if (!restaurant.address.trim()) {
-    errors.address = "가게 주소를 입력해 주세요.";
+    errors.address = "매장 주소를 입력해 주세요.";
   }
 
   if (restaurant.categories.length === 0) {

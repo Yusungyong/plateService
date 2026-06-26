@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import PageLayout from "../components/PageLayout";
 import { useAuth } from "../auth/AuthContext";
 import { createQna, fetchQna, updateQna } from "../api/qnaApi";
@@ -15,6 +15,19 @@ const initialAnswerDraft = {
   statusCode: "reviewing",
   isPublic: true,
 };
+
+const initialQnaFilters = {
+  category: "",
+  statusCode: "",
+};
+
+const qnaCategoryOptions = ["이용문의", "오류제보", "계정문의", "기타"];
+const qnaStatusOptions = [
+  { value: "received", label: "접수" },
+  { value: "reviewing", label: "검토 중" },
+  { value: "answered", label: "답변 완료" },
+  { value: "hidden", label: "비공개" },
+];
 
 function getStatusLabel(statusCode) {
   switch (statusCode) {
@@ -67,6 +80,8 @@ function normalizeEntries(response) {
 function QnA({ adminMode = false }) {
   const { isAuthenticated, user } = useAuth();
   const [entries, setEntries] = useState([]);
+  const [filters, setFilters] = useState(initialQnaFilters);
+  const [appliedFilters, setAppliedFilters] = useState(initialQnaFilters);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [submitMessage, setSubmitMessage] = useState("");
@@ -78,9 +93,36 @@ function QnA({ adminMode = false }) {
   }));
   const [answerDraft, setAnswerDraft] = useState(initialAnswerDraft);
 
+  const loadEntries = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError("");
+
+    try {
+      const response = await fetchQna({
+        page: 0,
+        size: 10,
+        category: appliedFilters.category,
+        statusCode: appliedFilters.statusCode,
+      });
+      const nextEntries = normalizeEntries(response);
+      setEntries(nextEntries);
+      setSelectedQnaId((current) =>
+        nextEntries.some((entry) => entry.qnaId === current)
+          ? current
+          : nextEntries[0]?.qnaId || null
+      );
+    } catch (error) {
+      setEntries([]);
+      setSelectedQnaId(null);
+      setLoadError("Q&A 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [appliedFilters]);
+
   useEffect(() => {
     loadEntries();
-  }, []);
+  }, [loadEntries]);
 
   const selectedEntry = useMemo(() => {
     return entries.find((entry) => entry.qnaId === selectedQnaId) || entries[0] || null;
@@ -98,33 +140,28 @@ function QnA({ adminMode = false }) {
     });
   }, [adminMode, selectedEntry]);
 
-  async function loadEntries() {
-    setIsLoading(true);
-    setLoadError("");
-
-    try {
-      const response = await fetchQna({ page: 0, size: 10 });
-      const nextEntries = normalizeEntries(response);
-      setEntries(nextEntries);
-      setSelectedQnaId((current) =>
-        nextEntries.some((entry) => entry.qnaId === current)
-          ? current
-          : nextEntries[0]?.qnaId || null
-      );
-    } catch (error) {
-      setEntries([]);
-      setSelectedQnaId(null);
-      setLoadError("Q&A 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
   function updateField(field, value) {
     setForm((current) => ({
       ...current,
       [field]: value,
     }));
+  }
+
+  function updateQnaFilter(field, value) {
+    setFilters((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  function handleFilterSubmit(event) {
+    event.preventDefault();
+    setAppliedFilters(filters);
+  }
+
+  function resetFilters() {
+    setFilters(initialQnaFilters);
+    setAppliedFilters(initialQnaFilters);
   }
 
   function resetForm() {
@@ -158,13 +195,13 @@ function QnA({ adminMode = false }) {
       isPublic: true,
     };
 
+    if (guestEmail) {
+      payload.guestEmail = guestEmail;
+    }
+
     if (!isAuthenticated) {
       if (guestName) {
         payload.guestName = guestName;
-      }
-
-      if (guestEmail) {
-        payload.guestEmail = guestEmail;
       }
     }
 
@@ -239,6 +276,13 @@ function QnA({ adminMode = false }) {
             {submitMessage}
           </div>
         ) : null}
+
+        <QnaFilterPanel
+          filters={filters}
+          onChange={updateQnaFilter}
+          onSubmit={handleFilterSubmit}
+          onReset={resetFilters}
+        />
 
         <div className="faq-columns faq-columns--admin">
           <section className="board-table" aria-label="Q&A 목록">
@@ -385,7 +429,7 @@ function QnA({ adminMode = false }) {
   return (
     <PageLayout
       title="질문과 답변"
-      description="로그인 여부와 관계없이 질문을 남길 수 있는 Q&A 화면입니다. 접수된 질문과 답변 흐름을 같은 화면에서 확인할 수 있습니다."
+      description="공개 Q&A로 질문을 남기고 운영팀 답변 흐름을 확인합니다."
     >
       <div className="stack-layout">
         <section className="support-panel support-panel--split">
@@ -395,11 +439,15 @@ function QnA({ adminMode = false }) {
               <h3>비로그인 사용자도 문의를 접수할 수 있습니다.</h3>
             </div>
             <p className="page-layout__description">
-              질문 등록은 공개로 열어두고, 답변 관리는 관리자 화면에서 처리하는 구조를 기준으로 잡았습니다.
+              접수된 질문은 공개 Q&A 목록에 표시됩니다. 계정, 연락처, 결제, 사업자 정보처럼 개인 확인이 필요한 내용은 질문에 포함하지 마세요.
             </p>
           </div>
 
           <form className="admin-form" onSubmit={handleCreate}>
+            <div className="api-status qna-scope-notice" role="note">
+              공개 질문으로 등록됩니다. 답변 받을 이메일은 운영팀 확인과 답변 안내 목적으로만 사용되며 목록에는 표시되지 않습니다.
+            </div>
+
             <div className="admin-inline-fields">
               <label className="admin-field">
                 <span>작성자명</span>
@@ -419,6 +467,9 @@ function QnA({ adminMode = false }) {
                   onChange={(event) => updateField("email", event.target.value)}
                   placeholder="선택 입력"
                 />
+                <small className="restaurant-field-hint">
+                  이메일은 공개 목록에 표시되지 않습니다.
+                </small>
               </label>
             </div>
 
@@ -441,8 +492,11 @@ function QnA({ adminMode = false }) {
                 rows={6}
                 value={form.question}
                 onChange={(event) => updateField("question", event.target.value)}
-                placeholder="문의하실 내용을 자세히 남겨 주세요."
+                placeholder="공개되어도 괜찮은 문의 내용을 남겨 주세요."
               />
+              <small className="restaurant-field-hint">
+                개인정보가 포함된 문의는 공개 Q&A에 남기지 말아 주세요.
+              </small>
             </label>
 
             {submitMessage ? (
@@ -467,6 +521,13 @@ function QnA({ adminMode = false }) {
             </div>
           </form>
         </section>
+
+        <QnaFilterPanel
+          filters={filters}
+          onChange={updateQnaFilter}
+          onSubmit={handleFilterSubmit}
+          onReset={resetFilters}
+        />
 
         {loadError ? (
           <div className="api-status api-status--error" role="alert">
@@ -517,6 +578,51 @@ function QnA({ adminMode = false }) {
         )}
       </div>
     </PageLayout>
+  );
+}
+
+function QnaFilterPanel({ filters, onChange, onSubmit, onReset }) {
+  return (
+    <form className="restaurant-filter-form qna-filter-form" onSubmit={onSubmit}>
+      <label className="admin-field">
+        <span>문의 유형</span>
+        <select
+          value={filters.category}
+          onChange={(event) => onChange("category", event.target.value)}
+        >
+          <option value="">전체</option>
+          {qnaCategoryOptions.map((category) => (
+            <option key={category} value={category}>
+              {category}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="admin-field">
+        <span>상태</span>
+        <select
+          value={filters.statusCode}
+          onChange={(event) => onChange("statusCode", event.target.value)}
+        >
+          <option value="">전체</option>
+          {qnaStatusOptions.map((status) => (
+            <option key={status.value} value={status.value}>
+              {status.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <div className="admin-actions restaurant-filter-actions">
+        <button type="button" onClick={onReset}>
+          초기화
+        </button>
+        <button type="submit" className="button-primary">
+          조회
+        </button>
+      </div>
+    </form>
   );
 }
 

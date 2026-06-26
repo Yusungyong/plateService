@@ -10,6 +10,11 @@ import PageLayout from "../components/PageLayout";
 
 const categoryOptions = ["한식", "중식", "일식", "양식", "분식", "카페", "디저트", "패스트푸드", "주점", "기타"];
 const maxCategoryCount = 4;
+const exposureStatusDescriptions = {
+  draft: "고객에게 보이지 않는 상태입니다. 정보를 준비하거나 잠시 숨길 때 사용하세요.",
+  review: "노출 전 운영팀 확인이 필요한 상태입니다. 검수가 끝나면 노출 여부를 결정할 수 있습니다.",
+  published: "고객에게 바로 보이는 상태입니다. 주소, 메뉴, 대표 이미지를 먼저 확인해 주세요.",
+};
 
 const emptyRestaurant = {
   title: "",
@@ -51,7 +56,7 @@ function RestaurantDetail() {
       setFormVersion((current) => current + 1);
     } catch (error) {
       setMessageType("error");
-      setMessage(error.message || "가게 상세 정보를 불러오지 못했습니다.");
+      setMessage(error.message || "매장 상세 정보를 불러오지 못했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -172,17 +177,17 @@ function RestaurantDetail() {
     setFieldErrors({});
     setIsSubmitting(true);
     setMessageType("success");
-    setMessage("가게 정보를 수정 중입니다.");
+    setMessage("매장 정보를 수정 중입니다.");
 
     try {
       const payload = await buildUpdatePayload(restaurant, menus);
       await updateRestaurant(restaurantId, payload);
       setMessageType("success");
-      setMessage("가게 정보가 수정되었습니다.");
+      setMessage("매장 정보가 수정되었습니다.");
       await loadRestaurant();
     } catch (error) {
       setMessageType("error");
-      setMessage(error.message || "가게 정보 수정에 실패했습니다.");
+      setMessage(error.message || "매장 정보 수정에 실패했습니다.");
     } finally {
       setIsSubmitting(false);
     }
@@ -190,16 +195,16 @@ function RestaurantDetail() {
 
   if (isLoading) {
     return (
-      <PageLayout title="내 가게 상세 관리" description="등록된 가게 정보를 불러오고 있습니다.">
-        <div className="board-empty">가게 상세 정보를 불러오는 중입니다.</div>
+      <PageLayout title="내 매장 상세 관리" description="등록된 매장 정보를 불러오고 있습니다.">
+        <div className="board-empty">매장 상세 정보를 불러오는 중입니다.</div>
       </PageLayout>
     );
   }
 
   return (
     <PageLayout
-      title="내 가게 상세 관리"
-      description="고객에게 보일 가게 기본 정보, 메뉴, 사진과 영상을 수정합니다."
+      title="내 매장 상세 관리"
+      description="고객에게 보일 매장 기본 정보, 메뉴, 사진과 영상을 수정합니다."
     >
       <form key={formVersion} className="stack-layout restaurant-registration" onSubmit={handleSubmit}>
         {message ? (
@@ -216,7 +221,7 @@ function RestaurantDetail() {
           <div className="support-panel__header restaurant-menu-header">
             <div>
               <span className="support-kicker">기본 정보</span>
-              <h3>{restaurant.title || "가게 이름 미입력"}</h3>
+              <h3>{restaurant.title || "매장 이름 미입력"}</h3>
             </div>
             <Link className="restaurant-text-link" to="/business/stores">
               목록으로
@@ -226,7 +231,7 @@ function RestaurantDetail() {
           <div className="admin-form">
             <label className="admin-field">
               <span>
-                가게 이름 <em className="field-required" aria-label="필수">*</em>
+                매장 이름 <em className="field-required" aria-label="필수">*</em>
               </span>
               <input
                 ref={(element) => {
@@ -337,6 +342,9 @@ function RestaurantDetail() {
                 <option value="review">검수 요청</option>
                 <option value="published">즉시 노출</option>
               </select>
+              <small className="restaurant-field-hint">
+                {getExposureStatusDescription(restaurant.exposureStatus)}
+              </small>
             </label>
 
             <label className="admin-field">
@@ -355,7 +363,7 @@ function RestaurantDetail() {
 
             <div className="restaurant-media-grid">
               <MediaUploadField
-                label="가게 대표 이미지 추가"
+                label="매장 대표 이미지 추가"
                 accept="image/*"
                 file={restaurant.representativeImage}
                 emptyText="새 이미지를 선택하지 않으면 기존 미디어를 유지합니다."
@@ -363,7 +371,7 @@ function RestaurantDetail() {
               />
 
               <MediaUploadField
-                label="가게 대표 동영상 추가"
+                label="매장 대표 동영상 추가"
                 accept="video/*"
                 file={restaurant.representativeVideo}
                 emptyText="새 동영상을 선택하지 않으면 기존 미디어를 유지합니다."
@@ -608,11 +616,11 @@ function validateRestaurantForm(restaurant, menus) {
   const errors = {};
 
   if (!restaurant.title.trim()) {
-    errors.title = "가게 이름을 입력해 주세요.";
+    errors.title = "매장 이름을 입력해 주세요.";
   }
 
   if (!restaurant.address.trim()) {
-    errors.address = "가게 주소를 입력해 주세요.";
+    errors.address = "매장 주소를 입력해 주세요.";
   }
 
   if (restaurant.categories.length === 0) {
@@ -806,6 +814,10 @@ function toExposureStatusLabel(status) {
     default:
       return status || "-";
   }
+}
+
+function getExposureStatusDescription(status) {
+  return exposureStatusDescriptions[status] || "현재 노출 상태를 확인해 주세요.";
 }
 
 function toMediaTypeLabel(mediaType) {

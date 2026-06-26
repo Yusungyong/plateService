@@ -168,8 +168,13 @@ function AdminDashboard() {
             <span>실시간 운영 기록</span>
             <h2>최근 활동</h2>
           </div>
-          <button type="button" className="admin-button admin-button--secondary">
-            전체 활동 보기
+          <button
+            type="button"
+            className="admin-button admin-button--secondary"
+            disabled
+            title="전체 활동 상세 화면을 준비하고 있습니다."
+          >
+            활동 보기 준비 중
           </button>
         </div>
         <div className="admin-table-scroll admin-recent-activity-table">

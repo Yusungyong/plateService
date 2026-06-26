@@ -10,6 +10,11 @@ const initialFilters = {
 };
 
 const categoryOptions = ["한식", "중식", "일식", "양식", "분식", "카페", "디저트", "패스트푸드", "주점", "기타"];
+const exposureStatusDescriptions = {
+  draft: "고객에게 보이지 않는 상태입니다. 정보를 준비하거나 잠시 숨길 때 사용하세요.",
+  review: "노출 전 운영팀 확인이 필요한 상태입니다. 검수가 끝나면 노출 여부를 결정할 수 있습니다.",
+  published: "고객에게 바로 보이는 상태입니다. 주소, 메뉴, 대표 이미지를 먼저 확인해 주세요.",
+};
 
 function RestaurantManagement() {
   const [filters, setFilters] = useState(initialFilters);
@@ -24,6 +29,7 @@ function RestaurantManagement() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [deletingRestaurantId, setDeletingRestaurantId] = useState(null);
+  const [pendingDeleteRestaurant, setPendingDeleteRestaurant] = useState(null);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("success");
 
@@ -42,7 +48,7 @@ function RestaurantManagement() {
       setRestaurantPage(normalizeRestaurantPage(response));
     } catch (error) {
       setMessageType("error");
-      setMessage(error.message || "가게 목록을 불러오지 못했습니다.");
+      setMessage(error.message || "매장 목록을 불러오지 못했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -69,19 +75,21 @@ function RestaurantManagement() {
     setAppliedFilters(initialFilters);
   }
 
-  async function handleDelete(restaurant) {
+  function requestDelete(restaurant) {
     const restaurantId = restaurant.id || restaurant.restaurantId;
 
     if (!restaurantId) {
       return;
     }
 
-    const restaurantName = restaurant.title || restaurant.name || "가게";
-    const confirmed = window.confirm(
-      `${restaurantName} 정보를 삭제할까요?\n\n등록된 메뉴와 미디어 정보도 함께 삭제됩니다.`
-    );
+    setPendingDeleteRestaurant(restaurant);
+    setMessage("");
+  }
 
-    if (!confirmed) {
+  async function confirmDelete() {
+    const restaurantId = pendingDeleteRestaurant?.id || pendingDeleteRestaurant?.restaurantId;
+
+    if (!restaurantId) {
       return;
     }
 
@@ -91,11 +99,12 @@ function RestaurantManagement() {
     try {
       await deleteRestaurant(restaurantId);
       setMessageType("success");
-      setMessage("가게 정보가 삭제되었습니다.");
+      setMessage("매장 정보가 삭제되었습니다.");
       await loadRestaurants(restaurantPage.page, appliedFilters);
+      setPendingDeleteRestaurant(null);
     } catch (error) {
       setMessageType("error");
-      setMessage(error.message || "가게 삭제에 실패했습니다.");
+      setMessage(error.message || "매장 삭제에 실패했습니다.");
     } finally {
       setDeletingRestaurantId(null);
     }
@@ -103,8 +112,8 @@ function RestaurantManagement() {
 
   return (
     <PageLayout
-      title="내 가게 관리"
-      description="내 계정에 연결된 가게 정보를 확인하고 메뉴, 사진, 노출 상태를 관리합니다."
+      title="내 매장 관리"
+      description="내 계정에 연결된 매장 정보를 확인하고 메뉴, 사진, 노출 상태를 관리합니다."
     >
       <div className="stack-layout restaurant-registration">
         {message ? (
@@ -121,7 +130,7 @@ function RestaurantManagement() {
                 type="search"
                 value={filters.keyword}
                 onChange={(event) => updateFilter("keyword", event.target.value)}
-                placeholder="가게 이름 또는 주소"
+                placeholder="매장 이름 또는 주소"
               />
             </label>
 
@@ -162,6 +171,7 @@ function RestaurantManagement() {
               </button>
             </div>
           </form>
+          <ExposureStatusGuide />
         </section>
 
         <section className="support-panel">
@@ -171,13 +181,13 @@ function RestaurantManagement() {
               <h3>총 {restaurantPage.totalElements.toLocaleString()}개</h3>
             </div>
             <Link className="restaurant-text-link" to="/business/signup">
-              새 가게 등록
+              새 입점 신청
             </Link>
           </div>
 
-            <div className="restaurant-table" role="table" aria-label="내 가게 목록">
+            <div className="restaurant-table" role="table" aria-label="내 매장 목록">
               <div className="restaurant-table__head" role="row">
-              <span role="columnheader">가게</span>
+              <span role="columnheader">매장</span>
               <span role="columnheader">카테고리</span>
               <span role="columnheader">상태</span>
               <span role="columnheader">메뉴</span>
@@ -187,9 +197,9 @@ function RestaurantManagement() {
 
             <div className="restaurant-table__body">
               {isLoading ? (
-                <div className="board-empty">가게 목록을 불러오는 중입니다.</div>
+                <div className="board-empty">매장 목록을 불러오는 중입니다.</div>
               ) : restaurants.length === 0 ? (
-                <div className="board-empty">조회된 가게가 없습니다.</div>
+                <div className="board-empty">조회된 매장이 없습니다.</div>
               ) : (
                 restaurants.map((restaurant) => {
                   const restaurantId = restaurant.id || restaurant.restaurantId;
@@ -198,9 +208,9 @@ function RestaurantManagement() {
 
                   return (
                     <div key={restaurantId || restaurant.title} className="restaurant-table__row" role="row">
-                      <div className="restaurant-list-title" role="cell" data-label="가게">
+                      <div className="restaurant-list-title" role="cell" data-label="매장">
                         {representativeImageUrl ? (
-                          <img src={representativeImageUrl} alt={`${restaurant.title || restaurant.name || "가게"} 대표 이미지`} />
+                          <img src={representativeImageUrl} alt={`${restaurant.title || restaurant.name || "매장"} 대표 이미지`} />
                         ) : (
                           <span className="restaurant-list-title__empty" aria-label="대표 이미지 없음" />
                         )}
@@ -223,7 +233,7 @@ function RestaurantManagement() {
                         <Link to={`/business/stores/${restaurantId}`}>상세</Link>
                         <button
                           type="button"
-                          onClick={() => handleDelete(restaurant)}
+                          onClick={() => requestDelete(restaurant)}
                           disabled={deletingRestaurantId !== null}
                         >
                           {isDeletingThisRow ? "삭제 중" : "삭제"}
@@ -256,8 +266,56 @@ function RestaurantManagement() {
             </button>
           </div>
         </section>
+        <DeleteRestaurantDialog
+          restaurant={pendingDeleteRestaurant}
+          isSubmitting={deletingRestaurantId !== null}
+          onCancel={() => setPendingDeleteRestaurant(null)}
+          onConfirm={confirmDelete}
+        />
       </div>
     </PageLayout>
+  );
+}
+
+function ExposureStatusGuide() {
+  return (
+    <dl className="restaurant-exposure-guide">
+      {Object.entries(exposureStatusDescriptions).map(([status, description]) => (
+        <div key={status}>
+          <dt>{toExposureStatusLabel(status)}</dt>
+          <dd>{description}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function DeleteRestaurantDialog({ restaurant, isSubmitting, onCancel, onConfirm }) {
+  if (!restaurant) {
+    return null;
+  }
+
+  const restaurantName = restaurant.title || restaurant.name || "선택한 매장";
+
+  return (
+    <div className="restaurant-dialog-layer">
+      <div className="restaurant-dialog" role="dialog" aria-modal="true" aria-label="매장 삭제">
+        <header>
+          <h3>매장 정보 삭제</h3>
+          <p>
+            {restaurantName} 정보를 삭제할까요? 등록된 메뉴와 미디어 정보도 함께 삭제됩니다.
+          </p>
+        </header>
+        <div className="restaurant-dialog__actions">
+          <button type="button" onClick={onCancel} disabled={isSubmitting}>
+            취소
+          </button>
+          <button type="button" className="button-danger" onClick={onConfirm} disabled={isSubmitting}>
+            {isSubmitting ? "삭제 중" : "삭제하기"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createFaq, deleteFaq, fetchFaqDetail, fetchFaqs, updateFaq } from "../api/faqApi";
+import ConfirmDialog from "../admin/components/ConfirmDialog";
 import PageLayout from "../components/PageLayout";
 
 const emptyDraft = {
@@ -11,6 +12,11 @@ const emptyDraft = {
   status: "published",
 };
 
+const initialFaqFilters = {
+  category: "",
+  keyword: "",
+};
+
 const categoryLabels = {
   notice: "공지",
   account: "계정",
@@ -19,6 +25,8 @@ const categoryLabels = {
 };
 
 function FAQ({ adminMode = false }) {
+  const [filters, setFilters] = useState(initialFaqFilters);
+  const [appliedFilters, setAppliedFilters] = useState(initialFaqFilters);
   const [faqPage, setFaqPage] = useState({
     content: [],
     page: 0,
@@ -38,10 +46,47 @@ function FAQ({ adminMode = false }) {
   const [loadError, setLoadError] = useState("");
   const [submitMessage, setSubmitMessage] = useState("");
   const [submitError, setSubmitError] = useState("");
+  const [pendingDeleteFaqId, setPendingDeleteFaqId] = useState(null);
+
+  const loadFaqList = useCallback(async (nextSelectedFaqId) => {
+    setIsListLoading(true);
+    setLoadError("");
+
+    try {
+      const response = await fetchFaqs({
+        page: 0,
+        size: 10,
+        category: appliedFilters.category,
+        keyword: appliedFilters.keyword.trim(),
+      });
+      const content = Array.isArray(response?.content) ? response.content : [];
+      const fallbackFaqId = content[0]?.faqId ?? null;
+      const resolvedFaqId =
+        nextSelectedFaqId && content.some((item) => item.faqId === nextSelectedFaqId)
+          ? nextSelectedFaqId
+          : fallbackFaqId;
+
+      setFaqPage({
+        content,
+        page: response?.page ?? 0,
+        size: response?.size ?? 10,
+        totalElements: response?.totalElements ?? content.length,
+        totalPages: response?.totalPages ?? 1,
+        hasNext: response?.hasNext ?? false,
+      });
+      setSelectedFaqId(resolvedFaqId);
+      return content;
+    } catch (error) {
+      setLoadError("FAQ 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      return [];
+    } finally {
+      setIsListLoading(false);
+    }
+  }, [appliedFilters]);
 
   useEffect(() => {
     loadFaqList();
-  }, []);
+  }, [loadFaqList]);
 
   useEffect(() => {
     let ignore = false;
@@ -86,37 +131,6 @@ function FAQ({ adminMode = false }) {
 
     return faqPosts.find((post) => post.faqId === selectedFaqId) || faqPosts[0] || null;
   }, [faqPosts, selectedFaqDetail, selectedFaqId]);
-
-  async function loadFaqList(nextSelectedFaqId) {
-    setIsListLoading(true);
-    setLoadError("");
-
-    try {
-      const response = await fetchFaqs({ page: 0, size: 10 });
-      const content = Array.isArray(response?.content) ? response.content : [];
-      const fallbackFaqId = content[0]?.faqId ?? null;
-      const resolvedFaqId =
-        nextSelectedFaqId && content.some((item) => item.faqId === nextSelectedFaqId)
-          ? nextSelectedFaqId
-          : fallbackFaqId;
-
-      setFaqPage({
-        content,
-        page: response?.page ?? 0,
-        size: response?.size ?? 10,
-        totalElements: response?.totalElements ?? content.length,
-        totalPages: response?.totalPages ?? 1,
-        hasNext: response?.hasNext ?? false,
-      });
-      setSelectedFaqId(resolvedFaqId);
-      return content;
-    } catch (error) {
-      setLoadError("FAQ 목록을 불러오지 못했습니다. API 응답을 확인해 주세요.");
-      return [];
-    } finally {
-      setIsListLoading(false);
-    }
-  }
 
   function resetDraft() {
     setDraft(emptyDraft);
@@ -174,9 +188,7 @@ function FAQ({ adminMode = false }) {
         response = await updateFaq(selectedFaq.faqId, payload);
         setSubmitMessage("FAQ를 수정했습니다.");
       } else {
-        console.log("[FAQ CREATE] request", payload);
         response = await createFaq(payload);
-        console.log("[FAQ CREATE] response", response);
         setSubmitMessage("FAQ를 등록했습니다.");
       }
 
@@ -192,13 +204,34 @@ function FAQ({ adminMode = false }) {
     }
   }
 
-  async function handleDeleteFaq(faqId) {
-    if (!faqId) {
-      return;
-    }
+  function requestDeleteFaq(faqId) {
+    setPendingDeleteFaqId(faqId);
+    setSubmitError("");
+    setSubmitMessage("");
+  }
 
-    const shouldDelete = window.confirm("선택한 FAQ를 삭제하시겠습니까?");
-    if (!shouldDelete) {
+  function updateFilter(field, value) {
+    setFilters((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  function handleSearch(event) {
+    event.preventDefault();
+    setAppliedFilters({
+      category: filters.category,
+      keyword: filters.keyword.trim(),
+    });
+  }
+
+  function resetFilters() {
+    setFilters(initialFaqFilters);
+    setAppliedFilters(initialFaqFilters);
+  }
+
+  async function confirmDeleteFaq() {
+    if (!pendingDeleteFaqId) {
       return;
     }
 
@@ -207,10 +240,11 @@ function FAQ({ adminMode = false }) {
     setSubmitMessage("");
 
     try {
-      await deleteFaq(faqId);
+      await deleteFaq(pendingDeleteFaqId);
       await loadFaqList();
       resetDraft();
       setSubmitMessage("FAQ를 삭제했습니다.");
+      setPendingDeleteFaqId(null);
     } catch (error) {
       setSubmitError(error.message || "FAQ 삭제에 실패했습니다.");
     } finally {
@@ -230,6 +264,41 @@ function FAQ({ adminMode = false }) {
       <div className="faq-topline">
         <strong>전체 {faqPage.totalElements}건</strong>
       </div>
+
+      <form className="restaurant-filter-form faq-filter-form" onSubmit={handleSearch}>
+        <label className="admin-field">
+          <span>분류</span>
+          <select
+            value={filters.category}
+            onChange={(event) => updateFilter("category", event.target.value)}
+          >
+            <option value="">전체</option>
+            <option value="notice">공지</option>
+            <option value="account">계정</option>
+            <option value="service">서비스</option>
+            <option value="policy">정책</option>
+          </select>
+        </label>
+
+        <label className="admin-field">
+          <span>검색어</span>
+          <input
+            type="search"
+            value={filters.keyword}
+            onChange={(event) => updateFilter("keyword", event.target.value)}
+            placeholder="FAQ 제목 또는 답변"
+          />
+        </label>
+
+        <div className="admin-actions restaurant-filter-actions">
+          <button type="button" onClick={resetFilters}>
+            초기화
+          </button>
+          <button type="submit" className="button-primary">
+            조회
+          </button>
+        </div>
+      </form>
 
       {loadError ? <div className="api-status api-status--error">{loadError}</div> : null}
 
@@ -294,7 +363,7 @@ function FAQ({ adminMode = false }) {
                             <button
                               type="button"
                               className="button-danger"
-                              onClick={() => handleDeleteFaq(post.faqId)}
+                              onClick={() => requestDeleteFaq(post.faqId)}
                               disabled={isSubmitting}
                             >
                               삭제
@@ -440,6 +509,15 @@ function FAQ({ adminMode = false }) {
           </aside>
         ) : null}
       </div>
+      <ConfirmDialog
+        isOpen={Boolean(pendingDeleteFaqId)}
+        title="FAQ 삭제"
+        description="삭제한 FAQ는 사용자 화면에 더 이상 노출되지 않습니다. 계속 삭제할까요?"
+        confirmLabel="삭제하기"
+        isSubmitting={isSubmitting}
+        onCancel={() => setPendingDeleteFaqId(null)}
+        onConfirm={confirmDeleteFaq}
+      />
     </PageLayout>
   );
 }

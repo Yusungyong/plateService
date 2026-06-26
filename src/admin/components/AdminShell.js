@@ -141,7 +141,7 @@ function AdminShell({ children }) {
           </div>
 
           <form className="admin-global-search" onSubmit={handleGlobalSearch}>
-            <label htmlFor="admin-global-search">통합 검색</label>
+            <label htmlFor="admin-global-search">승인 검색</label>
             <input
               id="admin-global-search"
               type="search"
@@ -153,7 +153,13 @@ function AdminShell({ children }) {
           </form>
 
           <div className="admin-profile">
-            <button type="button" className="admin-notification" aria-label="알림">
+            <button
+              type="button"
+              className="admin-notification"
+              aria-label="알림 준비 중"
+              title="알림 기능을 준비하고 있습니다."
+              disabled
+            >
               <span aria-hidden="true">!</span>
             </button>
             <div className="admin-profile__identity">

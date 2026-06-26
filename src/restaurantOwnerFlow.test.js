@@ -106,6 +106,20 @@ test("shows the application status navigation from regular pages after login", a
     "/business/applications"
   );
   expect(await screen.findByText("조회된 FAQ가 없습니다.")).toBeInTheDocument();
+
+  fireEvent.change(screen.getByLabelText("분류"), {
+    target: { value: "account" },
+  });
+  fireEvent.change(screen.getByLabelText("검색어"), {
+    target: { value: "비밀번호" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "조회" }));
+
+  await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+  const lastRequestUrl = global.fetch.mock.calls.at(-1)[0];
+  expect(lastRequestUrl).toContain("/api/faqs?");
+  expect(lastRequestUrl).toContain("category=account");
+  expect(decodeURIComponent(lastRequestUrl)).toContain("keyword=비밀번호");
 });
 
 test("checks business signup account fields on blur", async () => {
@@ -226,7 +240,7 @@ test("shows owner shell and loads linked stores", async () => {
 
   expect(screen.getByRole("heading", { name: "식당 비즈니스 센터" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "매장 관리" })).toHaveAttribute("href", "/business/stores");
-  expect(screen.getByRole("link", { name: "새 가게 등록" })).toHaveAttribute("href", "/business/signup");
+  expect(screen.getByRole("link", { name: "새 입점 신청" })).toHaveAttribute("href", "/business/signup");
   expect(await screen.findByText("플레이팅 키친 강남점")).toBeInTheDocument();
   expect(screen.getAllByText("즉시 노출").length).toBeGreaterThan(0);
   expect(global.fetch).toHaveBeenCalledWith(
@@ -458,6 +472,8 @@ test("submits a public business signup through the owner application API", async
   fireEvent.click(screen.getByRole("button", { name: "입점 신청 제출" }));
 
   expect(await screen.findByText("입점 신청이 접수되었습니다. 운영팀 검토가 끝나면 상태가 변경됩니다.")).toBeInTheDocument();
+  expect(await screen.findByText("운영팀이 신청 정보를 검토 중입니다.")).toBeInTheDocument();
+  expect(screen.getByText("한식")).toBeInTheDocument();
   await waitFor(() => {
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/owner/signup-account-validations"),

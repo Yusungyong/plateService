@@ -94,6 +94,9 @@ function Signup() {
                 aria-invalid={Boolean(fieldErrors.username)}
                 placeholder="영문, 숫자 조합"
               />
+              <small className="restaurant-field-hint">
+                영문과 숫자만 사용해 4~30자로 입력해 주세요.
+              </small>
               {fieldErrors.username ? (
                 <small className="restaurant-field-error">{fieldErrors.username}</small>
               ) : null}
@@ -133,6 +136,9 @@ function Signup() {
                   onChange={(event) => updateField("password", event.target.value)}
                   aria-invalid={Boolean(fieldErrors.password)}
                 />
+                <small className="restaurant-field-hint">
+                  비밀번호는 8자 이상으로 입력해 주세요.
+                </small>
                 {fieldErrors.password ? (
                   <small className="restaurant-field-error">{fieldErrors.password}</small>
                 ) : null}
@@ -166,6 +172,9 @@ function Signup() {
               />
               <span>이용약관에 동의합니다.</span>
             </label>
+            <small className="restaurant-field-hint">
+              <Link to="/terms-of-service">이용약관 전문 보기</Link>
+            </small>
             {fieldErrors.termsAccepted ? (
               <small className="restaurant-field-error">{fieldErrors.termsAccepted}</small>
             ) : null}
@@ -178,6 +187,9 @@ function Signup() {
               />
               <span>개인정보 처리방침에 동의합니다.</span>
             </label>
+            <small className="restaurant-field-hint">
+              <Link to="/privacy-policy">개인정보 처리방침 전문 보기</Link>
+            </small>
             {fieldErrors.privacyAccepted ? (
               <small className="restaurant-field-error">{fieldErrors.privacyAccepted}</small>
             ) : null}
