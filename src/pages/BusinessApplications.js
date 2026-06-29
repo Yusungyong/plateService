@@ -67,7 +67,7 @@ function BusinessApplications() {
             <div className="business-application-table__head" role="row">
               <span role="columnheader">매장명</span>
               <span role="columnheader">심사 상태</span>
-              <span role="columnheader">검증 상태</span>
+              <span role="columnheader">입점 심사</span>
               <span role="columnheader">수정일</span>
               <span role="columnheader">작업</span>
             </div>
@@ -97,7 +97,7 @@ function BusinessApplications() {
                     >
                       {toApprovalStatusLabel(application.approvalStatus)}
                     </span>
-                    <span role="cell" data-label="검증 상태">
+                    <span role="cell" data-label="입점 심사">
                       {toVerificationStatusLabel(application.verificationStatus)}
                     </span>
                     <span role="cell" data-label="수정일">
@@ -188,13 +188,13 @@ export function toApprovalStatusLabel(status) {
 export function toVerificationStatusLabel(status) {
   switch (status) {
     case "not_requested":
-      return "검증 전";
+      return "심사 전";
     case "reviewing":
-      return "검증 중";
+      return "심사 중";
     case "verified":
-      return "검증 완료";
+      return "심사 완료";
     case "rejected":
-      return "검증 반려";
+      return "심사 반려";
     default:
       return status || "-";
   }

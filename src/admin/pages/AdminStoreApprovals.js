@@ -377,7 +377,7 @@ function AdminStoreApprovals() {
             </select>
           </label>
           <label className="admin-filter-field">
-            <span>사업자 인증</span>
+            <span>입점 심사</span>
             <select
               value={filters.verificationStatus}
               onChange={(event) => updateFilter("verificationStatus", event.target.value)}
@@ -430,7 +430,7 @@ function AdminStoreApprovals() {
                 <th>매장명</th>
                 <th>업종</th>
                 <th>지역</th>
-                <th>사업자 인증</th>
+                <th>입점 심사</th>
                 <th>상태</th>
                 <th>신청일</th>
                 <th>관리</th>
@@ -542,7 +542,7 @@ function AdminStoreApprovals() {
 
                 <div className="admin-mobile-approval-card__meta">
                   <div>
-                    <span>사업자 인증</span>
+                    <span>입점 심사</span>
                     <StatusBadge
                       status={store.verificationStatus}
                       label={VERIFICATION_STATUS_LABELS[store.verificationStatus]}

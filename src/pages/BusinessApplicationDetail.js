@@ -199,7 +199,7 @@ function BusinessApplicationDetail() {
             </div>
             <dl className="restaurant-summary">
               <SummaryRow label="심사 상태" value={toApprovalStatusLabel(application.approvalStatus)} />
-              <SummaryRow label="검증 상태" value={toVerificationStatusLabel(application.verificationStatus)} />
+              <SummaryRow label="입점 심사" value={toVerificationStatusLabel(application.verificationStatus)} />
               <SummaryRow label="신청일" value={formatDate(application.appliedAt)} />
               <SummaryRow label="수정일" value={formatDate(application.updatedAt)} />
               <SummaryRow label="버전" value={application.version} />
@@ -438,7 +438,7 @@ function getApplicationGuidance(application) {
         title: "아직 검토 제출 전입니다.",
         description: "입력한 신청 정보를 확인한 뒤 검토 제출을 진행해 주세요.",
         items: [
-          "사업자 정보 검증 상태가 완료인지 확인해 주세요.",
+          "사업자번호 자동 확인이 완료됐는지 확인해 주세요.",
           "매장 정보와 대표 메뉴가 실제 노출해도 되는 내용인지 확인해 주세요.",
           "제출 후 운영팀 검토가 시작됩니다.",
         ],
