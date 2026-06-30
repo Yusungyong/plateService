@@ -38,7 +38,15 @@ function AppShell({ children }) {
   const headerTitle = isBusinessArea ? "식당 비즈니스 센터" : "고객 지원 센터";
   const headerDescription = isBusinessArea
     ? "입점 신청부터 승인된 매장 관리까지 식당 담당자의 작업 흐름을 제공합니다."
-    : "궁금한 내용을 먼저 찾아보고, 공개 Q&A에서 운영팀 답변을 확인할 수 있습니다.";
+    : "궁금한 내용을 먼저 찾아보고, 공개 Q&A와 1:1 문의로 운영팀 답변을 받을 수 있습니다.";
+
+  function isPublicNavigationActive(path) {
+    if (path === "/qna") {
+      return location.pathname === "/qna" || location.pathname === "/qna/new";
+    }
+
+    return location.pathname === path;
+  }
 
   function handleLogout() {
     logout();
@@ -115,7 +123,7 @@ function AppShell({ children }) {
                     ? isActive
                       ? "app-nav__link app-nav__link--admin app-nav__link--active"
                       : "app-nav__link app-nav__link--admin"
-                    : isActive
+                    : isPublicNavigationActive(path)
                       ? "app-nav__link app-nav__link--active"
                       : "app-nav__link"
                 }

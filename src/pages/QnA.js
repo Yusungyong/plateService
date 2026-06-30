@@ -128,6 +128,10 @@ function normalizeQnaPage(response, fallbackPage = 0) {
   };
 }
 
+function isPublicQnaEntry(entry) {
+  return entry?.isPublic !== false && entry?.statusCode !== "hidden";
+}
+
 function QnAWrite() {
   const { isAuthenticated, user } = useAuth();
   const [form, setForm] = useState(() => ({
@@ -210,8 +214,13 @@ function QnAWrite() {
           </div>
           <p className="page-layout__description">
             계정, 연락처, 결제, 사업자 정보처럼 개인 확인이 필요한 내용은 공개 Q&A에 포함하지 마세요.
-            1:1 비공개 문의는 전용 접수 기능이 연결된 뒤 제공됩니다.
+            개인 확인이 필요한 문의는 1:1 비공개 문의로 접수할 수 있습니다.
           </p>
+          <div className="support-panel__actions">
+            <Link className="support-page-action support-page-action--secondary" to="/qna/private">
+              1:1 문의로 이동
+            </Link>
+          </div>
         </section>
 
         <section className="support-panel qna-compose-panel qna-compose-panel--page">
@@ -304,6 +313,9 @@ function QnAWrite() {
               <Link className="support-page-action support-page-action--secondary" to="/qna">
                 목록으로 돌아가기
               </Link>
+              <Link className="support-page-action support-page-action--secondary" to="/qna/private">
+                1:1 문의로 전환
+              </Link>
             </div>
           </form>
         </section>
@@ -391,6 +403,11 @@ function QnA({ adminMode = false }) {
   }, [loadEntries]);
 
   const entries = qnaPage.content;
+  const visibleEntries = adminMode ? entries : entries.filter(isPublicQnaEntry);
+  const visibleTotalElements =
+    adminMode || visibleEntries.length === entries.length
+      ? qnaPage.totalElements
+      : visibleEntries.length;
   const selectedEntry = useMemo(() => {
     return entries.find((entry) => entry.qnaId === selectedQnaId) || entries[0] || null;
   }, [entries, selectedQnaId]);
@@ -661,8 +678,13 @@ function QnA({ adminMode = false }) {
           </div>
           <p className="page-layout__description">
             계정, 연락처, 결제, 사업자 정보처럼 개인 확인이 필요한 내용은 공개 Q&A에 포함하지 마세요.
-            1:1 비공개 문의는 전용 접수 기능이 연결된 뒤 제공됩니다.
+            개인 확인이 필요한 문의는 1:1 비공개 문의로 접수할 수 있습니다.
           </p>
+          <div className="support-panel__actions">
+            <Link className="support-page-action support-page-action--secondary" to="/qna/private">
+              1:1 문의로 이동
+            </Link>
+          </div>
         </section>
 
         <QnaFilterPanel
@@ -676,13 +698,18 @@ function QnA({ adminMode = false }) {
         <div className="faq-topline qna-list-topline">
           <div className="qna-list-topline__copy">
             <strong>
-              전체 {qnaPage.totalElements}건 중 {entries.length}건 표시
+              전체 {visibleTotalElements}건 중 {visibleEntries.length}건 표시
             </strong>
             <span>{qnaResultCaption}</span>
           </div>
-          <Link className="support-page-action support-page-action--primary" to="/qna/new">
-            질문 등록
-          </Link>
+          <div className="qna-list-topline__actions">
+            <Link className="support-page-action support-page-action--primary" to="/qna/new">
+              질문 등록
+            </Link>
+            <Link className="support-page-action support-page-action--secondary" to="/qna/private">
+              1:1 문의
+            </Link>
+          </div>
         </div>
 
         {loadError ? (
@@ -704,12 +731,12 @@ function QnA({ adminMode = false }) {
           </div>
 
           <div className="board-table__body">
-            {isLoading && entries.length === 0 ? (
+            {isLoading && visibleEntries.length === 0 ? (
               <div className="board-empty">Q&A 목록을 불러오는 중입니다.</div>
-            ) : entries.length === 0 ? (
+            ) : visibleEntries.length === 0 ? (
               <div className="board-empty">아직 공개 질문이 없습니다.</div>
             ) : (
-              entries.map((entry) => {
+              visibleEntries.map((entry) => {
                 const answerAuthor = getAnswerAuthor(entry);
 
                 return (

@@ -814,6 +814,22 @@
   gap: 4px;
 }
 
+.qna-list-topline__actions,
+.support-panel__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.qna-list-topline__actions {
+  justify-content: flex-end;
+}
+
+.support-panel__actions {
+  margin-top: 14px;
+}
+
 .support-page-action {
   display: inline-flex;
   min-height: 44px;
@@ -5128,6 +5144,11 @@ video.media-upload__preview {
   }
 
   .qna-list-topline .support-page-action {
+    width: 100%;
+  }
+
+  .qna-list-topline__actions,
+  .support-panel__actions {
     width: 100%;
   }
 

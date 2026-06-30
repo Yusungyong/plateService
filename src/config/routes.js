@@ -3,6 +3,7 @@ import FAQ from "../pages/FAQ";
 import Feedback from "../pages/Feedback";
 import MemberMonitoring from "../pages/MemberMonitoring";
 import PrivacyPolicy from "../pages/PrivacyPolicy";
+import PrivateInquiry from "../pages/PrivateInquiry";
 import QnA, { QnAWrite } from "../pages/QnA";
 import RestaurantDetail from "../pages/RestaurantDetail";
 import RestaurantManagement from "../pages/RestaurantManagement";
@@ -19,6 +20,7 @@ import { ADMIN_PERMISSIONS } from "../admin/constants/adminPermissions";
 export const publicNavigationItems = [
   { path: "/faq", label: "자주 묻는 질문" },
   { path: "/qna", label: "공개 Q&A" },
+  { path: "/qna/private", label: "1:1 문의" },
   { path: "/feedback", label: "서비스 의견", available: false },
   { path: "/content-verification", label: "콘텐츠 검증", available: false },
   { path: "/terms-of-service", label: "이용약관" },
@@ -105,6 +107,7 @@ export const accountPublicRoutes = [{ path: "/signup", component: Signup }];
 export const openSupportRoutes = [
   { path: "/qna", component: QnA },
   { path: "/qna/new", component: QnAWrite },
+  { path: "/qna/private", component: PrivateInquiry },
 ];
 
 export const policyRoutes = [
