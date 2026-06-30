@@ -89,6 +89,13 @@ function App() {
             {businessPublicRoutes.map(({ path, component: Component }) => (
               <Route key={path} path={path} element={<Component />} />
             ))}
+            {publicRoutes.map(({ path, component: Component }) => (
+              <Route
+                key={path}
+                path={path}
+                element={path === "/faq" ? <FaqEntryRoute Component={Component} /> : <Component />}
+              />
+            ))}
             <Route path="/business/stores/new" element={<Navigate to="/business/signup" replace />} />
             <Route element={<ProtectedRoute />}>
               {businessApplicationRoutes.map(({ path, component: Component }) => (
@@ -110,13 +117,6 @@ function App() {
                 path="/admin/restaurants/:restaurantId"
                 element={<LegacyStoreDetailRedirect />}
               />
-              {publicRoutes.map(({ path, component: Component }) => (
-                <Route
-                  key={path}
-                  path={path}
-                  element={path === "/faq" ? <FaqEntryRoute Component={Component} /> : <Component />}
-                />
-              ))}
             </Route>
             <Route element={<ProtectedRoute requireAdmin />}>
               <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />

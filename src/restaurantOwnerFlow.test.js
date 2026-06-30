@@ -100,12 +100,12 @@ test("shows the application status navigation from regular pages after login", a
 
   renderAt("/faq");
 
-  expect(screen.getByText("식당 파트너")).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "신청 현황" })).toHaveAttribute(
+  expect(screen.queryByText("식당 파트너")).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "식당 점주" })).toHaveAttribute(
     "href",
-    "/business/applications"
+    "/business/stores"
   );
-  expect(await screen.findByText("조회된 FAQ가 없습니다.")).toBeInTheDocument();
+  expect(await screen.findByText(/조회된 FAQ가 없습니다/)).toBeInTheDocument();
 
   fireEvent.change(screen.getByLabelText("분류"), {
     target: { value: "account" },

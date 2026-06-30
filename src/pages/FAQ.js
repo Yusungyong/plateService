@@ -17,12 +17,32 @@ const initialFaqFilters = {
   keyword: "",
 };
 
+const PAGE_SIZE = 10;
+
 const categoryLabels = {
   notice: "공지",
   account: "계정",
   service: "서비스",
   policy: "정책",
 };
+
+function mergeUniqueById(currentItems, nextItems, key) {
+  const seen = new Set();
+  return [...currentItems, ...nextItems].filter((item) => {
+    const value = item?.[key];
+
+    if (!value) {
+      return true;
+    }
+
+    if (seen.has(value)) {
+      return false;
+    }
+
+    seen.add(value);
+    return true;
+  });
+}
 
 function FAQ({ adminMode = false }) {
   const [filters, setFilters] = useState(initialFaqFilters);
@@ -48,35 +68,58 @@ function FAQ({ adminMode = false }) {
   const [submitError, setSubmitError] = useState("");
   const [pendingDeleteFaqId, setPendingDeleteFaqId] = useState(null);
 
-  const loadFaqList = useCallback(async (nextSelectedFaqId) => {
+  const loadFaqList = useCallback(async ({ nextSelectedFaqId, page = 0, append = false } = {}) => {
     setIsListLoading(true);
     setLoadError("");
 
+    if (!append) {
+      setFaqPage({
+        content: [],
+        page: 0,
+        size: PAGE_SIZE,
+        totalElements: 0,
+        totalPages: 0,
+        hasNext: false,
+      });
+      setSelectedFaqDetail(null);
+    }
+
     try {
       const response = await fetchFaqs({
-        page: 0,
-        size: 10,
+        page,
+        size: PAGE_SIZE,
         category: appliedFilters.category,
         keyword: appliedFilters.keyword.trim(),
       });
       const content = Array.isArray(response?.content) ? response.content : [];
+      const responsePage = response?.page ?? page;
+      const responseSize = response?.size ?? PAGE_SIZE;
+      const responseTotalPages = response?.totalPages ?? (content.length > 0 ? 1 : 0);
       const fallbackFaqId = content[0]?.faqId ?? null;
       const resolvedFaqId =
         nextSelectedFaqId && content.some((item) => item.faqId === nextSelectedFaqId)
           ? nextSelectedFaqId
           : fallbackFaqId;
 
-      setFaqPage({
-        content,
-        page: response?.page ?? 0,
-        size: response?.size ?? 10,
+      setFaqPage((current) => ({
+        content: append ? mergeUniqueById(current.content, content, "faqId") : content,
+        page: responsePage,
+        size: responseSize,
         totalElements: response?.totalElements ?? content.length,
-        totalPages: response?.totalPages ?? 1,
-        hasNext: response?.hasNext ?? false,
-      });
-      setSelectedFaqId(resolvedFaqId);
+        totalPages: responseTotalPages,
+        hasNext: response?.hasNext ?? responsePage + 1 < responseTotalPages,
+      }));
+
+      if (!append) {
+        setSelectedFaqId(resolvedFaqId);
+      }
+
       return content;
     } catch (error) {
+      if (!append) {
+        setSelectedFaqId(null);
+      }
+
       setLoadError("FAQ 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
       return [];
     } finally {
@@ -131,6 +174,7 @@ function FAQ({ adminMode = false }) {
 
     return faqPosts.find((post) => post.faqId === selectedFaqId) || faqPosts[0] || null;
   }, [faqPosts, selectedFaqDetail, selectedFaqId]);
+  const faqResultCaption = getFaqFilterSummary(appliedFilters);
 
   function resetDraft() {
     setDraft(emptyDraft);
@@ -193,7 +237,7 @@ function FAQ({ adminMode = false }) {
       }
 
       const nextFaqId = response?.faqId || selectedFaq?.faqId || null;
-      await loadFaqList(nextFaqId);
+      await loadFaqList({ nextSelectedFaqId: nextFaqId });
       setDraft(emptyDraft);
       setEditorMode("create");
       setIsEditorOpen(false);
@@ -230,6 +274,13 @@ function FAQ({ adminMode = false }) {
     setAppliedFilters(initialFaqFilters);
   }
 
+  function handleLoadMoreFaq() {
+    loadFaqList({
+      page: (faqPage.page ?? 0) + 1,
+      append: true,
+    });
+  }
+
   async function confirmDeleteFaq() {
     if (!pendingDeleteFaqId) {
       return;
@@ -255,6 +306,7 @@ function FAQ({ adminMode = false }) {
   return (
     <PageLayout
       title={adminMode ? "FAQ 관리" : "자주 묻는 질문"}
+      className={adminMode ? "" : "support-page support-page--faq"}
       description={
         adminMode
           ? "관리자는 FAQ 등록, 수정, 삭제를 한 화면에서 처리할 수 있습니다."
@@ -262,7 +314,10 @@ function FAQ({ adminMode = false }) {
       }
     >
       <div className="faq-topline">
-        <strong>전체 {faqPage.totalElements}건</strong>
+        <strong>
+          전체 {faqPage.totalElements}건 중 {faqPosts.length}건 표시
+        </strong>
+        <span>{faqResultCaption}</span>
       </div>
 
       <form className="restaurant-filter-form faq-filter-form" onSubmit={handleSearch}>
@@ -303,20 +358,27 @@ function FAQ({ adminMode = false }) {
       {loadError ? <div className="api-status api-status--error">{loadError}</div> : null}
 
       <div className={adminMode ? "faq-columns faq-columns--admin" : "faq-columns faq-columns--public"}>
-        <section className="board-table" aria-label="FAQ 게시판">
-          <div className="board-table__head">
-            <span>분류</span>
-            <span>제목</span>
-            <span>작성자</span>
-            <span>조회수</span>
-            <span>수정일</span>
-          </div>
+        <section
+          className={adminMode ? "board-table" : "faq-public-board"}
+          aria-label="FAQ 게시판"
+        >
+          {adminMode ? (
+            <div className="board-table__head">
+              <span>분류</span>
+              <span>제목</span>
+              <span>작성자</span>
+              <span>조회수</span>
+              <span>수정일</span>
+            </div>
+          ) : null}
 
-          <div className="board-table__body">
-            {isListLoading ? (
+          <div className={adminMode ? "board-table__body" : "faq-public-list"}>
+            {isListLoading && faqPosts.length === 0 ? (
               <div className="board-empty">FAQ 목록을 불러오는 중입니다.</div>
             ) : faqPosts.length === 0 ? (
-              <div className="board-empty">조회된 FAQ가 없습니다.</div>
+              <div className="board-empty">
+                조회된 FAQ가 없습니다. 분류나 검색어를 바꿔 다시 확인해 주세요.
+              </div>
             ) : (
               faqPosts.map((post) => {
                 const isSelected = selectedFaqId === post.faqId;
@@ -325,31 +387,44 @@ function FAQ({ adminMode = false }) {
                 return (
                   <details
                     key={post.faqId}
-                    className={`board-row ${isSelected ? "board-row--selected" : ""}`}
+                    className={
+                      adminMode
+                        ? `board-row ${isSelected ? "board-row--selected" : ""}`
+                        : `faq-public-item ${isSelected ? "faq-public-item--selected" : ""}`
+                    }
                     open={isSelected || post.isPinned}
                   >
-                    <summary className="board-row__summary" onClick={() => setSelectedFaqId(post.faqId)}>
+                    <summary
+                      className={adminMode ? "board-row__summary" : "faq-public-item__summary"}
+                      onClick={() => setSelectedFaqId(post.faqId)}
+                    >
                       <span className={post.isPinned ? "board-badge board-badge--notice" : "board-badge"}>
                         {toCategoryLabel(post.category)}
                       </span>
-                      <span className="board-row__title">
+                      <span className={adminMode ? "board-row__title" : "faq-public-item__title"}>
                         {post.isPinned ? <strong>[고정]</strong> : null}
                         {post.title}
                       </span>
-                      <span className="board-row__meta" data-label="작성자">
-                        {post.username}
-                      </span>
-                      <span className="board-row__meta" data-label="조회수">
-                        {Number(post.viewCount ?? 0).toLocaleString()}
-                      </span>
-                      <span className="board-row__meta" data-label="수정일">
-                        {formatDate(post.updatedAt)}
-                      </span>
+                      {adminMode ? (
+                        <>
+                          <span className="board-row__meta" data-label="작성자">
+                            {post.username}
+                          </span>
+                          <span className="board-row__meta" data-label="조회수">
+                            {Number(post.viewCount ?? 0).toLocaleString()}
+                          </span>
+                          <span className="board-row__meta" data-label="수정일">
+                            {formatDate(post.updatedAt)}
+                          </span>
+                        </>
+                      ) : null}
                     </summary>
 
-                    <div className="board-row__content">
-                      <div className="board-row__answer-label">답변</div>
-                      <div className="board-row__body">
+                    <div className={adminMode ? "board-row__content" : "faq-public-item__content"}>
+                      <div className={adminMode ? "board-row__answer-label" : "faq-public-item__answer-label"}>
+                        답변
+                      </div>
+                      <div className={adminMode ? "board-row__body" : "faq-public-item__body"}>
                         <p>
                           {isSelected && isDetailLoading
                             ? "상세 내용을 불러오는 중입니다."
@@ -377,6 +452,14 @@ function FAQ({ adminMode = false }) {
               })
             )}
           </div>
+
+          {faqPage.hasNext ? (
+            <div className="list-more-actions">
+              <button type="button" onClick={handleLoadMoreFaq} disabled={isListLoading}>
+                {isListLoading ? "불러오는 중..." : "FAQ 더 보기"}
+              </button>
+            </div>
+          ) : null}
         </section>
 
         {adminMode ? (
@@ -528,6 +611,20 @@ function toCategoryLabel(category) {
   }
 
   return categoryLabels[category] || category;
+}
+
+function getFaqFilterSummary(filters) {
+  const summary = [];
+
+  if (filters.category) {
+    summary.push(`분류: ${toCategoryLabel(filters.category)}`);
+  }
+
+  if (filters.keyword) {
+    summary.push(`검색어: ${filters.keyword}`);
+  }
+
+  return summary.length > 0 ? summary.join(" · ") : "전체 FAQ를 보고 있습니다.";
 }
 
 function formatDate(value) {
