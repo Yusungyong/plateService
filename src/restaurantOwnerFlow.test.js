@@ -254,6 +254,155 @@ test("shows owner shell and loads linked stores", async () => {
   );
 });
 
+test("loads store analytics from the owner store detail", async () => {
+  storeAuth();
+  global.fetch
+    .mockResolvedValueOnce(
+      await createJsonResponse({
+        data: {
+          id: 7,
+          title: "플레이팅 키친 강남점",
+          address: "서울 강남구 테헤란로 123",
+          categories: ["한식"],
+          exposureStatus: "published",
+          media: [],
+          menus: [],
+        },
+      })
+    )
+    .mockResolvedValueOnce(
+      await createJsonResponse({
+        data: {
+          source: {
+            storeId: 7,
+            storeName: "플레이팅 키친 강남점",
+            hasLinkedVideoContent: true,
+            videoStoreIds: [301],
+          },
+          from: "2026-07-01",
+          to: "2026-07-07",
+          metrics: [
+            {
+              key: "homeImpressions",
+              label: "Home impressions",
+              value: 1200,
+              changeRate: 12.5,
+              unit: "count",
+            },
+            {
+              key: "videoViews",
+              label: "Video views",
+              value: 340,
+              changeRate: -3.2,
+              unit: "count",
+            },
+          ],
+          watch: {
+            totalViews: 340,
+            uniqueViewers: 210,
+            completedViews: 90,
+            averageWatchSeconds: 18.43,
+            completionRate: 0.2647,
+          },
+          funnel: {
+            impressions: 1100,
+            clicks: 180,
+            plays: 150,
+            completes: 70,
+            hides: 3,
+            reports: 1,
+            clickThroughRate: 0.1636,
+            playRate: 0.1364,
+            completeRate: 0.4667,
+          },
+        },
+      })
+    )
+    .mockResolvedValueOnce(
+      await createJsonResponse({
+        data: {
+          source: {
+            storeId: 7,
+            hasLinkedVideoContent: true,
+            videoStoreIds: [301],
+          },
+          from: "2026-07-01",
+          to: "2026-07-07",
+          interval: "day",
+          points: [
+            {
+              date: "2026-07-01",
+              impressions: 130,
+              views: 42,
+              completedViews: 11,
+              saves: 2,
+              comments: 1,
+            },
+          ],
+        },
+      })
+    )
+    .mockResolvedValueOnce(
+      await createJsonResponse({
+        data: {
+          source: {
+            storeId: 7,
+            hasLinkedVideoContent: true,
+            videoStoreIds: [301],
+          },
+          from: "2026-07-01",
+          to: "2026-07-07",
+          content: [
+            {
+              videoStoreId: 301,
+              title: "신메뉴 버거 소개",
+              createdAt: "2026-06-30",
+              impressions: 900,
+              views: 240,
+              uniqueViewers: 160,
+              completedViews: 62,
+              averageWatchSeconds: 20.1,
+              completionRate: 0.2583,
+              activeSaveCount: 61,
+              newSaveCount: 10,
+              commentCount: 6,
+            },
+          ],
+          page: 0,
+          size: 10,
+          totalElements: 1,
+          totalPages: 1,
+          hasNext: false,
+        },
+      })
+    );
+
+  renderAt("/business/stores/7");
+
+  expect(await screen.findByRole("heading", { name: "플레이팅 키친 강남점" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("tab", { name: "성과" }));
+
+  expect(await screen.findByText("홈 노출")).toBeInTheDocument();
+  expect(screen.getByText("영상 조회")).toBeInTheDocument();
+  expect(screen.getByText("일자별 노출과 조회")).toBeInTheDocument();
+  expect(screen.getByText("신메뉴 버거 소개")).toBeInTheDocument();
+
+  const requestUrls = global.fetch.mock.calls.map(([url]) => String(url));
+  const summaryUrl = requestUrls.find((url) => url.includes("/api/owner/stores/7/analytics/summary?"));
+  const trendsUrl = requestUrls.find((url) => url.includes("/api/owner/stores/7/analytics/trends?"));
+  const contentsUrl = requestUrls.find((url) => url.includes("/api/owner/stores/7/analytics/contents?"));
+
+  expect(summaryUrl).toBeTruthy();
+  expect(trendsUrl).toBeTruthy();
+  expect(contentsUrl).toBeTruthy();
+  expect(summaryUrl).toMatch(/from=\d{4}-\d{2}-\d{2}/);
+  expect(summaryUrl).toMatch(/to=\d{4}-\d{2}-\d{2}/);
+  expect(summaryUrl).not.toContain("T00%3A00%3A00");
+  expect(trendsUrl).toContain("interval=day");
+  expect(contentsUrl).toContain("page=0");
+  expect(contentsUrl).toContain("size=20");
+});
+
 test("keeps internal operators out of owner-only business routes", async () => {
   storeAuth({
     roles: ["ADMIN"],

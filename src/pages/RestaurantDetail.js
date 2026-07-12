@@ -7,6 +7,7 @@ import {
 } from "../api/restaurantApi";
 import MediaUploadField from "../components/MediaUploadField";
 import PageLayout from "../components/PageLayout";
+import StoreAnalyticsPanel from "../components/StoreAnalyticsPanel";
 
 const categoryOptions = ["한식", "중식", "일식", "양식", "분식", "카페", "디저트", "패스트푸드", "주점", "기타"];
 const maxCategoryCount = 4;
@@ -39,6 +40,7 @@ function RestaurantDetail() {
   const [messageType, setMessageType] = useState("success");
   const [formVersion, setFormVersion] = useState(0);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [activeTab, setActiveTab] = useState("details");
   const fieldRefs = useRef({});
 
   const completedMenuCount = useMemo(() => menus.filter((menu) => menu.name.trim()).length, [menus]);
@@ -204,18 +206,41 @@ function RestaurantDetail() {
   return (
     <PageLayout
       title="내 매장 상세 관리"
-      description="고객에게 보일 매장 기본 정보, 메뉴, 사진과 영상을 수정합니다."
+      description="고객에게 보일 매장 정보와 콘텐츠 성과를 함께 확인합니다."
     >
-      <form key={formVersion} className="stack-layout restaurant-registration" onSubmit={handleSubmit}>
-        {message ? (
-          <div
-            className={messageType === "success" ? "api-status api-status--success" : "api-status api-status--error"}
-            role={messageType === "error" ? "alert" : "status"}
-            aria-live={messageType === "error" ? "assertive" : "polite"}
+      <div className="stack-layout restaurant-registration">
+        <div className="restaurant-detail-tabs" role="tablist" aria-label="매장 상세 보기">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "details"}
+            className={activeTab === "details" ? "restaurant-detail-tabs__item is-active" : "restaurant-detail-tabs__item"}
+            onClick={() => setActiveTab("details")}
           >
-            {message}
-          </div>
-        ) : null}
+            기본 정보
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "analytics"}
+            className={activeTab === "analytics" ? "restaurant-detail-tabs__item is-active" : "restaurant-detail-tabs__item"}
+            onClick={() => setActiveTab("analytics")}
+          >
+            성과
+          </button>
+        </div>
+
+        {activeTab === "details" ? (
+          <form key={formVersion} className="stack-layout" onSubmit={handleSubmit}>
+            {message ? (
+              <div
+                className={messageType === "success" ? "api-status api-status--success" : "api-status api-status--error"}
+                role={messageType === "error" ? "alert" : "status"}
+                aria-live={messageType === "error" ? "assertive" : "polite"}
+              >
+                {message}
+              </div>
+            ) : null}
 
         <section className="support-panel">
           <div className="support-panel__header restaurant-menu-header">
@@ -496,7 +521,11 @@ function RestaurantDetail() {
             </button>
           </div>
         </section>
-      </form>
+          </form>
+        ) : (
+          <StoreAnalyticsPanel storeId={restaurantId} storeName={restaurant.title} />
+        )}
+      </div>
     </PageLayout>
   );
 }
