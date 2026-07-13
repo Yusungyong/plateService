@@ -13,19 +13,31 @@ const quickRanges = [
 
 const metricLabels = {
   homeImpressions: "홈 노출",
+  imageImpressions: "이미지 노출",
   videoViews: "영상 조회",
   uniqueViewers: "순 시청자",
   activeSaves: "저장 중",
+  activeImageLikes: "이미지 좋아요",
   newSaves: "신규 저장",
+  newImageLikes: "신규 좋아요",
   comments: "댓글",
+  storeDetailViews: "상세 조회",
+  directionClicks: "길찾기",
+  phoneClicks: "전화 클릭",
 };
 
 const metricOrder = [
   "homeImpressions",
+  "imageImpressions",
   "videoViews",
+  "storeDetailViews",
+  "directionClicks",
+  "phoneClicks",
   "uniqueViewers",
   "activeSaves",
+  "activeImageLikes",
   "newSaves",
+  "newImageLikes",
   "comments",
 ];
 
@@ -52,7 +64,10 @@ function StoreAnalyticsPanel({ storeId, storeName }) {
   const [rangeError, setRangeError] = useState("");
 
   const source = summary?.source || trends?.source || contentsPage.source || {};
-  const hasLinkedVideoContent = source.hasLinkedVideoContent !== false;
+  const hasLinkedContent =
+    source.hasLinkedContent !== undefined
+      ? Boolean(source.hasLinkedContent)
+      : source.hasLinkedVideoContent !== false || source.hasLinkedImageContent === true;
   const metrics = useMemo(() => normalizeMetrics(summary?.metrics || []), [summary]);
   const trendPoints = Array.isArray(trends?.points) ? trends.points : [];
   const maxTrendValue = Math.max(
@@ -227,11 +242,11 @@ function StoreAnalyticsPanel({ storeId, storeName }) {
 
       {isLoading ? (
         <div className="board-empty">매장 성과를 불러오는 중입니다.</div>
-      ) : !hasLinkedVideoContent ? (
+      ) : !hasLinkedContent ? (
         <section className="support-panel store-analytics-empty">
           <span className="support-kicker">집계 대기</span>
           <h3>아직 집계할 콘텐츠가 없습니다.</h3>
-          <p>매장 소개 영상이나 피드를 등록하면 노출, 시청, 저장 데이터를 확인할 수 있습니다.</p>
+          <p>매장과 연결된 동영상 또는 이미지 피드가 생기면 노출, 반응, 댓글 데이터를 확인할 수 있습니다.</p>
         </section>
       ) : (
         <>
@@ -245,6 +260,8 @@ function StoreAnalyticsPanel({ storeId, storeName }) {
             <WatchQualityCard watch={summary?.watch} />
             <FunnelCard funnel={summary?.funnel} />
           </div>
+
+          <StoreActionsCard storeActions={summary?.storeActions} />
 
           <section className="support-panel store-analytics-panel">
             <div className="support-panel__header">
@@ -375,6 +392,36 @@ function FunnelCard({ funnel = {} }) {
   );
 }
 
+function StoreActionsCard({ storeActions = {} }) {
+  const items = [
+    { label: "상세 조회", value: storeActions.detailViews },
+    { label: "지도 노출", value: storeActions.mapImpressions },
+    { label: "검색 노출", value: storeActions.searchImpressions },
+    { label: "전화 클릭", value: storeActions.phoneClicks },
+    { label: "길찾기", value: storeActions.directionClicks },
+    { label: "공유", value: storeActions.shareClicks },
+    { label: "메뉴 조회", value: storeActions.menuViews },
+    { label: "방문 전환", value: storeActions.visitConversions },
+  ];
+
+  return (
+    <section className="support-panel store-analytics-panel">
+      <div className="support-panel__header">
+        <span className="support-kicker">매장 행동</span>
+        <h3>고객이 매장에서 한 행동</h3>
+      </div>
+      <dl className="store-analytics-definition-grid store-analytics-action-grid">
+        {items.map((item) => (
+          <div key={item.label}>
+            <dt>{item.label}</dt>
+            <dd>{formatNumber(item.value)}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
 function TrendPoint({ point, maxValue }) {
   return (
     <div className="store-analytics-trend-point">
@@ -417,13 +464,13 @@ function AnalyticsContentsTable({ contents }) {
         <span role="columnheader">조회</span>
         <span role="columnheader">완주율</span>
         <span role="columnheader">평균 시청</span>
-        <span role="columnheader">저장</span>
+        <span role="columnheader">저장/좋아요</span>
         <span role="columnheader">댓글</span>
       </div>
       <div className="store-analytics-content-table__body">
         {contents.map((content) => (
           <article
-            key={content.videoStoreId || `${content.title}-${content.createdAt}`}
+            key={getContentRowKey(content)}
             className="store-analytics-content-row"
             role="row"
           >
@@ -434,7 +481,18 @@ function AnalyticsContentsTable({ contents }) {
                 <span className="store-analytics-content-row__thumbnail" aria-label="썸네일 없음" />
               )}
               <div>
-                <strong>{content.title || "제목 없는 콘텐츠"}</strong>
+                <div className="store-analytics-content-row__meta">
+                  <strong>{content.title || "제목 없는 콘텐츠"}</strong>
+                  <span
+                    className={
+                      content.contentType === "image"
+                        ? "store-analytics-content-row__badge store-analytics-content-row__badge--image"
+                        : "store-analytics-content-row__badge"
+                    }
+                  >
+                    {toContentTypeLabel(content.contentType)}
+                  </span>
+                </div>
                 <p>{formatDateLabel(content.createdAt)}</p>
               </div>
             </div>
@@ -442,7 +500,7 @@ function AnalyticsContentsTable({ contents }) {
             <span role="cell" data-label="조회">{formatNumber(content.views)}</span>
             <span role="cell" data-label="완주율">{formatPercent(content.completionRate)}</span>
             <span role="cell" data-label="평균 시청">{formatSeconds(content.averageWatchSeconds)}</span>
-            <span role="cell" data-label="저장">{formatNumber(content.activeSaveCount)}</span>
+            <span role="cell" data-label="저장/좋아요">{formatNumber(content.activeSaveCount)}</span>
             <span role="cell" data-label="댓글">{formatNumber(content.commentCount)}</span>
           </article>
         ))}
@@ -481,7 +539,7 @@ function mergeContents(currentContents, nextContents) {
   const seen = new Set();
 
   return [...currentContents, ...nextContents].filter((item) => {
-    const key = item.videoStoreId || `${item.title}-${item.createdAt}`;
+    const key = getContentRowKey(item);
 
     if (!key) {
       return true;
@@ -494,6 +552,28 @@ function mergeContents(currentContents, nextContents) {
     seen.add(key);
     return true;
   });
+}
+
+function getContentRowKey(content = {}) {
+  const stableId =
+    content.contentId ||
+    content.videoStoreId ||
+    content.feedId ||
+    `${content.title || "content"}-${content.createdAt || ""}`;
+
+  return `${content.contentType || "content"}-${stableId}`;
+}
+
+function toContentTypeLabel(contentType) {
+  if (contentType === "image") {
+    return "이미지";
+  }
+
+  if (contentType === "video") {
+    return "영상";
+  }
+
+  return "콘텐츠";
 }
 
 function getDateRange(days) {

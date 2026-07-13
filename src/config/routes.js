@@ -9,6 +9,7 @@ import RestaurantDetail from "../pages/RestaurantDetail";
 import RestaurantManagement from "../pages/RestaurantManagement";
 import TermsOfService from "../pages/TermsOfService";
 import Signup from "../pages/Signup";
+import BusinessDashboard from "../pages/BusinessDashboard";
 import BusinessApplicationDetail from "../pages/BusinessApplicationDetail";
 import BusinessApplications from "../pages/BusinessApplications";
 import BusinessSignup from "../pages/BusinessSignup";
@@ -91,6 +92,7 @@ export const adminNavigationItems = [
 ];
 
 export const businessNavigationItems = [
+  { path: "/business/dashboard", label: "홈", requireBusiness: true },
   { path: "/business/signup", label: "입점 신청" },
   { path: "/business/applications", label: "신청 현황", requireAuth: true },
   { path: "/business/stores", label: "매장 관리", requireBusiness: true },
@@ -134,6 +136,10 @@ export const businessApplicationRoutes = [
 ];
 
 export const businessOwnerRoutes = [
+  {
+    path: "/business/dashboard",
+    component: BusinessDashboard,
+  },
   {
     path: "/business/stores",
     component: RestaurantManagement,

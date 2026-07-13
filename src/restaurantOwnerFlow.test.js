@@ -103,7 +103,7 @@ test("shows the application status navigation from regular pages after login", a
   expect(screen.queryByText("식당 파트너")).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: "식당 점주" })).toHaveAttribute(
     "href",
-    "/business/stores"
+    "/business/dashboard"
   );
   expect(await screen.findByText(/조회된 FAQ가 없습니다/)).toBeInTheDocument();
 
@@ -254,6 +254,125 @@ test("shows owner shell and loads linked stores", async () => {
   );
 });
 
+test("shows an owner dashboard with tasks and recent performance", async () => {
+  storeAuth();
+  global.fetch
+    .mockResolvedValueOnce(
+      await createJsonResponse({
+        data: {
+          content: [
+            {
+              id: 7,
+              title: "플레이팅 키친 강남점",
+              address: "서울 강남구 테헤란로 123",
+              categories: ["한식"],
+              exposureStatus: "published",
+              menuCount: 2,
+              updatedAt: "2026-07-10T09:00:00Z",
+            },
+          ],
+          page: 0,
+          size: 20,
+          totalElements: 1,
+          totalPages: 1,
+          hasNext: false,
+        },
+      })
+    )
+    .mockResolvedValueOnce(
+      await createJsonResponse({
+        data: {
+          content: [
+            {
+              applicationId: 100,
+              storeName: "플레이팅 키친 강남점",
+              approvalStatus: "approved",
+              updatedAt: "2026-07-10T09:00:00Z",
+            },
+          ],
+          page: 0,
+          size: 5,
+          totalElements: 1,
+          totalPages: 1,
+          hasNext: false,
+        },
+      })
+    )
+    .mockResolvedValueOnce(
+      await createJsonResponse({
+        data: {
+          id: 7,
+          title: "플레이팅 키친 강남점",
+          address: "서울 강남구 테헤란로 123",
+          categories: ["한식"],
+          phone: "",
+          businessHours: "11:00-21:00",
+          exposureStatus: "published",
+          media: [],
+          menus: [
+            {
+              id: 1,
+              name: "대표 파스타",
+            },
+          ],
+        },
+      })
+    )
+    .mockResolvedValueOnce(
+      await createJsonResponse({
+        data: {
+          source: {
+            storeId: 7,
+            hasLinkedContent: true,
+            hasLinkedVideoContent: true,
+            hasLinkedImageContent: false,
+            videoStoreIds: [301],
+            imageFeedIds: [],
+          },
+          metrics: [
+            {
+              key: "homeImpressions",
+              value: 1200,
+            },
+            {
+              key: "storeDetailViews",
+              value: 210,
+            },
+            {
+              key: "directionClicks",
+              value: 16,
+            },
+            {
+              key: "phoneClicks",
+              value: 9,
+            },
+          ],
+        },
+      })
+    );
+
+  renderAt("/business/dashboard");
+
+  expect(await screen.findByRole("heading", { name: "점주 홈" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "홈" })).toHaveAttribute("href", "/business/dashboard");
+  expect((await screen.findAllByText("플레이팅 키친 강남점")).length).toBeGreaterThan(0);
+  expect(screen.getByRole("heading", { name: "먼저 보면 좋은 항목" })).toBeInTheDocument();
+  expect(screen.getAllByText("대표 이미지").length).toBeGreaterThan(0);
+  expect(screen.getByText("전화 클릭")).toBeInTheDocument();
+  expect(screen.getByText("1,200")).toBeInTheDocument();
+
+  const requestUrls = global.fetch.mock.calls.map(([url]) => String(url));
+  const summaryUrl = requestUrls.find((url) => url.includes("/api/owner/stores/7/analytics/summary?"));
+
+  expect(requestUrls.some((url) => url.includes("/api/owner/stores?page=0&size=20"))).toBe(true);
+  expect(requestUrls.some((url) => url.includes("/api/owner/store-applications?page=0&size=5"))).toBe(true);
+  expect(requestUrls.some((url) => url.includes("/api/owner/stores/7"))).toBe(true);
+  expect(summaryUrl).toBeTruthy();
+  expect(summaryUrl).toMatch(/from=\d{4}-\d{2}-\d{2}/);
+  expect(summaryUrl).toMatch(/to=\d{4}-\d{2}-\d{2}/);
+  expect(summaryUrl).not.toContain("T00%3A00%3A00");
+});
+
 test("loads store analytics from the owner store detail", async () => {
   storeAuth();
   global.fetch
@@ -277,7 +396,10 @@ test("loads store analytics from the owner store detail", async () => {
             storeId: 7,
             storeName: "플레이팅 키친 강남점",
             hasLinkedVideoContent: true,
+            hasLinkedImageContent: true,
+            hasLinkedContent: true,
             videoStoreIds: [301],
+            imageFeedIds: [1204],
           },
           from: "2026-07-01",
           to: "2026-07-07",
@@ -294,6 +416,20 @@ test("loads store analytics from the owner store detail", async () => {
               label: "Video views",
               value: 340,
               changeRate: -3.2,
+              unit: "count",
+            },
+            {
+              key: "imageImpressions",
+              label: "Image impressions",
+              value: 300,
+              changeRate: 8,
+              unit: "count",
+            },
+            {
+              key: "activeImageLikes",
+              label: "Active image likes",
+              value: 44,
+              changeRate: null,
               unit: "count",
             },
           ],
@@ -315,6 +451,16 @@ test("loads store analytics from the owner store detail", async () => {
             playRate: 0.1364,
             completeRate: 0.4667,
           },
+          storeActions: {
+            detailViews: 210,
+            mapImpressions: 80,
+            searchImpressions: 45,
+            phoneClicks: 9,
+            directionClicks: 16,
+            shareClicks: 3,
+            menuViews: 52,
+            visitConversions: 2,
+          },
         },
       })
     )
@@ -324,7 +470,10 @@ test("loads store analytics from the owner store detail", async () => {
           source: {
             storeId: 7,
             hasLinkedVideoContent: true,
+            hasLinkedImageContent: true,
+            hasLinkedContent: true,
             videoStoreIds: [301],
+            imageFeedIds: [1204],
           },
           from: "2026-07-01",
           to: "2026-07-07",
@@ -336,7 +485,11 @@ test("loads store analytics from the owner store detail", async () => {
               views: 42,
               completedViews: 11,
               saves: 2,
+              imageLikes: 5,
               comments: 1,
+              detailViews: 18,
+              phoneClicks: 1,
+              directionClicks: 2,
             },
           ],
         },
@@ -348,13 +501,19 @@ test("loads store analytics from the owner store detail", async () => {
           source: {
             storeId: 7,
             hasLinkedVideoContent: true,
+            hasLinkedImageContent: true,
+            hasLinkedContent: true,
             videoStoreIds: [301],
+            imageFeedIds: [1204],
           },
           from: "2026-07-01",
           to: "2026-07-07",
           content: [
             {
+              contentType: "video",
+              contentId: 301,
               videoStoreId: 301,
+              feedId: null,
               title: "신메뉴 버거 소개",
               createdAt: "2026-06-30",
               impressions: 900,
@@ -367,10 +526,27 @@ test("loads store analytics from the owner store detail", async () => {
               newSaveCount: 10,
               commentCount: 6,
             },
+            {
+              contentType: "image",
+              contentId: 1204,
+              videoStoreId: null,
+              feedId: 1204,
+              title: "이미지 방문 기록",
+              createdAt: "2026-07-02",
+              impressions: 300,
+              views: 0,
+              uniqueViewers: 0,
+              completedViews: 0,
+              averageWatchSeconds: 0,
+              completionRate: 0,
+              activeSaveCount: 44,
+              newSaveCount: 7,
+              commentCount: 9,
+            },
           ],
           page: 0,
-          size: 10,
-          totalElements: 1,
+          size: 20,
+          totalElements: 2,
           totalPages: 1,
           hasNext: false,
         },
@@ -384,8 +560,13 @@ test("loads store analytics from the owner store detail", async () => {
 
   expect(await screen.findByText("홈 노출")).toBeInTheDocument();
   expect(screen.getByText("영상 조회")).toBeInTheDocument();
+  expect(screen.getByText("이미지 노출")).toBeInTheDocument();
+  expect(screen.getByText("이미지 좋아요")).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "고객이 매장에서 한 행동" })).toBeInTheDocument();
   expect(screen.getByText("일자별 노출과 조회")).toBeInTheDocument();
   expect(screen.getByText("신메뉴 버거 소개")).toBeInTheDocument();
+  expect(screen.getByText("이미지 방문 기록")).toBeInTheDocument();
+  expect(screen.getByText("이미지")).toBeInTheDocument();
 
   const requestUrls = global.fetch.mock.calls.map(([url]) => String(url));
   const summaryUrl = requestUrls.find((url) => url.includes("/api/owner/stores/7/analytics/summary?"));

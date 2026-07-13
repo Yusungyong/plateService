@@ -1,7 +1,7 @@
 # Plate Service 백엔드 구현 확인 및 요청서
 
 - 작성일: 2026-06-30
-- 최근 갱신일: 2026-07-09
+- 최근 갱신일: 2026-07-13
 - 기준 문서: `FRIENDLINESS_CONTEXT_REVIEW_REPORT.md`
 - 목적: 프론트에서 즉시 개선한 고객지원/입점/관리 UX 이후, 백엔드 구현 여부를 먼저 확인하고 필요한 API/정책 작업을 정리한다.
 - 전달 원칙: 이미 구현된 항목이 있을 수 있으므로 각 항목은 "구현 여부 확인"을 먼저 받고, 미구현/부분 구현일 때만 요청 범위를 확정한다.
@@ -34,6 +34,8 @@
 - 관리자 알림/전체 활동 보기: 실제 기능처럼 보이지 않도록 준비 중 상태 처리
 - 매장 미디어: 기존 미디어 조회/표시는 가능하나 삭제, 대표 지정, 순서 변경 UI는 백엔드 계약 확인 전 보류
 - 점주 매장 성과: 서버에서 제공한 `/api/owner/stores/{storeId}/analytics/*` 계약을 기준으로 `/business/stores/:restaurantId` 성과 탭에 연동
+- 점주 매장 성과 2차 보정: 비디오/이미지 통합 콘텐츠, `storeActions`, `source.hasLinkedContent` 기준 빈 상태를 반영
+- 점주 홈: `/business/dashboard`에서 매장 상태, 오늘 할 일, 완성도 체크리스트, 최근 7일 성과 스냅샷을 기존 API 조합으로 표시
 
 현재 프론트가 사용하는 주요 API:
 
@@ -330,7 +332,7 @@ Content-Type: application/json
 
 ## 7. 연동 완료: 점주 매장 성과 API
 
-서버에서 점주 매장 성과 API 계약이 추가되어 프론트에 1차 연동했습니다.
+서버에서 점주 매장 성과 API 계약이 추가되어 프론트에 연동했습니다. 2026-07-13 추가 계약 확인 후 비디오/이미지 통합 집계와 매장 행동 지표 표시를 보정했습니다.
 
 프론트 반영:
 
@@ -338,10 +340,10 @@ Content-Type: application/json
 - UI: 매장 상세 화면에 `기본 정보`, `성과` 탭 추가
 - 기본 기간: 최근 7일
 - 기간 선택: 7일, 30일, 90일, 직접 날짜 입력
-- Summary: KPI 카드, 시청 품질, 추천 퍼널 표시
+- Summary: KPI 카드, 시청 품질, 추천 퍼널, 매장 행동(`storeActions`) 표시
 - Trends: 일자별 노출/조회/완주 추이 표시
-- Contents: 콘텐츠별 노출, 조회, 완주율, 평균 시청 시간, 저장, 댓글 표시
-- Empty state: `source.hasLinkedVideoContent=false`이면 "아직 집계할 콘텐츠가 없습니다." 안내
+- Contents: 비디오/이미지 혼합 콘텐츠별 노출, 조회, 완주율, 평균 시청 시간, 저장/좋아요, 댓글 표시
+- Empty state: `source.hasLinkedContent=false`이면 "아직 집계할 콘텐츠가 없습니다." 안내
 
 연동 API:
 
@@ -351,15 +353,22 @@ Content-Type: application/json
 
 중요 전제:
 
-- `restaurants.id` 하나가 실제 콘텐츠 테이블 `fp_300`의 여러 `store_id`와 연결될 수 있습니다.
+- `restaurants.id` 하나가 실제 콘텐츠 테이블 `fp_300`, `fp_400`의 여러 콘텐츠와 연결될 수 있습니다.
 - API path의 `{storeId}`는 `fp_300.store_id`가 아니라 점주 매장 테이블의 `restaurants.id`입니다.
-- 프론트는 `fp_300.store_id`를 직접 매칭하지 않고, 서버가 내려주는 `source.videoStoreIds`와 `source.hasLinkedVideoContent`를 연결 결과로 사용합니다.
-- 따라서 서버 집계는 `restaurants.id -> fp_300.store_id[]` 형태의 다대일 연결을 전제로 해야 합니다.
-- `restaurants.id == fp_300.store_id` 비교는 두 값이 같은 ID 네임스페이스일 때만 유효합니다. 같은 네임스페이스가 아니라면 이 조건은 보조 규칙에서 제외하고, 서버의 명시적 매핑 테이블 또는 이름/주소/소유자 기반 연결 결과를 사용해야 합니다.
-- 운영 확인을 위해 `source.videoStoreIds`, `source.matchStrategy`, 가능하면 `source.linkedVideoStoreCount`, `source.matchedContentCount` 같은 요약값을 내려주면 프론트 안내와 디버깅이 쉬워집니다.
+- 점주 식당과 사용자 콘텐츠 연결점은 `restaurant_id`입니다. 동영상은 `fp_300.restaurant_id = restaurants.id`, 이미지는 `fp_400.restaurant_id = restaurants.id` 기준입니다.
+- `fp_300.store_id`는 동영상 콘텐츠 ID이고, `fp_400.feed_no`는 이미지 콘텐츠 ID입니다. 둘 다 `restaurants.id`가 아닙니다.
+- 프론트는 콘텐츠 테이블 ID를 직접 매칭하지 않고, 서버가 내려주는 `source.videoStoreIds`, `source.imageFeedIds`, `source.hasLinkedContent`를 연결 결과로 사용합니다.
+- 운영 확인을 위해 `source.videoStoreIds`, `source.imageFeedIds`, `source.matchStrategy`, `source.hasLinkedVideoContent`, `source.hasLinkedImageContent`, `source.hasLinkedContent`를 내려주면 프론트 안내와 디버깅이 쉬워집니다.
 - 날짜 파라미터는 `YYYY-MM-DD` 형식만 사용합니다. `2026-07-09T00:00:00.000Z` 같은 ISO datetime은 보내지 않습니다.
 - `trends`는 현재 `interval=day`만 사용하며, 최대 93일 제한을 넘지 않도록 프론트에서 직접 기간 입력을 제한합니다.
 - 콘텐츠 성과는 서버 예시와 맞춰 기본 `page=0&size=20`으로 조회합니다.
+- `contents.content[]`는 `contentType=video|image`, `contentId`, `videoStoreId`, `feedId`를 기준으로 화면에서 구분합니다.
+
+미연동/별도 화면 필요:
+
+- `POST /api/restaurants/{restaurantId}/events` 행동 이벤트 수집 API는 현재 이 프론트에 고객용 매장 상세/지도/검색 결과 화면이 없어 아직 호출하지 않습니다.
+- 해당 API는 점주 매장 관리 화면에 붙이면 점주 본인 조회가 고객 행동으로 집계될 수 있으므로, 고객용 매장 상세 진입, 지도/검색 카드 노출, 전화/길찾기/공유 클릭 화면이 생길 때 연결하는 것이 안전합니다.
+- 콘텐츠 등록 시 `POST /api/videos`, `POST /api/image-feeds`, `PATCH /api/image-feeds/{feedId}`에 `restaurantId`를 넘기는 계약은 사용자 콘텐츠 등록 화면에 해당합니다. 현재 점주 매장 관리 화면은 `/api/owner/stores`, `/api/owner/files`를 사용하므로 직접 영향은 없습니다.
 
 추가 확인하면 좋은 내용:
 
@@ -367,10 +376,38 @@ Content-Type: application/json
 2. 예시 기준 `homeImpressions`와 `funnel.impressions` 값이 다를 수 있습니다. 홈 노출과 추천 퍼널 노출이 서로 다른 지표인지 정의를 명확히 공유해 주세요.
 3. `from`, `to` 날짜는 `YYYY-MM-DD`로 보내고 있습니다. 이 날짜의 집계 기준이 KST인지 UTC인지 확인이 필요합니다.
 4. `trends`는 최대 93일 제한이 명시되어 있습니다. `summary`, `contents`에도 같은 제한이 있는지 확인이 필요합니다.
-5. `hasLinkedVideoContent=false`일 때 `trends`, `contents`도 빈 배열/빈 페이지로 내려오는지 확인이 필요합니다.
-6. 한 식당에 여러 `fp_300.store_id`가 채번되는 경우, 같은 콘텐츠가 중복 집계되지 않도록 서버에서 중복 제거 기준을 적용하는지 확인이 필요합니다.
+5. `hasLinkedContent=false`일 때 `trends`, `contents`도 빈 배열/빈 페이지로 내려오는지 확인이 필요합니다.
+6. 한 식당에 여러 `fp_300.store_id`, `fp_400.feed_no`가 연결되는 경우, 같은 콘텐츠가 중복 집계되지 않도록 서버에서 중복 제거 기준을 적용하는지 확인이 필요합니다.
+7. 행동 이벤트 수집 API의 `eventUid`, `guestId`, `sessionId`, `deviceId` 생성/보관 정책을 프론트 공통 규칙으로 정해야 합니다.
 
-## 8. P1 확인 및 요청: 답변 예상 시간과 운영 정책값
+## 8. 연동 완료: 점주 홈 대시보드
+
+점주가 로그인 후 바로 들어오는 홈을 `/business/dashboard`로 추가했습니다.
+
+프론트 반영:
+
+- 상단 `식당 점주` 모드 진입 경로를 `/business/dashboard`로 변경
+- 비즈니스 내비게이션에 `홈` 메뉴 추가
+- 매장 운영 요약: 등록 매장 수, 노출 중, 검수 요청, 임시 저장
+- 오늘 할 일: 대표 이미지, 메뉴, 연락처, 영업시간, 콘텐츠 연결 등 보완 항목 우선 표시
+- 매장 완성도 체크리스트: 완료/필요/확인 전 상태 표시
+- 최근 7일 성과 스냅샷: 홈 노출, 상세 조회, 길찾기, 전화 클릭
+- 최근 매장과 입점 신청 현황 바로가기 제공
+
+사용 API:
+
+- `GET /api/owner/stores?page=0&size=20`
+- `GET /api/owner/store-applications?page=0&size=5`
+- `GET /api/owner/stores/{storeId}`
+- `GET /api/owner/stores/{storeId}/analytics/summary?from=&to=`
+
+추가 확인하면 좋은 내용:
+
+1. 점주 홈 전용 집계 API가 생기면 현재 4개 API 조합을 1개 API로 줄일 수 있습니다.
+2. 매장 목록 응답에서 `phone`, `businessHours`, 대표 이미지, `menuCount`가 안정적으로 내려오면 상세 API 호출 없이 체크리스트를 만들 수 있습니다.
+3. 여러 매장을 가진 점주의 경우 전체 매장 기준 상태 카운트를 서버에서 내려주면 페이지 크기 제한과 무관하게 정확한 요약을 표시할 수 있습니다.
+
+## 9. P1 확인 및 요청: 답변 예상 시간과 운영 정책값
 
 프론트에 답변 예상 시간과 운영 기준을 하드코딩하지 않으려면 정책값 API가 있으면 좋습니다.
 
@@ -394,7 +431,7 @@ Content-Type: application/json
 }
 ```
 
-## 9. 공통 응답과 오류 계약
+## 10. 공통 응답과 오류 계약
 
 목록 응답은 프론트와 맞춰 아래 형식을 유지해 주세요.
 
@@ -434,7 +471,7 @@ Content-Type: application/json
 - `MEDIA_LIMIT_EXCEEDED`
 - `UNSUPPORTED_MEDIA_TYPE`
 
-## 10. 프론트 연동 완료 기준
+## 11. 프론트 연동 완료 기준
 
 백엔드 완료 후 프론트에서 다음을 확인할 수 있으면 완료로 보겠습니다.
 
@@ -447,7 +484,8 @@ Content-Type: application/json
 - 매장 미디어 삭제, 대표 지정, 순서 변경이 낙관적 잠금과 권한 검증을 포함해 동작한다.
 - 관리자 알림/작업 큐가 실제 서버 데이터로 표시된다.
 - 점주 매장 성과 탭에서 summary, trends, contents API가 실제 서버 데이터로 표시된다.
+- 점주 홈에서 매장 상태, 오늘 할 일, 최근 성과 스냅샷이 실제 서버 데이터로 표시된다.
 
-## 11. 백엔드에 바로 전달할 요약 문장
+## 12. 백엔드에 바로 전달할 요약 문장
 
-현재 프론트에서는 공개 Q&A, 공개 질문 등록, 1:1 비공개 문의 접수 화면을 분리했고, 공개 목록에서 비공개/hidden 문의가 보이지 않도록 방어 로직을 넣었습니다. 또한 서버에서 추가된 점주 매장 성과 API를 `/business/stores/:restaurantId` 성과 탭에 1차 연동했습니다. 다만 실제 운영 완성도를 위해서는 서버에서 공개/비공개 Q&A 필터링, 관리자 전용 Q&A 조회, 내 문의 목록, 답변 알림, 입점 신청 처리 이력/보완 항목, 승인 가능 여부 사유, 미디어 관리 API, 관리자 알림/작업 큐 구현 여부를 먼저 확인해야 합니다. 이미 구현된 항목이 있다면 API 경로와 샘플 응답을 공유해 주시고, 미구현 또는 부분 구현 항목은 이 문서의 우선순위 기준으로 계약을 확정하면 됩니다.
+현재 프론트에서는 공개 Q&A, 공개 질문 등록, 1:1 비공개 문의 접수 화면을 분리했고, 공개 목록에서 비공개/hidden 문의가 보이지 않도록 방어 로직을 넣었습니다. 또한 서버에서 추가된 점주 매장 성과 API를 `/business/stores/:restaurantId` 성과 탭에 연동했고, `/business/dashboard` 점주 홈에서 매장 상태와 오늘 할 일, 최근 성과 스냅샷을 볼 수 있게 했습니다. 다만 실제 운영 완성도를 위해서는 서버에서 공개/비공개 Q&A 필터링, 관리자 전용 Q&A 조회, 내 문의 목록, 답변 알림, 입점 신청 처리 이력/보완 항목, 승인 가능 여부 사유, 미디어 관리 API, 관리자 알림/작업 큐 구현 여부를 먼저 확인해야 합니다. 이미 구현된 항목이 있다면 API 경로와 샘플 응답을 공유해 주시고, 미구현 또는 부분 구현 항목은 이 문서의 우선순위 기준으로 계약을 확정하면 됩니다.

@@ -2199,6 +2199,162 @@
   box-shadow: 0 8px 18px rgba(17, 24, 39, 0.12);
 }
 
+.owner-dashboard {
+  gap: 18px;
+}
+
+.owner-dashboard-hero {
+  display: grid;
+  gap: 18px;
+}
+
+.owner-dashboard-hero .support-panel__header p,
+.owner-dashboard-empty p,
+.owner-dashboard-task p,
+.owner-dashboard-checklist__item p,
+.owner-dashboard-store-row p {
+  margin: 4px 0 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.owner-dashboard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.owner-dashboard-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.owner-dashboard-stat {
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
+}
+
+.owner-dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.owner-dashboard-panel {
+  min-width: 0;
+}
+
+.owner-dashboard-panel--wide {
+  grid-column: 1 / -1;
+}
+
+.owner-dashboard-task-list,
+.owner-dashboard-store-list,
+.owner-dashboard-checklist {
+  display: grid;
+  gap: 10px;
+}
+
+.owner-dashboard-task,
+.owner-dashboard-store-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background-color: #ffffff;
+}
+
+.owner-dashboard-task strong,
+.owner-dashboard-store-row strong,
+.owner-dashboard-checklist__item strong {
+  display: block;
+  color: #111827;
+  font-weight: 900;
+}
+
+.owner-dashboard-task > div,
+.owner-dashboard-store-row > div,
+.owner-dashboard-checklist__item > div {
+  min-width: 0;
+}
+
+.owner-dashboard-checklist__item {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background-color: #ffffff;
+}
+
+.owner-dashboard-checklist__item > span {
+  display: inline-flex;
+  min-height: 26px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.owner-dashboard-checklist__item--done > span {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.owner-dashboard-checklist__item--todo > span {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.owner-dashboard-performance-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.owner-dashboard-performance-grid div {
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background-color: #f9fafb;
+}
+
+.owner-dashboard-performance-grid dt {
+  color: #6b7280;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.owner-dashboard-performance-grid dd {
+  margin: 4px 0 0;
+  color: #111827;
+  font-size: 1.15rem;
+  font-weight: 900;
+}
+
+.owner-dashboard-empty {
+  display: grid;
+  gap: 12px;
+}
+
+.owner-dashboard-empty h3 {
+  margin: 0;
+}
+
 .store-analytics-toolbar {
   display: grid;
   gap: 16px;
@@ -2329,6 +2485,10 @@
   color: #111827;
   font-size: 1.08rem;
   font-weight: 900;
+}
+
+.store-analytics-action-grid {
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
 }
 
 .store-analytics-funnel {
@@ -2480,12 +2640,36 @@
   background: linear-gradient(135deg, #e5e7eb 0%, #f9fafb 100%);
 }
 
+.store-analytics-content-row__meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
 .store-analytics-content-row__title strong {
   display: block;
   overflow: hidden;
   color: #111827;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.store-analytics-content-row__badge {
+  flex: 0 0 auto;
+  padding: 3px 7px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.store-analytics-content-row__badge--image {
+  border-color: #bbf7d0;
+  background-color: #f0fdf4;
+  color: #047857;
 }
 
 .store-analytics-content-row__title p {
@@ -3644,6 +3828,7 @@ video.media-upload__preview {
   .business-detail-grid,
   .business-detail-hero,
   .business-document-row,
+  .owner-dashboard-grid,
   .restaurant-table__row,
   .restaurant-registration-layout,
   .restaurant-menu-fields {
@@ -3734,6 +3919,21 @@ video.media-upload__preview {
 
   .restaurant-row-actions {
     flex-direction: column;
+  }
+
+  .owner-dashboard-panel--wide {
+    grid-column: auto;
+  }
+
+  .owner-dashboard-task,
+  .owner-dashboard-store-row,
+  .owner-dashboard-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .owner-dashboard-performance-grid {
+    grid-template-columns: 1fr;
   }
 
   .restaurant-detail-tabs,

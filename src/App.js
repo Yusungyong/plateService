@@ -59,6 +59,16 @@ function LegacyStoreDetailRedirect() {
   return <Navigate to={`/business/stores/${restaurantId}`} replace />;
 }
 
+function BusinessHomeRedirect() {
+  const { isAuthenticated, isBusinessUser } = useAuth();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/business/signup" replace />;
+  }
+
+  return <Navigate to={isBusinessUser ? "/business/dashboard" : "/business/applications"} replace />;
+}
+
 function AdminPermissionRoute({ component: Component, permission, props }) {
   const { canAdmin } = useAuth();
 
@@ -86,6 +96,7 @@ function App() {
             {openSupportRoutes.map(({ path, component: Component }) => (
               <Route key={path} path={path} element={<Component />} />
             ))}
+            <Route path="/business" element={<BusinessHomeRedirect />} />
             {businessPublicRoutes.map(({ path, component: Component }) => (
               <Route key={path} path={path} element={<Component />} />
             ))}

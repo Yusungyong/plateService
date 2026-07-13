@@ -28,7 +28,7 @@ function AppShell({ children }) {
   });
   const businessHomePath = isAuthenticated
     ? isBusinessUser
-      ? "/business/stores"
+      ? "/business/dashboard"
       : "/business/applications"
     : "/business/signup";
   const primaryNavigationItems = isBusinessArea
