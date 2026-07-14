@@ -358,7 +358,7 @@ test("shows an owner dashboard with tasks and recent performance", async () => {
   expect((await screen.findAllByText("플레이팅 키친 강남점")).length).toBeGreaterThan(0);
   expect(screen.getByRole("heading", { name: "먼저 보면 좋은 항목" })).toBeInTheDocument();
   expect(screen.getAllByText("대표 이미지").length).toBeGreaterThan(0);
-  expect(screen.getByText("전화 클릭")).toBeInTheDocument();
+  expect(screen.getByText("전화 클릭 수")).toBeInTheDocument();
   expect(screen.getByText("1,200")).toBeInTheDocument();
 
   const requestUrls = global.fetch.mock.calls.map(([url]) => String(url));
@@ -371,6 +371,59 @@ test("shows an owner dashboard with tasks and recent performance", async () => {
   expect(summaryUrl).toMatch(/from=\d{4}-\d{2}-\d{2}/);
   expect(summaryUrl).toMatch(/to=\d{4}-\d{2}-\d{2}/);
   expect(summaryUrl).not.toContain("T00%3A00%3A00");
+});
+
+test("switches the dashboard snapshot between stores and labels partial status counts", async () => {
+  storeAuth();
+  global.fetch
+    .mockResolvedValueOnce(
+      await createJsonResponse({
+        data: {
+          content: [
+            { id: 7, title: "강남점", exposureStatus: "published" },
+            { id: 8, title: "성수점", exposureStatus: "draft" },
+          ],
+          page: 0,
+          size: 20,
+          totalElements: 25,
+          totalPages: 2,
+          hasNext: true,
+        },
+      })
+    )
+    .mockResolvedValueOnce(await createJsonResponse({ data: { content: [] } }))
+    .mockResolvedValueOnce(
+      await createJsonResponse({
+        data: { id: 7, title: "강남점", address: "서울 강남구", categories: [], media: [], menus: [] },
+      })
+    )
+    .mockResolvedValueOnce(
+      await createJsonResponse({ data: { source: { hasLinkedContent: true }, metrics: [] } })
+    )
+    .mockResolvedValueOnce(
+      await createJsonResponse({
+        data: { id: 8, title: "성수점", address: "서울 성동구", categories: [], media: [], menus: [] },
+      })
+    )
+    .mockResolvedValueOnce(
+      await createJsonResponse({
+        data: { source: { hasLinkedContent: true }, metrics: [{ key: "homeImpressions", value: 88 }] },
+      })
+    );
+
+  renderAt("/business/dashboard");
+
+  expect(await screen.findByLabelText("기준 매장")).toHaveValue("7");
+  expect(screen.getAllByText("불러온 2개 매장 기준")).toHaveLength(3);
+
+  fireEvent.change(screen.getByLabelText("기준 매장"), { target: { value: "8" } });
+
+  expect(await screen.findByText("서울 성동구")).toBeInTheDocument();
+  expect(await screen.findByText("88")).toBeInTheDocument();
+  expect(global.fetch).toHaveBeenCalledWith(
+    expect.stringContaining("/api/owner/stores/8/analytics/summary?"),
+    expect.any(Object)
+  );
 });
 
 test("loads store analytics from the owner store detail", async () => {

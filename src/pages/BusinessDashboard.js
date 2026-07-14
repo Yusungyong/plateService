@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchBusinessApplications } from "../api/businessApplicationApi";
 import { fetchRestaurantDetail, fetchRestaurants } from "../api/restaurantApi";
@@ -7,13 +7,11 @@ import PageLayout from "../components/PageLayout";
 
 const dashboardStorePageSize = 20;
 const dashboardApplicationPageSize = 5;
-const recentRange = getDateRange(7);
-
 const performanceMetricOrder = [
-  { key: "homeImpressions", label: "홈 노출" },
-  { key: "storeDetailViews", label: "상세 조회" },
-  { key: "directionClicks", label: "길찾기" },
-  { key: "phoneClicks", label: "전화 클릭" },
+  { key: "homeImpressions", label: "홈 화면 노출 횟수" },
+  { key: "storeDetailViews", label: "매장 상세 조회 수" },
+  { key: "directionClicks", label: "길찾기 클릭 수" },
+  { key: "phoneClicks", label: "전화 클릭 수" },
 ];
 
 function BusinessDashboard() {
@@ -22,7 +20,10 @@ function BusinessDashboard() {
   const [primaryRestaurant, setPrimaryRestaurant] = useState(null);
   const [analyticsSummary, setAnalyticsSummary] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSnapshotLoading, setIsSnapshotLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [notices, setNotices] = useState([]);
+  const snapshotRequestId = useRef(0);
 
   const restaurants = useMemo(() => restaurantPage.content || [], [restaurantPage]);
   const dashboardStats = useMemo(() => buildDashboardStats(restaurants, restaurantPage), [restaurants, restaurantPage]);
@@ -35,9 +36,52 @@ function BusinessDashboard() {
     [applications, checklist, primaryRestaurant]
   );
 
+  const loadStoreSnapshot = useCallback(async (store) => {
+    const requestId = snapshotRequestId.current + 1;
+    snapshotRequestId.current = requestId;
+    const storeId = getRestaurantId(store);
+    const fallbackRestaurant = normalizeDashboardRestaurant(store);
+
+    setPrimaryRestaurant(fallbackRestaurant);
+    setAnalyticsSummary(null);
+    setIsSnapshotLoading(Boolean(storeId));
+
+    if (!storeId) {
+      setNotices((current) => mergeNotices(current, ["선택한 매장의 식별자가 없어 상세 정보를 불러올 수 없습니다."]));
+      setIsSnapshotLoading(false);
+      return;
+    }
+
+    const [detailResult, summaryResult] = await Promise.allSettled([
+      fetchRestaurantDetail(storeId),
+      fetchStoreAnalyticsSummary(storeId, getDateRange(7)),
+    ]);
+
+    if (snapshotRequestId.current !== requestId) {
+      return;
+    }
+
+    const nextNotices = [];
+    if (detailResult.status === "fulfilled") {
+      setPrimaryRestaurant(normalizeDashboardRestaurant(detailResult.value, fallbackRestaurant));
+    } else {
+      nextNotices.push("매장 상세 정보 일부를 불러오지 못해 목록의 정보로 표시합니다.");
+    }
+
+    if (summaryResult.status === "fulfilled") {
+      setAnalyticsSummary(summaryResult.value || null);
+    } else {
+      nextNotices.push("최근 성과를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    }
+
+    setNotices((current) => mergeNotices(current, nextNotices));
+    setIsSnapshotLoading(false);
+  }, []);
+
   const loadDashboard = useCallback(async () => {
     setIsLoading(true);
     setMessage("");
+    setNotices([]);
     setPrimaryRestaurant(null);
     setAnalyticsSummary(null);
 
@@ -62,32 +106,15 @@ function BusinessDashboard() {
           : []
       );
 
+      if (applicationResult.status === "rejected") {
+        setNotices(["입점 신청 현황을 불러오지 못했습니다."]);
+      }
+
       if (!primaryStore) {
         return;
       }
 
-      const primaryStoreId = getRestaurantId(primaryStore);
-      const fallbackRestaurant = normalizeDashboardRestaurant(primaryStore);
-      setPrimaryRestaurant(fallbackRestaurant);
-
-      if (!primaryStoreId) {
-        return;
-      }
-
-      const [detailResult, summaryResult] = await Promise.allSettled([
-        fetchRestaurantDetail(primaryStoreId),
-        fetchStoreAnalyticsSummary(primaryStoreId, recentRange),
-      ]);
-
-      if (detailResult.status === "fulfilled") {
-        setPrimaryRestaurant(
-          normalizeDashboardRestaurant(detailResult.value, fallbackRestaurant)
-        );
-      }
-
-      if (summaryResult.status === "fulfilled") {
-        setAnalyticsSummary(summaryResult.value || null);
-      }
+      await loadStoreSnapshot(primaryStore);
     } catch (error) {
       setMessage(error.message || "점주 홈 정보를 불러오지 못했습니다.");
       setRestaurantPage(createEmptyPage());
@@ -95,7 +122,7 @@ function BusinessDashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [loadStoreSnapshot]);
 
   useEffect(() => {
     loadDashboard();
@@ -116,18 +143,40 @@ function BusinessDashboard() {
           </div>
         ) : null}
 
+        {notices.length > 0 ? (
+          <div className="api-status" role="status">
+            <span>{notices.join(" ")}</span>
+          </div>
+        ) : null}
+
         {isLoading ? (
           <div className="board-empty">점주 홈 정보를 불러오는 중입니다.</div>
         ) : restaurants.length === 0 ? (
           <OwnerEmptyStart />
         ) : (
           <>
-            <DashboardHero stats={dashboardStats} primaryRestaurant={primaryRestaurant} />
+            <DashboardHero
+              stats={dashboardStats}
+              restaurants={restaurants}
+              primaryRestaurant={primaryRestaurant}
+              isSnapshotLoading={isSnapshotLoading}
+              onSelectRestaurant={(storeId) => {
+                const nextStore = restaurants.find((store) => String(getRestaurantId(store)) === storeId);
+                if (nextStore) {
+                  setNotices([]);
+                  loadStoreSnapshot(nextStore);
+                }
+              }}
+            />
 
             <div className="owner-dashboard-grid">
               <TodayTasks tasks={todayTasks} />
               <ChecklistPanel checklist={checklist} primaryRestaurant={primaryRestaurant} />
-              <PerformancePanel summary={analyticsSummary} primaryRestaurant={primaryRestaurant} />
+              <PerformancePanel
+                summary={analyticsSummary}
+                primaryRestaurant={primaryRestaurant}
+                isLoading={isSnapshotLoading}
+              />
               <RecentStoresPanel restaurants={restaurants} />
               <ApplicationsPanel applications={applications} />
             </div>
@@ -156,7 +205,7 @@ function OwnerEmptyStart() {
   );
 }
 
-function DashboardHero({ stats, primaryRestaurant }) {
+function DashboardHero({ stats, restaurants, primaryRestaurant, isSnapshotLoading, onSelectRestaurant }) {
   return (
     <section className="support-panel owner-dashboard-hero">
       <div className="support-panel__header restaurant-menu-header">
@@ -166,6 +215,23 @@ function DashboardHero({ stats, primaryRestaurant }) {
           <p>{primaryRestaurant?.address || "등록된 매장의 운영 상태를 확인하세요."}</p>
         </div>
         <div className="owner-dashboard-actions">
+          {restaurants.length > 1 ? (
+            <label className="owner-dashboard-store-picker">
+              <span>기준 매장</span>
+              <select
+                aria-label="기준 매장"
+                value={String(primaryRestaurant?.id || "")}
+                onChange={(event) => onSelectRestaurant(event.target.value)}
+                disabled={isSnapshotLoading}
+              >
+                {restaurants.map((restaurant) => (
+                  <option key={getRestaurantId(restaurant)} value={String(getRestaurantId(restaurant))}>
+                    {getRestaurantName(restaurant)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           {primaryRestaurant?.id ? (
             <Link className="restaurant-text-link" to={`/business/stores/${primaryRestaurant.id}`}>
               매장 수정
@@ -179,7 +245,11 @@ function DashboardHero({ stats, primaryRestaurant }) {
 
       <div className="owner-dashboard-stat-grid">
         {stats.map((stat) => (
-          <article key={stat.label} className="metric-card owner-dashboard-stat">
+          <article
+            key={stat.label}
+            className="metric-card owner-dashboard-stat"
+            aria-label={`${stat.label} ${stat.value}`}
+          >
             <span className="metric-card__label">{stat.label}</span>
             <strong className="metric-card__value">{stat.value}</strong>
             <p className="metric-card__note">{stat.note}</p>
@@ -245,7 +315,7 @@ function ChecklistPanel({ checklist, primaryRestaurant }) {
   );
 }
 
-function PerformancePanel({ summary, primaryRestaurant }) {
+function PerformancePanel({ summary, primaryRestaurant, isLoading }) {
   const source = summary?.source || {};
   const hasLinkedContent =
     source.hasLinkedContent !== undefined ? Boolean(source.hasLinkedContent) : null;
@@ -257,7 +327,9 @@ function PerformancePanel({ summary, primaryRestaurant }) {
         <span className="support-kicker">최근 7일</span>
         <h3>성과 스냅샷</h3>
       </div>
-      {!summary ? (
+      {isLoading ? (
+        <div className="board-empty">선택한 매장의 성과를 불러오는 중입니다.</div>
+      ) : !summary ? (
         <div className="board-empty">성과 데이터를 확인할 수 없습니다.</div>
       ) : hasLinkedContent === false ? (
         <div className="board-empty">연결된 동영상 또는 이미지 피드가 생기면 성과가 표시됩니다.</div>
@@ -351,6 +423,7 @@ function ApplicationsPanel({ applications }) {
 }
 
 function buildDashboardStats(restaurants, page) {
+  const isPartial = Number(page.totalElements || 0) > restaurants.length;
   const publishedCount = restaurants.filter((restaurant) =>
     (restaurant.exposureStatus || restaurant.exposure_status) === "published"
   ).length;
@@ -363,24 +436,24 @@ function buildDashboardStats(restaurants, page) {
 
   return [
     {
-      label: "등록 매장",
+      label: "등록된 전체 매장",
       value: `${Number(page.totalElements || restaurants.length).toLocaleString()}개`,
       note: "내 계정에 연결된 매장",
     },
     {
-      label: "노출 중",
-      value: `${publishedCount.toLocaleString()}개`,
-      note: "고객에게 보이는 매장",
+      label: "고객에게 노출 중인 매장",
+      value: `${publishedCount.toLocaleString()}개${isPartial ? "+" : ""}`,
+      note: isPartial ? `불러온 ${restaurants.length}개 매장 기준` : "고객에게 보이는 매장",
     },
     {
-      label: "검수 요청",
-      value: `${reviewCount.toLocaleString()}개`,
-      note: "운영팀 확인이 필요한 매장",
+      label: "검수를 요청한 매장",
+      value: `${reviewCount.toLocaleString()}개${isPartial ? "+" : ""}`,
+      note: isPartial ? `불러온 ${restaurants.length}개 매장 기준` : "운영팀 확인이 필요한 매장",
     },
     {
-      label: "임시 저장",
-      value: `${draftCount.toLocaleString()}개`,
-      note: "정보 보완이 필요한 매장",
+      label: "임시 저장한 매장",
+      value: `${draftCount.toLocaleString()}개${isPartial ? "+" : ""}`,
+      note: isPartial ? `불러온 ${restaurants.length}개 매장 기준` : "정보 보완이 필요한 매장",
     },
   ];
 }
@@ -551,6 +624,10 @@ function createEmptyPage() {
     totalPages: 1,
     hasNext: false,
   };
+}
+
+function mergeNotices(current, next) {
+  return [...new Set([...current, ...next].filter(Boolean))];
 }
 
 function getDateRange(days) {
