@@ -1,8 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
+  fetchAdminRestaurantDetail,
   fetchRestaurantDetail,
+  updateAdminRestaurant,
   updateRestaurant,
+  uploadAdminRestaurantFile,
   uploadRestaurantFile,
 } from "../api/restaurantApi";
 import MediaUploadField from "../components/MediaUploadField";
@@ -30,7 +33,7 @@ const emptyRestaurant = {
   existingRepresentativeMedia: [],
 };
 
-function RestaurantDetail() {
+function RestaurantDetail({ adminMode = false }) {
   const { restaurantId } = useParams();
   const [restaurant, setRestaurant] = useState(emptyRestaurant);
   const [menus, setMenus] = useState([]);
@@ -50,7 +53,8 @@ function RestaurantDetail() {
     setMessage("");
 
     try {
-      const response = await fetchRestaurantDetail(restaurantId);
+      const fetchDetail = adminMode ? fetchAdminRestaurantDetail : fetchRestaurantDetail;
+      const response = await fetchDetail(restaurantId);
       const detail = normalizeRestaurantDetail(response);
       setRestaurant(detail.restaurant);
       setMenus(detail.menus);
@@ -62,7 +66,7 @@ function RestaurantDetail() {
     } finally {
       setIsLoading(false);
     }
-  }, [restaurantId]);
+  }, [adminMode, restaurantId]);
 
   useEffect(() => {
     loadRestaurant();
@@ -182,8 +186,10 @@ function RestaurantDetail() {
     setMessage("매장 정보를 수정 중입니다.");
 
     try {
-      const payload = await buildUpdatePayload(restaurant, menus);
-      await updateRestaurant(restaurantId, payload);
+      const uploadFile = adminMode ? uploadAdminRestaurantFile : uploadRestaurantFile;
+      const saveRestaurant = adminMode ? updateAdminRestaurant : updateRestaurant;
+      const payload = await buildUpdatePayload(restaurant, menus, uploadFile);
+      await saveRestaurant(restaurantId, payload);
       setMessageType("success");
       setMessage("매장 정보가 수정되었습니다.");
       await loadRestaurant();
@@ -248,7 +254,7 @@ function RestaurantDetail() {
               <span className="support-kicker">기본 정보</span>
               <h3>{restaurant.title || "매장 이름 미입력"}</h3>
             </div>
-            <Link className="restaurant-text-link" to="/business/stores">
+            <Link className="restaurant-text-link" to={adminMode ? "/admin/stores" : "/business/stores"}>
               목록으로
             </Link>
           </div>
@@ -522,9 +528,12 @@ function RestaurantDetail() {
           </div>
         </section>
           </form>
-        ) : (
-          <StoreAnalyticsPanel storeId={restaurantId} storeName={restaurant.title} />
-        )}
+        ) : adminMode ? (
+            <div className="board-empty">관리자용 매장 성과 조회는 아직 연결되지 않았습니다.</div>
+          ) : (
+            <StoreAnalyticsPanel storeId={restaurantId} storeName={restaurant.title} />
+          )
+        }
       </div>
     </PageLayout>
   );
@@ -725,7 +734,7 @@ function normalizeMediaArray(media) {
   }));
 }
 
-async function buildUpdatePayload(restaurant, menus) {
+async function buildUpdatePayload(restaurant, menus, uploadFile = uploadRestaurantFile) {
   const newRepresentativeMedia = await uploadMediaList([
     {
       file: restaurant.representativeImage,
@@ -739,13 +748,12 @@ async function buildUpdatePayload(restaurant, menus) {
       usageType: "representative",
       displayOrder: restaurant.existingRepresentativeMedia.length + 1,
     },
-  ]);
+  ], uploadFile);
 
   const normalizedMenus = await Promise.all(
     menus
       .filter((menu) => menu.name.trim() || String(menu.price).trim() || menu.description.trim() || menu.image || menu.video)
       .map(async (menu, index) => ({
-        id: menu.id || undefined,
         name: menu.name.trim(),
         price: parsePrice(menu.price),
         description: menu.description.trim(),
@@ -765,7 +773,7 @@ async function buildUpdatePayload(restaurant, menus) {
               usageType: "menu",
               displayOrder: menu.existingMedia.length + 1,
             },
-          ])),
+          ], uploadFile)),
         ],
       }))
   );
@@ -783,12 +791,12 @@ async function buildUpdatePayload(restaurant, menus) {
   };
 }
 
-async function uploadMediaList(mediaItems) {
+async function uploadMediaList(mediaItems, uploadFile = uploadRestaurantFile) {
   return Promise.all(
     mediaItems
       .filter((item) => item.file)
       .map(async (item) => {
-        const uploadedFile = await uploadRestaurantFile(item.file);
+        const uploadedFile = await uploadFile(item.file);
         const fileUrl = uploadedFile.fileUrl || uploadedFile.file_url || uploadedFile.url;
 
         if (!fileUrl) {
@@ -810,7 +818,6 @@ async function uploadMediaList(mediaItems) {
 
 function toMediaPayload(media) {
   return {
-    id: media.id || undefined,
     mediaType: media.mediaType,
     usageType: media.usageType,
     fileUrl: media.fileUrl,

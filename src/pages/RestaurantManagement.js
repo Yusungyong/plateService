@@ -1,6 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { deleteRestaurant, fetchRestaurants } from "../api/restaurantApi";
+import {
+  deleteAdminRestaurant,
+  deleteRestaurant,
+  fetchAdminRestaurants,
+  fetchRestaurants,
+} from "../api/restaurantApi";
 import PageLayout from "../components/PageLayout";
 
 const initialFilters = {
@@ -16,7 +21,7 @@ const exposureStatusDescriptions = {
   published: "고객에게 바로 보이는 상태입니다. 주소, 메뉴, 대표 이미지를 먼저 확인해 주세요.",
 };
 
-function RestaurantManagement() {
+function RestaurantManagement({ adminMode = false }) {
   const [filters, setFilters] = useState(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
   const [restaurantPage, setRestaurantPage] = useState({
@@ -40,7 +45,8 @@ function RestaurantManagement() {
     setMessage("");
 
     try {
-      const response = await fetchRestaurants({
+      const fetchRestaurantPage = adminMode ? fetchAdminRestaurants : fetchRestaurants;
+      const response = await fetchRestaurantPage({
         page,
         size: restaurantPage.size,
         ...nextFilters,
@@ -52,7 +58,7 @@ function RestaurantManagement() {
     } finally {
       setIsLoading(false);
     }
-  }, [appliedFilters, restaurantPage.size]);
+  }, [adminMode, appliedFilters, restaurantPage.size]);
 
   useEffect(() => {
     loadRestaurants(0, appliedFilters);
@@ -97,7 +103,8 @@ function RestaurantManagement() {
     setMessage("");
 
     try {
-      await deleteRestaurant(restaurantId);
+      const removeRestaurant = adminMode ? deleteAdminRestaurant : deleteRestaurant;
+      await removeRestaurant(restaurantId);
       setMessageType("success");
       setMessage("매장 정보가 삭제되었습니다.");
       await loadRestaurants(restaurantPage.page, appliedFilters);
@@ -112,8 +119,12 @@ function RestaurantManagement() {
 
   return (
     <PageLayout
-      title="내 매장 관리"
-      description="내 계정에 연결된 매장 정보를 확인하고 메뉴, 사진, 노출 상태를 관리합니다."
+      title={adminMode ? "매장 관리" : "내 매장 관리"}
+      description={
+        adminMode
+          ? "운영 중인 매장의 기본 정보, 메뉴, 미디어와 노출 상태를 관리합니다."
+          : "내 계정에 연결된 매장 정보를 확인하고 메뉴, 사진, 노출 상태를 관리합니다."
+      }
     >
       <div className="stack-layout restaurant-registration">
         {message ? (
@@ -180,9 +191,11 @@ function RestaurantManagement() {
               <span className="support-kicker">목록</span>
               <h3>총 {restaurantPage.totalElements.toLocaleString()}개</h3>
             </div>
-            <Link className="restaurant-text-link" to="/business/signup">
-              새 입점 신청
-            </Link>
+            {adminMode ? null : (
+              <Link className="restaurant-text-link" to="/business/signup">
+                새 입점 신청
+              </Link>
+            )}
           </div>
 
             <div className="restaurant-table" role="table" aria-label="내 매장 목록">
@@ -230,7 +243,7 @@ function RestaurantManagement() {
                       <span role="cell" data-label="메뉴">{Number(restaurant.menuCount || 0).toLocaleString()}개</span>
                       <span role="cell" data-label="수정일">{formatDate(restaurant.updatedAt || restaurant.updated_at)}</span>
                       <div className="restaurant-row-actions" role="cell" data-label="작업">
-                        <Link to={`/business/stores/${restaurantId}`}>상세</Link>
+                        <Link to={`${adminMode ? "/admin/stores" : "/business/stores"}/${restaurantId}`}>상세</Link>
                         <button
                           type="button"
                           onClick={() => requestDelete(restaurant)}

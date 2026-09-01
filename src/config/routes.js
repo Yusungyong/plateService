@@ -16,6 +16,7 @@ import BusinessSignup from "../pages/BusinessSignup";
 import AdminDashboard from "../admin/pages/AdminDashboard";
 import AdminPlaceholderPage from "../admin/pages/AdminPlaceholderPage";
 import AdminStoreApprovals from "../admin/pages/AdminStoreApprovals";
+import AdminSeasonalCurations from "../admin/pages/AdminSeasonalCurations";
 import { ADMIN_PERMISSIONS } from "../admin/constants/adminPermissions";
 
 export const publicNavigationItems = [
@@ -47,9 +48,8 @@ export const adminNavigationItems = [
     path: "/admin/stores",
     label: "매장 관리",
     icon: "store",
-    permission: ADMIN_PERMISSIONS.STORE_READ,
+    permission: ADMIN_PERMISSIONS.RESTAURANT_MANAGE,
     group: "운영",
-    available: false,
   },
   {
     path: "/admin/feeds",
@@ -61,12 +61,11 @@ export const adminNavigationItems = [
   },
   {
     path: "/admin/seasonal-curations",
-    label: "시즌 큐레이션",
+    label: "제철 큐레이션",
     icon: "seasonal",
     permission: ADMIN_PERMISSIONS.SEASONAL_READ,
     group: "운영",
     featured: true,
-    available: false,
   },
   {
     path: "/admin/faq",
@@ -163,12 +162,15 @@ export const adminRoutes = [
   },
   {
     path: "/admin/stores",
-    component: AdminPlaceholderPage,
-    props: {
-      title: "매장 관리",
-      description: "승인된 매장의 운영 상태와 콘텐츠 현황을 관리하는 화면을 준비하고 있습니다.",
-    },
-    permission: ADMIN_PERMISSIONS.STORE_READ,
+    component: RestaurantManagement,
+    props: { adminMode: true },
+    permission: ADMIN_PERMISSIONS.RESTAURANT_MANAGE,
+  },
+  {
+    path: "/admin/stores/:restaurantId",
+    component: RestaurantDetail,
+    props: { adminMode: true },
+    permission: ADMIN_PERMISSIONS.RESTAURANT_MANAGE,
   },
   {
     path: "/admin/feeds",
@@ -181,12 +183,7 @@ export const adminRoutes = [
   },
   {
     path: "/admin/seasonal-curations",
-    component: AdminPlaceholderPage,
-    props: {
-      title: "시즌 큐레이션",
-      description: "시즌 식재료와 매장 메뉴를 연결하는 운영 화면을 준비하고 있습니다.",
-      featured: true,
-    },
+    component: AdminSeasonalCurations,
     permission: ADMIN_PERMISSIONS.SEASONAL_READ,
   },
   {

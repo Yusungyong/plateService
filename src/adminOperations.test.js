@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import App from "./App";
 import { resetStoreApprovalMocks } from "./admin/api/storeApprovalApi";
 
@@ -278,3 +278,175 @@ test("provides mobile approval cards and collapsible filters", async () => {
     })
   ).toBeInTheDocument();
 });
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+test("connects the admin store menu to the admin restaurant API", async () => {
+  storeAuth({
+    roles: ["ADMIN"],
+    permissions: [
+      "ADMIN_ACCESS",
+      "DASHBOARD_READ",
+      "RESTAURANT_MANAGE",
+    ],
+  });
+
+  const fetchSpy = jest.spyOn(global, "fetch").mockResolvedValue({
+    ok: true,
+    status: 200,
+    headers: { get: () => "application/json" },
+    json: async () => ({
+      content: [
+        {
+          id: 17,
+          title: "관리자 테스트 매장",
+          address: "서울시 중구",
+          categories: ["KOREAN"],
+          exposureStatus: "published",
+          menuCount: 2,
+          updatedAt: "2026-08-28T00:00:00Z",
+        },
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+      hasNext: false,
+    }),
+    text: async () => "",
+    blob: async () => new Blob(),
+  });
+
+  renderAt("/admin/stores");
+
+  expect(screen.getByRole("link", { name: "매장 관리" })).toHaveAttribute(
+    "href",
+    "/admin/stores"
+  );
+  expect(await screen.findByText("관리자 테스트 매장")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "상세" })).toHaveAttribute(
+    "href",
+    "/admin/stores/17"
+  );
+
+  await waitFor(() => {
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining("/api/admin/restaurants?page=0&size=20"),
+      expect.any(Object)
+    );
+  });
+
+  fetchSpy.mockRestore();
+});
+
+test("creates a seasonal curation from the admin menu", async () => {
+  storeAuth({
+    roles: ["CONTENT_MANAGER"],
+    permissions: [
+      "ADMIN_ACCESS",
+      "DASHBOARD_READ",
+      "SEASONAL_READ",
+      "SEASONAL_MANAGE",
+    ],
+  });
+
+  const originalCreateObjectURL = URL.createObjectURL;
+  const originalRevokeObjectURL = URL.revokeObjectURL;
+  URL.createObjectURL = jest.fn(() => "blob:seasonal-preview");
+  URL.revokeObjectURL = jest.fn();
+
+  const fetchSpy = jest.spyOn(global, "fetch").mockImplementation(async (url, options = {}) => {
+    const method = options.method || "GET";
+    const isFileUpload = String(url).endsWith("/api/admin/seasonal-curations/files");
+    const body = isFileUpload
+      ? {
+          data: {
+            fileUrl: "https://cdn.example.com/seasonal/autumn.webp",
+            originalName: "autumn.webp",
+            mimeType: "image/webp",
+            fileSizeBytes: 4,
+          },
+        }
+      : method === "POST"
+      ? {
+          data: {
+            id: 31,
+            title: "가을 제철 생선",
+            status: "DRAFT",
+            displayOrder: 0,
+            month: 9,
+            storeIds: [],
+            menuIds: [],
+            version: 0,
+            cardImageUrl: "https://cdn.example.com/seasonal/autumn.webp",
+          },
+        }
+      : {
+          data: {
+            content: [],
+            page: 0,
+            size: 20,
+            totalElements: 0,
+            totalPages: 0,
+            hasNext: false,
+          },
+        };
+
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: () => "application/json" },
+      json: async () => body,
+      text: async () => "",
+      blob: async () => new Blob(),
+    };
+  });
+
+  renderAt("/admin/seasonal-curations");
+
+  expect(screen.getByRole("link", { name: "제철 큐레이션" })).toHaveAttribute(
+    "href",
+    "/admin/seasonal-curations"
+  );
+  fireEvent.change(screen.getByLabelText("제목 *"), {
+    target: { value: "가을 제철 생선" },
+  });
+  fireEvent.change(screen.getByLabelText("월 *"), {
+    target: { value: "9" },
+  });
+  fireEvent.change(screen.getAllByLabelText("이미지 선택")[0], {
+    target: {
+      files: [new File([new Uint8Array([0x52, 0x49, 0x46, 0x46])], "autumn.webp", { type: "image/webp" })],
+    },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "등록하기" }));
+
+  expect(await screen.findByText("제철 큐레이션을 등록했습니다.")).toBeInTheDocument();
+  await waitFor(() => {
+    const createCall = fetchSpy.mock.calls.find(
+      ([url, options]) =>
+        String(url).endsWith("/api/admin/seasonal-curations") && options?.method === "POST"
+    );
+    expect(createCall).toBeTruthy();
+    expect(JSON.parse(createCall[1].body)).toEqual(
+      expect.objectContaining({
+        title: "가을 제철 생선",
+        month: 9,
+        cardImageUrl: "https://cdn.example.com/seasonal/autumn.webp",
+      })
+    );
+  });
+
+  expect(
+    fetchSpy.mock.calls.some(
+      ([url, options]) =>
+        String(url).endsWith("/api/admin/seasonal-curations/files") &&
+        options?.method === "POST" &&
+        options?.body instanceof FormData
+    )
+  ).toBe(true);
+  URL.createObjectURL = originalCreateObjectURL;
+  URL.revokeObjectURL = originalRevokeObjectURL;
+}, 15000);
