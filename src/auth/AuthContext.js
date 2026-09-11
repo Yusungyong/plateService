@@ -98,6 +98,9 @@ function collectRoles(claims) {
 }
 
 function collectPermissions(claims) {
+  if (!["permissions", "permission", "scope", "scopes"].some((key) =>
+    Object.prototype.hasOwnProperty.call(claims, key)
+  )) return undefined;
   return [
     ...normalizeStringArray(claims.permissions),
     ...normalizeStringArray(claims.permission),
@@ -130,7 +133,7 @@ function buildUserFromClaims(claims) {
   const permissions = collectPermissions(claims);
   const role = roles[0] || null;
 
-  if (!username && !displayName && roles.length === 0 && permissions.length === 0) {
+  if (!username && !displayName && roles.length === 0 && !permissions?.length) {
     return null;
   }
 
@@ -169,7 +172,7 @@ function normalizeStoredUser(user) {
   }
 
   const roles = normalizeStringArray(user.roles || user.role);
-  const permissions = normalizeStringArray(user.permissions);
+  const permissions = user.permissions === undefined ? undefined : normalizeStringArray(user.permissions);
 
   return {
     ...user,
@@ -234,6 +237,8 @@ function AuthProvider({ children }) {
     });
 
     registerAuthFailureHandler(() => {
+      clearAuthSession();
+      writeStoredAuth(null);
       setAuthState(null);
       writeAuthNotice("로그인 세션이 만료되었습니다. 다시 로그인해 주세요.");
 
@@ -273,8 +278,11 @@ function AuthProvider({ children }) {
         }
 
         setAuthState(normalizedAuthState);
+        return normalizedAuthState;
       },
       logout() {
+        clearAuthSession();
+        writeStoredAuth(null);
         setAuthState(null);
       },
     }),

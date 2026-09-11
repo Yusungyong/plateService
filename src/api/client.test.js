@@ -18,6 +18,38 @@ afterEach(() => {
   delete global.fetch;
 });
 
+test.each([200, 401])("late refresh response (%s) cannot restore logout or clear a new login", async (status) => {
+  const { default: apiClient, clearAuthSession, setAuthSession,
+    registerAuthFailureHandler, registerAuthSessionRefreshHandler } = await import("./client");
+  const failure = jest.fn();
+  const refreshed = jest.fn();
+  registerAuthFailureHandler(failure);
+  registerAuthSessionRefreshHandler(refreshed);
+  let finishRefresh;
+  let signalStarted;
+  const started = new Promise((resolve) => { signalStarted = resolve; });
+  global.fetch
+    .mockResolvedValueOnce(jsonResponse(401, {}))
+    .mockImplementationOnce(() => {
+      signalStarted();
+      return new Promise((resolve) => { finishRefresh = resolve; });
+    });
+  setAuthSession("old-access", "old-refresh");
+  const pending = apiClient.get("/api/admin/dashboard");
+  const rejected = expect(pending).rejects.toBeDefined();
+  await started;
+  clearAuthSession();
+  if (status === 401) setAuthSession("new-login-access", "new-login-refresh");
+  finishRefresh(jsonResponse(status, { data: { accessToken: "late-access", refreshToken: "late-refresh" } }));
+  await rejected;
+  expect(refreshed).not.toHaveBeenCalled();
+  expect(failure).not.toHaveBeenCalled();
+  global.fetch.mockResolvedValueOnce(jsonResponse(200, {}));
+  await apiClient.get("/api/probe");
+  expect(global.fetch.mock.calls[2][1].headers.Authorization)
+    .toBe(status === 401 ? "Bearer new-login-access" : undefined);
+});
+
 test("refreshes an expired session, publishes new tokens, and retries once", async () => {
   const {
     default: apiClient,

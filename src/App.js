@@ -14,6 +14,7 @@ import { AuthProvider } from "./auth/AuthContext";
 import { useAuth } from "./auth/AuthContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import {
+  getAdminEntryPath,
   accountPublicRoutes,
   adminRoutes,
   businessApplicationRoutes,
@@ -69,11 +70,16 @@ function BusinessHomeRedirect() {
   return <Navigate to={isBusinessUser ? "/business/dashboard" : "/business/applications"} replace />;
 }
 
+function AdminEntryRoute() {
+  const { user } = useAuth();
+  return <Navigate to={getAdminEntryPath(user)} replace />;
+}
+
 function AdminPermissionRoute({ component: Component, permission, props }) {
-  const { canAdmin } = useAuth();
+  const { canAdmin, user } = useAuth();
 
   if (!canAdmin(permission)) {
-    return <Navigate to="/admin/dashboard" replace />;
+    return <Navigate to={getAdminEntryPath(user)} replace />;
   }
 
   return <Component {...props} />;
@@ -130,7 +136,7 @@ function App() {
               />
             </Route>
             <Route element={<ProtectedRoute requireAdmin />}>
-              <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="/admin" element={<AdminEntryRoute />} />
               {adminRoutes.map(({ path, component, permission, props }) => (
                 <Route
                   key={path}

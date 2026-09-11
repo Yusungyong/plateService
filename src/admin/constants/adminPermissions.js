@@ -91,7 +91,7 @@ export function userHasAdminAccess(user) {
 
   const roles = toAuthorityArray(user.roles || user.role);
   const permissions = toAuthorityArray(user.permissions);
-  const effectivePermissions = getEffectivePermissions(roles, permissions);
+  const effectivePermissions = getEffectivePermissions(roles, permissions, user.permissions !== undefined);
 
   return (
     roles.includes(ADMIN_ROLES.SUPER_ADMIN) ||
@@ -107,7 +107,7 @@ export function userHasAdminPermission(user, permission) {
   const normalizedPermission = normalizeAuthority(permission);
   const roles = toAuthorityArray(user.roles || user.role);
   const permissions = toAuthorityArray(user.permissions);
-  const effectivePermissions = getEffectivePermissions(roles, permissions);
+  const effectivePermissions = getEffectivePermissions(roles, permissions, user.permissions !== undefined);
 
   if (roles.includes(ADMIN_ROLES.SUPER_ADMIN)) {
     return true;
@@ -124,8 +124,8 @@ export function getPrimaryAdminRole(user) {
   return roles.find((role) => Object.prototype.hasOwnProperty.call(ROLE_PERMISSIONS, role)) || "";
 }
 
-function getEffectivePermissions(roles, permissions) {
-  if (permissions.length > 0) {
+function getEffectivePermissions(roles, permissions, hasExplicitPermissions) {
+  if (hasExplicitPermissions) {
     return permissions;
   }
 

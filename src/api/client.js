@@ -17,10 +17,15 @@ class ApiError extends Error {
 let authToken = null;
 let refreshToken = null;
 let refreshPromise = null;
+let sessionVersion = 0;
 let authFailureHandler = null;
 let authSessionRefreshHandler = null;
 
 function setAuthSession(nextAccessToken, nextRefreshToken) {
+  if (authToken !== (nextAccessToken || null) || refreshToken !== (nextRefreshToken || null)) {
+    sessionVersion += 1;
+    refreshPromise = null;
+  }
   authToken = nextAccessToken || null;
   refreshToken = nextRefreshToken || null;
 }
@@ -34,6 +39,8 @@ function clearAuthToken() {
 }
 
 function clearAuthSession() {
+  sessionVersion += 1;
+  refreshPromise = null;
   authToken = null;
   refreshToken = null;
 }
@@ -165,7 +172,8 @@ async function refreshAuthSession() {
   }
 
   if (!refreshPromise) {
-    refreshPromise = (async () => {
+    const version = sessionVersion;
+    const pendingRefresh = (async () => {
       const { response, payload } = await executeRequest("/api/auth/refresh", {
         method: "POST",
         body: { refreshToken },
@@ -187,7 +195,11 @@ async function refreshAuthSession() {
         });
       }
 
-      setAuthSession(nextAccessToken, nextRefreshToken);
+      if (version !== sessionVersion) {
+        throw new ApiError("Session changed during refresh.", { code: "AUTH_SESSION_CHANGED" });
+      }
+      authToken = nextAccessToken;
+      refreshToken = nextRefreshToken;
 
       if (authSessionRefreshHandler) {
         authSessionRefreshHandler({
@@ -201,14 +213,16 @@ async function refreshAuthSession() {
         refreshToken: nextRefreshToken,
       };
     })().finally(() => {
-      refreshPromise = null;
+      if (refreshPromise === pendingRefresh) refreshPromise = null;
     });
+    refreshPromise = pendingRefresh;
   }
 
   return refreshPromise;
 }
 
 async function request(path, options = {}) {
+  const version = sessionVersion;
   const hadAuthSession = Boolean(authToken || refreshToken);
   const { response, payload } = await executeRequest(path, options);
 
@@ -217,6 +231,7 @@ async function request(path, options = {}) {
   }
 
   const error = createApiError(response, payload);
+  if (version !== sessionVersion) throw error;
   const shouldRefresh =
     options.withAuth !== false &&
     !options._retry &&
@@ -225,8 +240,12 @@ async function request(path, options = {}) {
   if (shouldRefresh && refreshToken) {
     try {
       await refreshAuthSession();
+      if (version !== sessionVersion) {
+        throw new ApiError("Session changed during refresh.", { code: "AUTH_SESSION_CHANGED" });
+      }
       return request(path, { ...options, _retry: true });
     } catch (refreshError) {
+      if (version !== sessionVersion) throw refreshError;
       clearAuthSession();
 
       if (authFailureHandler) {

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { getAdminEntryPath } from "../config/routes";
 import { loginWithPassword } from "../api/authApi";
 import { consumeAuthNotice, useAuth } from "../auth/AuthContext";
 
@@ -30,13 +31,13 @@ function Login() {
     try {
       const response = await loginWithPassword(form);
 
-      login({
+      const session = login({
         accessToken: response.accessToken,
         refreshToken: response.refreshToken,
       });
 
       persistRememberedUsername(rememberUsername ? form.username.trim() : "");
-      const nextPath = location.state?.from || "/faq";
+      const nextPath = location.state?.from || getAdminEntryPath(session?.user);
       navigate(nextPath, { replace: true });
     } catch (error) {
       setErrorMessage(error.message || "로그인에 실패했습니다.");

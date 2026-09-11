@@ -15,6 +15,21 @@ function AuthProbe() {
   return <span>{`${accessToken || "none"}:${refreshToken || "none"}`}</span>;
 }
 
+function PermissionProbe() {
+  const { isAdmin } = useAuth();
+  return <span>{isAdmin ? "admin-allowed" : "admin-denied"}</span>;
+}
+
+test.each([true, false])("JWT permission presence is preserved (explicit: %s)", (explicit) => {
+  const claims = { sub: "admin", roles: ["ADMIN"], ...(explicit ? { permissions: [] } : {}) };
+  window.localStorage.setItem("plate-service.auth", JSON.stringify({
+    accessToken: `header.${window.btoa(JSON.stringify(claims))}.signature`,
+    refreshToken: "refresh",
+  }));
+  render(<AuthProvider><PermissionProbe /></AuthProvider>);
+  expect(screen.getByText(explicit ? "admin-denied" : "admin-allowed")).toBeInTheDocument();
+});
+
 beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();

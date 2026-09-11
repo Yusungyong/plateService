@@ -17,7 +17,7 @@ import AdminDashboard from "../admin/pages/AdminDashboard";
 import AdminPlaceholderPage from "../admin/pages/AdminPlaceholderPage";
 import AdminStoreApprovals from "../admin/pages/AdminStoreApprovals";
 import AdminSeasonalCurations from "../admin/pages/AdminSeasonalCurations";
-import { ADMIN_PERMISSIONS } from "../admin/constants/adminPermissions";
+import { userHasAdminPermission, ADMIN_PERMISSIONS } from "../admin/constants/adminPermissions";
 
 export const publicNavigationItems = [
   { path: "/faq", label: "자주 묻는 질문" },
@@ -223,3 +223,9 @@ export const legacyBusinessRedirects = [
     to: "/business/stores/:restaurantId",
   },
 ];
+
+export function getAdminEntryPath(user) {
+  return adminNavigationItems.find((item) =>
+    item.available !== false && userHasAdminPermission(user, item.permission)
+  )?.path || "/faq";
+}
