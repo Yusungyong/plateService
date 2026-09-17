@@ -56,3 +56,7 @@ export async function reorderSeasonalCurations(items) {
     await apiClient.patch("/api/admin/seasonal-curations/order", { items })
   );
 }
+
+export async function importSeasonalFoods() {
+  return unwrapAdminResponse(await apiClient.post("/api/admin/seasonal-curations/import-foods", {}));
+}
