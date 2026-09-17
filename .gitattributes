@@ -1,0 +1,4 @@
+content/legal/public/** text eol=lf
+content/legal/artifacts/** -text
+content/legal/review/source/** -text
+content/legal/*.json text eol=lf

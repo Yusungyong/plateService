@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getAdminEntryPath } from "../config/routes";
 import { loginWithPassword } from "../api/authApi";
 import { consumeAuthNotice, useAuth } from "../auth/AuthContext";
+import PlateBrand from "../components/PlateBrand";
 
 const LOGIN_USERNAME_STORAGE_KEY = "plate-service.remembered-username";
 
@@ -12,6 +13,11 @@ function Login() {
   const { login } = useAuth();
   const requestedPath = location.state?.from || "";
   const loginContext = getLoginContext(requestedPath);
+  useEffect(() => {
+    const previous = document.title;
+    document.title = `${loginContext.title} | 접시`;
+    return () => { document.title = previous; };
+  }, [loginContext.title]);
   const [form, setForm] = useState(() => ({
     username: readRememberedUsername(),
     password: "",
@@ -50,54 +56,20 @@ function Login() {
     <main className="login-page">
       <section className="login-showcase" aria-labelledby="login-brand-title">
         <div className="login-showcase__topline">
-          <Link className="login-brand" to="/faq">
-            <span className="login-brand__mark" aria-hidden="true">P</span>
-            <span>
-              <strong>접시</strong>
-              <small>PLATE SERVICE</small>
-            </span>
-          </Link>
-          <span className="login-showcase__badge">운영 서비스</span>
+          <PlateBrand />
+          <span className="login-showcase__badge">{loginContext.audience}</span>
         </div>
 
         <div className="login-showcase__content">
-          <span className="login-showcase__eyebrow">PLATE OPERATIONS</span>
-          <h1 id="login-brand-title">
-            맛있는 연결을 만드는
-            <br />
-            접시 운영 공간
-          </h1>
-          <p>
-            매장과 콘텐츠, 시즌 큐레이션을 한곳에서 관리하고 사용자에게 더 좋은 맛집 경험을 전달합니다.
-          </p>
+          <span className="login-showcase__eyebrow">PLATE SERVICE</span>
+          <p className="login-context-title" id="login-brand-title">{loginContext.intro}</p>
+          <p>{loginContext.description}</p>
 
-          <div className="login-feature-list">
-            <article>
-              <span aria-hidden="true">01</span>
-              <div>
-                <strong>입점 신청</strong>
-                <p>식당 담당자가 계정 생성부터 서류 제출까지 직접 진행합니다.</p>
-              </div>
-            </article>
-            <article>
-              <span aria-hidden="true">02</span>
-              <div>
-                <strong>매장 관리</strong>
-                <p>승인된 매장은 기본 정보와 메뉴를 owner 권한으로 관리합니다.</p>
-              </div>
-            </article>
-            <article>
-              <span aria-hidden="true">03</span>
-              <div>
-                <strong>운영자 관리</strong>
-                <p>내부 운영자는 별도 관리자 권한으로 승인과 콘텐츠를 관리합니다.</p>
-              </div>
-            </article>
-          </div>
+          <div className="login-feature-list">{loginContext.features.map((feature, index) => <article key={feature}><span aria-hidden="true">0{index + 1}</span><strong>{feature}</strong></article>)}</div>
         </div>
 
         <p className="login-showcase__footer">
-          접시 내부 운영자와 식당 비즈니스 사용자를 위한 공간입니다.
+          {loginContext.nextStep}
         </p>
       </section>
 
@@ -106,7 +78,7 @@ function Login() {
           <div className="login-card">
             <div className="login-card__intro">
               <span className="login-card__eyebrow">{loginContext.eyebrow}</span>
-              <h2 id="login-title">{loginContext.title}</h2>
+              <h1 id="login-title">{loginContext.title}</h1>
               <p>{loginContext.description}</p>
             </div>
 
@@ -176,11 +148,11 @@ function Login() {
             <div className="login-card__footer login-card__footer--links" aria-label="계정 관련 링크">
               <span className="login-card__footer-label">접시가 처음이신가요?</span>
               <div className="login-card__footer-actions">
-                <Link className="login-card__footer-action" to="/signup">
+                <Link className="login-card__footer-action" to="/signup" state={{ from: requestedPath }}>
                   회원가입
                 </Link>
                 <Link className="login-card__footer-action login-card__footer-action--primary" to="/business/signup">
-                  식당 입점 신청
+                  로그인 후 입점 신청
                 </Link>
                 <Link className="login-card__footer-action login-card__footer-action--secondary" to="/qna">
                   문의하기
@@ -205,21 +177,35 @@ function getLoginContext(path) {
   if (path === "/admin" || path.startsWith("/admin/")) {
     return {
       eyebrow: "ADMIN ACCESS",
+      audience: "접시 운영자",
+      intro: "접시 운영 업무를 이어가세요.",
+      nextStep: "로그인 후 요청한 관리자 화면으로 이동합니다.",
+      features: ["입점 신청 심사", "매장·콘텐츠 관리", "운영 문의 처리"],
       title: "운영자 로그인",
       description: "접시 내부 운영 업무를 계속하려면 관리자 계정으로 로그인해 주세요.",
     };
   }
 
-  if (path.startsWith("/business/")) {
+  if (path === "/business" || path.startsWith("/business/")) {
     return {
       eyebrow: "BUSINESS ACCESS",
+      audience: "식당 담당자",
+      intro: "우리 매장의 다음 단계를 확인하세요.",
+      nextStep: path === "/business/signup"
+        ? "로그인 후 식당 입점 신청서를 작성합니다."
+        : "로그인 후 신청 현황 또는 요청한 매장 관리 화면으로 이동합니다.",
+      features: ["로그인 후 입점 신청", "신청 현황 확인·보완 제출", "승인된 내 매장 관리"],
       title: "비즈니스 로그인",
-      description: "입점 신청 현황 또는 승인된 매장을 관리하려면 비즈니스 계정으로 로그인해 주세요.",
+      description: "식당 입점 신청과 매장 관리는 로그인이 필요합니다. 접시 계정으로 로그인해 주세요. 계정이 없다면 회원가입 후 신청할 수 있습니다.",
     };
   }
 
   return {
     eyebrow: "WELCOME BACK",
+    audience: "접시 이용자",
+    intro: "궁금한 점을 묻고, 답변을 확인하세요.",
+    nextStep: "로그인 후 이용하던 화면으로 돌아갑니다.",
+    features: ["공개 질문 등록", "비공개 문의 접수", "내 문의 답변 확인"],
     title: "로그인",
     description: "접시 서비스와 고객지원 기능을 이용하려면 로그인해 주세요.",
   };

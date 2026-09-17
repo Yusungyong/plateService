@@ -10,6 +10,8 @@
 
 # production
 /build
+/src/legal/generated.json
+/.legal-preview
 
 # misc
 .DS_Store

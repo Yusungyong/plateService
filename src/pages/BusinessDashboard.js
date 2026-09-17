@@ -116,7 +116,7 @@ function BusinessDashboard() {
 
       await loadStoreSnapshot(primaryStore);
     } catch (error) {
-      setMessage(error.message || "점주 홈 정보를 불러오지 못했습니다.");
+      setMessage(error.message || "매장 운영 현황 정보를 불러오지 못했습니다.");
       setRestaurantPage(createEmptyPage());
       setApplications([]);
     } finally {
@@ -130,7 +130,7 @@ function BusinessDashboard() {
 
   return (
     <PageLayout
-      title="점주 홈"
+      title="매장 운영 현황"
       description="오늘 확인해야 할 매장 상태, 보완 항목, 최근 성과를 한 화면에서 확인합니다."
     >
       <div className="stack-layout restaurant-registration owner-dashboard">
@@ -150,7 +150,7 @@ function BusinessDashboard() {
         ) : null}
 
         {isLoading ? (
-          <div className="board-empty">점주 홈 정보를 불러오는 중입니다.</div>
+          <div className="board-empty">매장 운영 현황 정보를 불러오는 중입니다.</div>
         ) : restaurants.length === 0 ? (
           <OwnerEmptyStart />
         ) : (

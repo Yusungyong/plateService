@@ -79,14 +79,14 @@ function PrivateInquiry() {
 
     try {
       await createQna(payload);
-      setSubmitMessage("1:1 문의가 접수되었습니다. 운영팀이 확인한 뒤 입력한 이메일로 답변을 안내합니다.");
+      setSubmitMessage("비공개 1:1 문의가 접수되었습니다. 운영팀이 확인한 뒤 입력한 이메일로 답변을 안내합니다.");
       setForm((current) => ({
         ...initialPrivateInquiryForm,
         authorName: current.authorName,
         email: current.email,
       }));
     } catch (error) {
-      setSubmitMessage(error.message || "1:1 문의 접수에 실패했습니다.");
+      setSubmitMessage(error.message || "비공개 1:1 문의 접수에 실패했습니다.");
     } finally {
       setIsSubmitting(false);
     }
@@ -94,7 +94,7 @@ function PrivateInquiry() {
 
   return (
     <PageLayout
-      title="1:1 문의"
+      title="비공개 1:1 문의"
       className="support-page support-page--qna support-page--private-inquiry"
       description="계정, 결제, 사업자 정보처럼 개인 확인이 필요한 내용은 비공개 문의로 접수해 주세요."
     >
@@ -102,7 +102,7 @@ function PrivateInquiry() {
         <section className="support-panel qna-scope-panel">
           <div className="support-panel__header">
             <span className="support-kicker">비공개 문의</span>
-            <h3>문의 내용과 답변은 공개 Q&A 목록에 표시되지 않습니다.</h3>
+            <h3>문의 내용과 답변은 공개 질문·답변 목록에 표시되지 않습니다.</h3>
           </div>
           <p className="page-layout__description">
             운영팀 확인을 위해 답변 받을 이메일은 필수입니다. 비밀번호, 카드 전체 번호, 주민등록번호처럼 민감한 정보는 입력하지 마세요.
@@ -113,12 +113,12 @@ function PrivateInquiry() {
           <div className="qna-compose-panel__summary">
             <span className="support-kicker">문의 접수</span>
             <strong>비공개 1:1 문의</strong>
-            <span>답변은 입력한 이메일로 안내됩니다. 공개해도 괜찮은 일반 질문은 공개 Q&A에 남겨 주세요.</span>
+            <span>답변은 입력한 이메일로 안내됩니다. 공개해도 괜찮은 일반 질문은 공개 질문·답변에 남겨 주세요.</span>
           </div>
 
           <form className="admin-form" onSubmit={handleSubmit}>
             <div className="api-status qna-scope-notice" role="note">
-              공개 Q&A 목록에는 표시되지 않는 문의입니다. 운영팀 확인과 답변 안내 목적으로만 사용됩니다.
+              공개 질문·답변 목록에는 표시되지 않는 문의입니다. 운영팀 확인과 답변 안내 목적으로만 사용됩니다.
             </div>
 
             <div className="admin-inline-fields">
@@ -181,13 +181,13 @@ function PrivateInquiry() {
 
             <div className="admin-actions qna-write-actions">
               <button type="submit" className="button-primary" disabled={isSubmitting}>
-                {isSubmitting ? "접수 중..." : "1:1 문의 접수"}
+                {isSubmitting ? "접수 중..." : "비공개 1:1 문의 접수"}
               </button>
               <button type="button" onClick={resetForm} disabled={isSubmitting}>
                 입력 초기화
               </button>
               <Link className="support-page-action support-page-action--secondary" to="/qna">
-                공개 Q&A 보기
+                공개 질문·답변 보기
               </Link>
             </div>
           </form>

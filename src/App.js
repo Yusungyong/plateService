@@ -19,14 +19,17 @@ import {
   adminRoutes,
   businessApplicationRoutes,
   businessOwnerRoutes,
-  businessPublicRoutes,
+  businessSignupRoutes,
   legacyBusinessRedirects,
   openSupportRoutes,
   policyRoutes,
   publicRoutes,
 } from "./config/routes";
 import Login from "./pages/Login";
+import Home from "./pages/Home";
+import NotFound from "./pages/NotFound";
 import "./App.css";
+import "./styles/brand.css";
 
 function FaqEntryRoute({ Component }) {
   const { canAdmin } = useAuth();
@@ -41,10 +44,11 @@ function FaqEntryRoute({ Component }) {
 function ApplicationShell({ children }) {
   const location = useLocation();
   const isLoginPage = location.pathname === "/login";
+  const isLegalPage = /^\/(terms-of-service|privacy-policy|location-terms)(\/|$)/.test(location.pathname);
   const isAdminArea =
     location.pathname === "/admin" || location.pathname.startsWith("/admin/");
 
-  if (isLoginPage) {
+  if (location.pathname === "/" || isLoginPage || isLegalPage) {
     return children;
   }
 
@@ -91,7 +95,8 @@ function App() {
       <Router>
         <ApplicationShell>
           <Routes>
-            <Route path="/" element={<Navigate to="/faq" replace />} />
+            <Route path="*" element={<NotFound />} />
+            <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             {accountPublicRoutes.map(({ path, component: Component }) => (
               <Route key={path} path={path} element={<Component />} />
@@ -103,9 +108,6 @@ function App() {
               <Route key={path} path={path} element={<Component />} />
             ))}
             <Route path="/business" element={<BusinessHomeRedirect />} />
-            {businessPublicRoutes.map(({ path, component: Component }) => (
-              <Route key={path} path={path} element={<Component />} />
-            ))}
             {publicRoutes.map(({ path, component: Component }) => (
               <Route
                 key={path}
@@ -115,6 +117,9 @@ function App() {
             ))}
             <Route path="/business/stores/new" element={<Navigate to="/business/signup" replace />} />
             <Route element={<ProtectedRoute />}>
+              {businessSignupRoutes.map(({ path, component: Component }) => (
+                <Route key={path} path={path} element={<Component />} />
+              ))}
               {businessApplicationRoutes.map(({ path, component: Component }) => (
                 <Route key={path} path={path} element={<Component />} />
               ))}

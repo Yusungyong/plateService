@@ -18,7 +18,7 @@ function AdminPlaceholderPage({ title, description, featured = false }) {
       >
         <strong>다음 구현 단계</strong>
         <p>
-          공통 레이아웃과 승인 관리 흐름을 먼저 안정화한 뒤 이 화면의 mock API와
+          공통 레이아웃과 입점 신청 심사 흐름을 먼저 안정화한 뒤 이 화면의 mock API와
           운영 액션을 연결합니다.
         </p>
       </section>

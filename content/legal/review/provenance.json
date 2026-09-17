@@ -1,0 +1,43 @@
+{
+  "repository": "Yusungyong/plateApp2",
+  "commit": "e5befc6426cb5a1eb315369bbeae46d3adf5eefd",
+  "documents": [
+    {
+      "path": "operating-policy-2026-09-15.md",
+      "sha256": "3b24eda78036c4f7e79d69aac15595d89743c91ed138f713774cf0262332858f",
+      "url": "https://github.com/Yusungyong/plateApp2/blob/e5befc6426cb5a1eb315369bbeae46d3adf5eefd/docs/legal/operating-policy-2026-09-15.md"
+    },
+    {
+      "path": "backend-release-request.md",
+      "sha256": "caa76ff718bdb20735cb265f431b433799c092de244b36b95624757575927a48",
+      "url": "https://github.com/Yusungyong/plateApp2/blob/e5befc6426cb5a1eb315369bbeae46d3adf5eefd/docs/legal/backend-release-request.md"
+    },
+    {
+      "path": "source-confirmed-facts-2026-09-14.md",
+      "sha256": "7331f85605cf21e707277910c25eb5be517ba311f669a12287ad1cb5d91f144e",
+      "url": "https://github.com/Yusungyong/plateApp2/blob/e5befc6426cb5a1eb315369bbeae46d3adf5eefd/docs/legal/source-confirmed-facts-2026-09-14.md"
+    },
+    {
+      "path": "drafts/2026-09-14/terms-of-service.md",
+      "sha256": "e997cd0add90f041f89a00bac5586f5844da2163c7d10e5018bf5f734e5267e3",
+      "url": "https://github.com/Yusungyong/plateApp2/blob/e5befc6426cb5a1eb315369bbeae46d3adf5eefd/docs/legal/drafts/2026-09-14/terms-of-service.md"
+    },
+    {
+      "path": "drafts/2026-09-14/privacy-policy.md",
+      "sha256": "f6635ed00f98586a516c771752f43afdc4555004a276143cc56bc7c56dd80232",
+      "url": "https://github.com/Yusungyong/plateApp2/blob/e5befc6426cb5a1eb315369bbeae46d3adf5eefd/docs/legal/drafts/2026-09-14/privacy-policy.md"
+    },
+    {
+      "path": "drafts/2026-09-14/location-terms.md",
+      "sha256": "fe4d0a7bda77b3d0bbf5bfa0f18893d0c32ac90ebe4ce8d0277c2d5ee21d1688",
+      "url": "https://github.com/Yusungyong/plateApp2/blob/e5befc6426cb5a1eb315369bbeae46d3adf5eefd/docs/legal/drafts/2026-09-14/location-terms.md"
+    }
+  ],
+  "backend": {
+    "issue": 36,
+    "pr": 37,
+    "head": "9658f06292962ce332ec3f7284f17cbe454dc051",
+    "state": "draft-unmerged-not-deployed",
+    "checkedOn": "2026-09-15"
+  }
+}

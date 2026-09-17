@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import App from "./App";
 
 const AUTH_STORAGE_KEY = "plate-service.auth";
@@ -14,15 +14,6 @@ function createJsonResponse(payload, options = {}) {
     },
     json: () => Promise.resolve(payload),
   });
-}
-
-function createDeferred() {
-  let resolve;
-  const promise = new Promise((nextResolve) => {
-    resolve = nextResolve;
-  });
-
-  return { promise, resolve };
 }
 
 function createAccessToken(claims = {}) {
@@ -79,11 +70,11 @@ test("redirects unauthenticated restaurant managers to login", () => {
   expect(screen.queryByRole("link", { name: "매장 관리" })).not.toBeInTheDocument();
 });
 
-test("hides application status link during public business signup", () => {
-  renderAt("/business/signup");
-
-  expect(screen.getByRole("heading", { name: "식당 입점 신청" })).toBeInTheDocument();
-  expect(screen.queryByRole("link", { name: "신청 현황 보기" })).not.toBeInTheDocument();
+test.each(["/business", "/business/signup", "/business/stores/new"])("requires login before applying at %s", (path) => {
+  renderAt(path);
+  expect(screen.getByRole("heading", { name: "비즈니스 로그인" })).toBeInTheDocument();
+  expect(screen.queryByLabelText("담당자 이름")).not.toBeInTheDocument();
+  expect(global.fetch).not.toHaveBeenCalled();
 });
 
 test("shows the application status navigation from regular pages after login", async () => {
@@ -120,84 +111,6 @@ test("shows the application status navigation from regular pages after login", a
   expect(lastRequestUrl).toContain("/api/faqs?");
   expect(lastRequestUrl).toContain("category=account");
   expect(decodeURIComponent(lastRequestUrl)).toContain("keyword=비밀번호");
-});
-
-test("checks business signup account fields on blur", async () => {
-  global.fetch.mockResolvedValueOnce(
-    await createJsonResponse({
-      data: {
-        field: "username",
-        available: false,
-        message: "이미 사용 중인 회원 ID입니다.",
-      },
-    })
-  );
-
-  renderAt("/business/signup");
-
-  fireEvent.change(screen.getByLabelText("회원 ID"), {
-    target: { value: "owner01" },
-  });
-  fireEvent.blur(screen.getByLabelText("회원 ID"));
-
-  expect(await screen.findAllByText("이미 사용 중인 회원 ID입니다.")).toHaveLength(2);
-  expect(global.fetch).toHaveBeenCalledWith(
-    expect.stringContaining("/api/owner/signup-account-validations"),
-    expect.objectContaining({
-      method: "POST",
-      body: expect.stringContaining('"value":"owner01"'),
-    })
-  );
-
-});
-
-test("ignores an outdated account validation response", async () => {
-  const firstRequest = createDeferred();
-  global.fetch
-    .mockReturnValueOnce(firstRequest.promise)
-    .mockResolvedValueOnce(
-      await createJsonResponse({
-        data: {
-          field: "username",
-          value: "owner02",
-          available: true,
-          message: "사용 가능한 회원 ID입니다.",
-        },
-      })
-    );
-
-  renderAt("/business/signup");
-
-  const usernameInput = screen.getByLabelText("회원 ID");
-  fireEvent.change(usernameInput, {
-    target: { value: "owner01" },
-  });
-  fireEvent.blur(usernameInput);
-  fireEvent.blur(usernameInput);
-  expect(global.fetch).toHaveBeenCalledTimes(1);
-
-  fireEvent.change(usernameInput, {
-    target: { value: "owner02" },
-  });
-  fireEvent.blur(usernameInput);
-
-  expect(await screen.findByText("사용 가능한 회원 ID입니다.")).toBeInTheDocument();
-
-  const outdatedResponse = await createJsonResponse({
-    data: {
-      field: "username",
-      value: "owner01",
-      available: false,
-      message: "이미 사용 중인 회원 ID입니다.",
-    },
-  });
-  await act(async () => {
-    firstRequest.resolve(outdatedResponse);
-    await Promise.resolve();
-  });
-
-  expect(screen.queryByText("이미 사용 중인 회원 ID입니다.")).not.toBeInTheDocument();
-  expect(screen.getByText("사용 가능한 회원 ID입니다.")).toBeInTheDocument();
 });
 
 test("decodes Korean display names from JWT claims", () => {
@@ -238,8 +151,8 @@ test("shows owner shell and loads linked stores", async () => {
 
   renderAt("/business/stores");
 
-  expect(screen.getByRole("heading", { name: "식당 비즈니스 센터" })).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "매장 관리" })).toHaveAttribute("href", "/business/stores");
+  expect(screen.getByRole("heading", { level: 1, name: "내 매장 관리" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "내 매장 관리" })).toHaveAttribute("href", "/business/stores");
   expect(screen.getByRole("link", { name: "새 입점 신청" })).toHaveAttribute("href", "/business/signup");
   expect(await screen.findByText("플레이팅 키친 강남점")).toBeInTheDocument();
   expect(screen.getAllByText("즉시 노출").length).toBeGreaterThan(0);
@@ -353,8 +266,8 @@ test("shows an owner dashboard with tasks and recent performance", async () => {
 
   renderAt("/business/dashboard");
 
-  expect(await screen.findByRole("heading", { name: "점주 홈" })).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "홈" })).toHaveAttribute("href", "/business/dashboard");
+  expect(await screen.findByRole("heading", { name: "매장 운영 현황" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "매장 운영 현황" })).toHaveAttribute("href", "/business/dashboard");
   expect((await screen.findAllByText("플레이팅 키친 강남점")).length).toBeGreaterThan(0);
   expect(screen.getByRole("heading", { name: "먼저 보면 좋은 항목" })).toBeInTheDocument();
   expect(screen.getAllByText("대표 이미지").length).toBeGreaterThan(0);
@@ -744,35 +657,9 @@ test("redirects legacy new-store route to business signup", () => {
   expect(screen.getByText("담당자 정보")).toBeInTheDocument();
 });
 
-test("submits a public business signup through the owner application API", async () => {
+test("submits an application as a logged-in member without owner permission", async () => {
+  storeAuth({ permissions: [] });
   global.fetch
-    .mockResolvedValueOnce(
-      await createJsonResponse({
-        data: {
-          field: "username",
-          available: true,
-          message: "사용 가능한 회원 ID입니다.",
-        },
-      })
-    )
-    .mockResolvedValueOnce(
-      await createJsonResponse({
-        data: {
-          field: "email",
-          available: true,
-          message: "사용 가능한 이메일입니다.",
-        },
-      })
-    )
-    .mockResolvedValueOnce(
-      await createJsonResponse({
-        data: {
-          field: "nickname",
-          available: true,
-          message: "사용 가능한 닉네임입니다.",
-        },
-      })
-    )
     .mockResolvedValueOnce(
       await createJsonResponse({
         data: {
@@ -785,14 +672,6 @@ test("submits a public business signup through the owner application API", async
       })
     )
     .mockResolvedValueOnce(await createJsonResponse({ data: { applicationId: 100, approvalStatus: "draft" } }))
-    .mockResolvedValueOnce(
-      await createJsonResponse({
-        data: {
-          accessToken: createAccessToken({ permissions: [] }),
-          refreshToken: "next-refresh-token",
-        },
-      })
-    )
     .mockResolvedValueOnce(await createJsonResponse({ data: { applicationId: 100, version: 1 } }))
     .mockResolvedValueOnce(
       await createJsonResponse({
@@ -835,28 +714,7 @@ test("submits a public business signup through the owner application API", async
 
   renderAt("/business/signup");
 
-  fireEvent.change(screen.getByLabelText("회원 ID"), {
-    target: { value: "owner01" },
-  });
-  fireEvent.blur(screen.getByLabelText("회원 ID"));
-  fireEvent.change(screen.getByLabelText("이메일"), {
-    target: { value: "owner@example.com" },
-  });
-  fireEvent.blur(screen.getByLabelText("이메일"));
-  fireEvent.change(screen.getByLabelText("비밀번호"), {
-    target: { value: "password123" },
-  });
-  fireEvent.change(screen.getByLabelText("비밀번호 확인"), {
-    target: { value: "password123" },
-  });
-  fireEvent.change(screen.getByLabelText("닉네임"), {
-    target: { value: "김사장" },
-  });
-  fireEvent.blur(screen.getByLabelText("닉네임"));
-  expect(await screen.findByText("사용 가능한 회원 ID입니다.")).toBeInTheDocument();
-  expect(await screen.findByText("사용 가능한 이메일입니다.")).toBeInTheDocument();
-  expect(await screen.findByText("사용 가능한 닉네임입니다.")).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "다음" }));
+  expect(screen.queryByLabelText("회원 ID")).not.toBeInTheDocument();
 
   fireEvent.change(screen.getByLabelText("담당자 이름"), {
     target: { value: "김사장" },
@@ -903,27 +761,6 @@ test("submits a public business signup through the owner application API", async
   expect(screen.getByText("한식")).toBeInTheDocument();
   await waitFor(() => {
     expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/owner/signup-account-validations"),
-      expect.objectContaining({
-        method: "POST",
-        body: expect.stringContaining('"field":"username"'),
-      })
-    );
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/owner/signup-account-validations"),
-      expect.objectContaining({
-        method: "POST",
-        body: expect.stringContaining('"field":"email"'),
-      })
-    );
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/owner/signup-account-validations"),
-      expect.objectContaining({
-        method: "POST",
-        body: expect.stringContaining('"field":"nickname"'),
-      })
-    );
-    expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/owner/business-verifications"),
       expect.objectContaining({
         method: "POST",
@@ -931,55 +768,45 @@ test("submits a public business signup through the owner application API", async
       })
     );
     expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/owner/signup-applications"),
+      expect.stringContaining("/api/owner/store-applications"),
       expect.objectContaining({
         method: "POST",
         body: expect.stringContaining('"storeName":"새로운 식당"'),
       })
     );
     expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/owner/signup-applications"),
+      expect.stringContaining("/api/owner/store-applications"),
       expect.objectContaining({
         method: "POST",
         body: expect.stringContaining('"ownerPhone":"010-1234-5678"'),
       })
     );
     expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/owner/signup-applications"),
+      expect.stringContaining("/api/owner/store-applications"),
       expect.objectContaining({
         method: "POST",
         body: expect.stringContaining('"businessNumber":"123-45-67890"'),
       })
     );
     expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/owner/signup-applications"),
+      expect.stringContaining("/api/owner/store-applications"),
       expect.objectContaining({
         method: "POST",
         body: expect.stringContaining('"openingDate":"2024-01-15"'),
       })
     );
     expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/owner/signup-applications"),
+      expect.stringContaining("/api/owner/store-applications"),
       expect.objectContaining({
         method: "POST",
         body: expect.stringContaining('"phone":"02-1234-5678"'),
       })
     );
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/owner/signup-applications"),
-      expect.objectContaining({
-        method: "POST",
-        body: expect.stringContaining('"username":"owner01"'),
-      })
-    );
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/owner/signup-applications"),
-      expect.objectContaining({
-        method: "POST",
-        body: expect.stringContaining('"email":"owner@example.com"'),
-      })
-    );
   });
+  expect(global.fetch.mock.calls.some(([url]) => url.includes("/signup-applications"))).toBe(false);
+  const createCall = global.fetch.mock.calls.find(([url, options]) => url.endsWith("/api/owner/store-applications") && options.method === "POST");
+  expect(createCall[1].headers.Authorization).toBe(`Bearer ${createAccessToken({ permissions: [] })}`);
+  expect(JSON.parse(createCall[1].body)).not.toHaveProperty("account");
   expect(global.fetch).not.toHaveBeenCalledWith(
     expect.stringContaining("/api/owner/store-applications/100/documents?documentType=business_registration"),
     expect.anything()
@@ -991,4 +818,39 @@ test("submits a public business signup through the owner application API", async
       body: expect.stringContaining('"version":1'),
     })
   );
+});
+
+
+test.each([false, true])("returns to the application after authentication (new account: %s)", async (newAccount) => {
+  if (newAccount) global.fetch.mockResolvedValueOnce(await createJsonResponse({ data: {} }));
+  global.fetch.mockResolvedValueOnce(await createJsonResponse({ data: {
+    accessToken: createAccessToken({ permissions: [] }), refreshToken: "refresh-token",
+  } }));
+  renderAt("/business/signup");
+  if (newAccount) {
+    fireEvent.click(screen.getByRole("link", { name: "회원가입" }));
+    for (const [label, value] of [["회원 ID", "newowner"], ["닉네임", "새사장"], ["이메일", "new@example.com"], ["비밀번호", "password123"], ["비밀번호 확인", "password123"]]) {
+      fireEvent.change(screen.getByLabelText(label === "회원 ID" ? /^회원 ID/ : label === "비밀번호" ? /^비밀번호\s*비밀번호는/ : label), { target: { value } });
+    }
+    fireEvent.click(screen.getByLabelText("이용약관에 동의합니다."));
+    fireEvent.click(screen.getByLabelText("개인정보 처리방침에 동의합니다."));
+    fireEvent.click(screen.getByRole("button", { name: "가입하기" }));
+    expect(await screen.findByRole("heading", { name: "비즈니스 로그인" })).toBeInTheDocument();
+  }
+  fireEvent.change(screen.getByLabelText("아이디"), { target: { value: "newowner" } });
+  fireEvent.change(screen.getByLabelText("비밀번호"), { target: { value: "password123" } });
+  fireEvent.click(screen.getByRole("button", { name: "로그인" }));
+  expect(await screen.findByRole("heading", { name: "식당 입점 신청" })).toBeInTheDocument();
+  expect(screen.getByLabelText("담당자 이름")).toBeInTheDocument();
+  expect(screen.queryByLabelText("회원 ID")).not.toBeInTheDocument();
+  expect(window.location.pathname).toBe("/business/signup");
+});
+
+
+test("keeps the application destination when switching from signup through the header login", () => {
+  renderAt("/business/signup");
+  fireEvent.click(screen.getByRole("link", { name: "회원가입" }));
+  fireEvent.click(screen.getByRole("button", { name: "로그인" }));
+  expect(screen.getByRole("heading", { name: "비즈니스 로그인" })).toBeInTheDocument();
+  expect(window.history.state.usr.from).toBe("/business/signup");
 });

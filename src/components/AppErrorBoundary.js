@@ -22,6 +22,7 @@ class AppErrorBoundary extends React.Component {
     return (
       <main className="app-error-boundary">
         <section className="app-error-boundary__card" role="alert">
+          <a className="plate-brand" href="/" aria-label="접시 홈으로 이동"><img src="/images/home/plate-mascot.png" width="64" height="64" alt="" /><span>접시<small>홈으로</small></span></a>
           <span className="app-error-boundary__eyebrow">PLATE SERVICE</span>
           <h1>화면을 표시하는 중 문제가 발생했습니다.</h1>
           <p>입력하던 내용은 유지되지 않을 수 있습니다. 새로고침 후 다시 시도해 주세요.</p>

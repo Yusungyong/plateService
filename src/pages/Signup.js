@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { signup } from "../api/signupApi";
 import PageLayout from "../components/PageLayout";
 
@@ -15,6 +15,8 @@ const initialForm = {
 
 function Signup() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnPath = location.state?.from;
   const [form, setForm] = useState(initialForm);
   const [fieldErrors, setFieldErrors] = useState({});
   const [message, setMessage] = useState("");
@@ -54,6 +56,7 @@ function Signup() {
       navigate("/login", {
         replace: true,
         state: {
+          from: returnPath,
           notice: "회원가입이 완료되었습니다. 로그인해 주세요.",
         },
       });
@@ -68,7 +71,7 @@ function Signup() {
     <PageLayout
       className="signup-page"
       title="회원가입"
-      description="접시 서비스 계정을 만들고 고객지원 또는 입점 신청을 이어서 진행할 수 있습니다."
+      description="접시 서비스 계정을 만듭니다. 가입 후 문의를 남기거나 식당 입점 신청을 진행할 수 있습니다."
     >
       <form className="stack-layout signup-form" onSubmit={handleSubmit}>
         {message ? (
@@ -196,7 +199,7 @@ function Signup() {
           </div>
 
           <div className="admin-actions signup-actions">
-            <Link className="restaurant-text-link restaurant-text-link--secondary" to="/login">
+            <Link className="restaurant-text-link restaurant-text-link--secondary" to="/login" state={{ from: returnPath }}>
               이미 계정이 있어요
             </Link>
             <button className="button-primary" type="submit" disabled={isSubmitting}>

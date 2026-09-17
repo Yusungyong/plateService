@@ -1,19 +1,15 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   createBusinessApplication,
   fetchBusinessApplicationDetail,
-  signupAndCreateBusinessApplication,
   submitBusinessApplication,
-  validateBusinessSignupAccountField,
   verifyBusinessRegistration,
 } from "../api/businessApplicationApi";
-import { loginWithPassword } from "../api/authApi";
 import { useAuth } from "../auth/AuthContext";
 import PageLayout from "../components/PageLayout";
 
 const DRAFT_STORAGE_KEY = "plate-service.business-signup-draft";
-const accountAvailabilityFields = new Set(["username", "email", "nickname"]);
 
 const categoryOptions = [
   { code: "KOREAN", label: "한식" },
@@ -27,11 +23,9 @@ const categoryOptions = [
   { code: "ETC", label: "기타" },
 ];
 
-const fullStepOrder = ["account", "owner", "business", "store", "menus", "review"];
 const signedInStepOrder = ["owner", "business", "store", "menus", "review"];
 
 const stepLabels = {
-  account: "계정",
   owner: "담당자",
   business: "사업자",
   store: "매장",
@@ -40,13 +34,6 @@ const stepLabels = {
 };
 
 const initialForm = {
-  account: {
-    username: "",
-    email: "",
-    password: "",
-    passwordConfirm: "",
-    nickname: "",
-  },
   ownerProfile: {
     ownerName: "",
     ownerPhone: "",
@@ -78,8 +65,8 @@ const initialForm = {
 
 function BusinessSignup() {
   const navigate = useNavigate();
-  const { isAuthenticated, login, user } = useAuth();
-  const stepOrder = isAuthenticated ? signedInStepOrder : fullStepOrder;
+  const { isAuthenticated, user } = useAuth();
+  const stepOrder = signedInStepOrder;
   const [stepIndex, setStepIndex] = useState(0);
   const [form, setForm] = useState(() => readDraft());
   const [fieldErrors, setFieldErrors] = useState({});
@@ -87,9 +74,6 @@ function BusinessSignup() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [businessVerification, setBusinessVerification] = useState(() => createBusinessVerificationState());
   const [isVerifyingBusiness, setIsVerifyingBusiness] = useState(false);
-  const [accountAvailability, setAccountAvailability] = useState(() => createAccountAvailabilityState());
-  const accountValidationRequests = useRef(createAccountValidationRequestState());
-  const latestAccountValues = useRef({ ...form.account });
   const currentStep = stepOrder[Math.min(stepIndex, stepOrder.length - 1)];
   const isLastStep = stepIndex === stepOrder.length - 1;
 
@@ -105,17 +89,7 @@ function BusinessSignup() {
     persistDraft(form);
   }, [form]);
 
-  useEffect(() => {
-    if (isAuthenticated && stepOrder[stepIndex] === "account") {
-      setStepIndex(0);
-    }
-  }, [isAuthenticated, stepIndex, stepOrder]);
-
   function updateNested(section, field, value) {
-    if (section === "account") {
-      latestAccountValues.current[field] = value;
-    }
-
     setForm((current) => ({
       ...current,
       [section]: {
@@ -124,11 +98,6 @@ function BusinessSignup() {
       },
     }));
     clearError(`${section}.${field}`);
-
-    if (section === "account" && accountAvailabilityFields.has(field)) {
-      accountValidationRequests.current[field] = createAccountValidationRequestFieldState();
-      resetAccountAvailability(field);
-    }
 
     if (section === "business") {
       clearError("business.verification");
@@ -208,114 +177,8 @@ function BusinessSignup() {
     });
   }
 
-  function resetAccountAvailability(field) {
-    setAccountAvailability((current) => ({
-      ...current,
-      [field]: createAccountAvailabilityFieldState(),
-    }));
-  }
-
-  function setAccountAvailabilityField(field, nextState) {
-    setAccountAvailability((current) => ({
-      ...current,
-      [field]: nextState,
-    }));
-  }
-
-  async function handleValidateAccountField(field) {
-    if (isAuthenticated || !accountAvailabilityFields.has(field)) {
-      return;
-    }
-
-    const value = normalizeAccountValidationValue(field, latestAccountValues.current[field]);
-    const localError = getAccountLocalError(field, value);
-
-    if (localError) {
-      setAccountAvailabilityField(field, createAccountAvailabilityFieldState());
-      setFieldErrors((current) => ({
-        ...current,
-        [`account.${field}`]: localError,
-      }));
-      return;
-    }
-
-    const activeRequest = accountValidationRequests.current[field];
-    if (activeRequest.value === value && (activeRequest.status === "checking" || activeRequest.status === "available")) {
-      return;
-    }
-
-    const requestId = activeRequest.requestId + 1;
-    accountValidationRequests.current[field] = {
-      requestId,
-      status: "checking",
-      value,
-    };
-
-    clearError(`account.${field}`);
-    setAccountAvailabilityField(field, {
-      status: "checking",
-      message: "사용 가능 여부를 확인하고 있습니다.",
-      checkedValue: value,
-    });
-
-    try {
-      const result = await validateBusinessSignupAccountField({ field, value });
-      const responseValue = normalizeAccountValidationValue(field, result?.value ?? value);
-      const currentValue = normalizeAccountValidationValue(field, latestAccountValues.current[field]);
-
-      if (accountValidationRequests.current[field].requestId !== requestId || responseValue !== currentValue) {
-        return;
-      }
-
-      const available = Boolean(result?.available);
-      const message =
-        result?.message || (available ? getAccountAvailableMessage(field) : getAccountUnavailableMessage(field));
-
-      setAccountAvailabilityField(field, {
-        status: available ? "available" : "duplicate",
-        message,
-        checkedValue: responseValue,
-      });
-      accountValidationRequests.current[field] = {
-        requestId,
-        status: available ? "available" : "duplicate",
-        value: responseValue,
-      };
-
-      if (!available) {
-        setFieldErrors((current) => ({
-          ...current,
-          [`account.${field}`]: message,
-        }));
-      }
-    } catch (error) {
-      if (accountValidationRequests.current[field].requestId !== requestId) {
-        return;
-      }
-
-      const message =
-        error.status === 429
-          ? "요청이 많습니다. 잠시 후 다시 확인해 주세요."
-          : error.message || "중복 확인에 실패했습니다. 잠시 후 다시 시도해 주세요.";
-      accountValidationRequests.current[field] = {
-        requestId,
-        status: "error",
-        value,
-      };
-      setAccountAvailabilityField(field, {
-        status: "error",
-        message,
-        checkedValue: value,
-      });
-      setFieldErrors((current) => ({
-        ...current,
-        [`account.${field}`]: message,
-      }));
-    }
-  }
-
   function handleNext() {
-    const errors = validateStep(currentStep, form, isAuthenticated, businessVerification, accountAvailability);
+    const errors = validateStep(currentStep, form, businessVerification);
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -331,42 +194,6 @@ function BusinessSignup() {
   function handlePrevious() {
     setMessage("");
     setStepIndex((current) => Math.max(0, current - 1));
-  }
-
-  function handleAccountConflict(error) {
-    const conflictErrors = error?.payload?.data?.fieldErrors;
-    if (isAuthenticated || error?.status !== 409 || error?.code !== "ACCOUNT_CONFLICT" || !conflictErrors) {
-      return false;
-    }
-
-    const nextFieldErrors = {};
-    const nextAvailability = { ...accountAvailability };
-
-    accountAvailabilityFields.forEach((field) => {
-      const fieldMessage = conflictErrors[field];
-      if (!fieldMessage) {
-        return;
-      }
-
-      const value = normalizeAccountValidationValue(field, latestAccountValues.current[field]);
-      nextFieldErrors[`account.${field}`] = fieldMessage;
-      nextAvailability[field] = {
-        status: "duplicate",
-        message: fieldMessage,
-        checkedValue: value,
-      };
-      accountValidationRequests.current[field] = {
-        requestId: accountValidationRequests.current[field].requestId + 1,
-        status: "duplicate",
-        value,
-      };
-    });
-
-    setFieldErrors(nextFieldErrors);
-    setAccountAvailability(nextAvailability);
-    setStepIndex(fullStepOrder.indexOf("account"));
-    setMessage(error.message || "이미 사용 중인 계정 정보가 있습니다.");
-    return true;
   }
 
   async function handleVerifyBusiness() {
@@ -430,8 +257,12 @@ function BusinessSignup() {
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if (!isAuthenticated) {
+      navigate("/login", { replace: true, state: { from: "/business/signup" } });
+      return;
+    }
 
-    const errors = validateAll(form, isAuthenticated, businessVerification, accountAvailability);
+    const errors = validateAll(form, businessVerification);
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       setMessage("입점 신청에 필요한 정보를 모두 입력해 주세요.");
@@ -443,22 +274,7 @@ function BusinessSignup() {
 
     try {
       const applicationPayload = buildApplicationPayload(form, businessVerification);
-      let createdApplication;
-
-      if (isAuthenticated) {
-        createdApplication = await createBusinessApplication(applicationPayload);
-      } else {
-        createdApplication = await signupAndCreateBusinessApplication({
-          account: buildAccountPayload(form.account),
-          ...applicationPayload,
-        });
-
-        const tokens = await loginWithPassword({
-          username: form.account.username.trim(),
-          password: form.account.password,
-        });
-        login(tokens);
-      }
+      const createdApplication = await createBusinessApplication(applicationPayload);
 
       const applicationId = createdApplication.applicationId;
       const detail = await fetchBusinessApplicationDetail(applicationId);
@@ -475,10 +291,6 @@ function BusinessSignup() {
         },
       });
     } catch (error) {
-      if (handleAccountConflict(error)) {
-        return;
-      }
-
       setMessage(error.message || "입점 신청 제출에 실패했습니다.");
     } finally {
       setIsSubmitting(false);
@@ -488,7 +300,7 @@ function BusinessSignup() {
   return (
     <PageLayout
       title="식당 입점 신청"
-      description="계정 생성부터 사업자 정보 검증, 매장 정보 입력까지 한 번에 진행합니다."
+      description="로그인한 계정으로 담당자·사업자·매장 정보를 입력하고 입점을 신청합니다."
     >
       <form className="stack-layout business-signup" onSubmit={handleSubmit}>
         <StepIndicator stepOrder={stepOrder} currentStep={currentStep} />
@@ -501,19 +313,10 @@ function BusinessSignup() {
 
         {isAuthenticated ? (
           <div className="api-status api-status--success" role="status">
-            {user?.displayName || user?.username || "현재 계정"}으로 신청합니다. 계정 정보 단계는 생략됩니다.
+            {user?.displayName || user?.username || "현재 계정"}으로 신청합니다. 신청 결과는 입점 신청 현황에서 확인할 수 있습니다.
           </div>
         ) : null}
 
-        {currentStep === "account" ? (
-          <AccountStep
-            form={form}
-            errors={fieldErrors}
-            availability={accountAvailability}
-            onBlur={handleValidateAccountField}
-            onChange={updateNested}
-          />
-        ) : null}
         {currentStep === "owner" ? (
           <OwnerStep form={form} errors={fieldErrors} onChange={updateNested} />
         ) : null}
@@ -584,97 +387,6 @@ function StepIndicator({ stepOrder, currentStep }) {
         </li>
       ))}
     </ol>
-  );
-}
-
-function AccountStep({ form, errors, availability, onBlur, onChange }) {
-  return (
-    <section className="support-panel">
-      <div className="support-panel__header">
-        <span className="support-kicker">ACCOUNT</span>
-        <h3>계정 정보</h3>
-      </div>
-      <div className="admin-form">
-        <label className="admin-field">
-          <span>회원 ID</span>
-          <input
-            type="text"
-            autoComplete="username"
-            value={form.account.username}
-            onChange={(event) => onChange("account", "username", event.target.value)}
-            onBlur={() => onBlur("username")}
-            aria-invalid={Boolean(errors["account.username"])}
-            placeholder="영문, 숫자 조합"
-          />
-          <AccountAvailabilityStatus state={availability.username} />
-          <FieldError message={errors["account.username"]} />
-        </label>
-        <label className="admin-field">
-          <span>이메일</span>
-          <input
-            type="email"
-            autoComplete="email"
-            value={form.account.email}
-            onChange={(event) => onChange("account", "email", event.target.value)}
-            onBlur={() => onBlur("email")}
-            aria-invalid={Boolean(errors["account.email"])}
-          />
-          <AccountAvailabilityStatus state={availability.email} />
-          <FieldError message={errors["account.email"]} />
-        </label>
-        <div className="admin-inline-fields">
-          <label className="admin-field">
-            <span>비밀번호</span>
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={form.account.password}
-              onChange={(event) => onChange("account", "password", event.target.value)}
-              aria-invalid={Boolean(errors["account.password"])}
-            />
-            <FieldError message={errors["account.password"]} />
-          </label>
-          <label className="admin-field">
-            <span>비밀번호 확인</span>
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={form.account.passwordConfirm}
-              onChange={(event) => onChange("account", "passwordConfirm", event.target.value)}
-              aria-invalid={Boolean(errors["account.passwordConfirm"])}
-            />
-            <FieldError message={errors["account.passwordConfirm"]} />
-          </label>
-        </div>
-        <label className="admin-field">
-          <span>닉네임</span>
-          <input
-            type="text"
-            value={form.account.nickname}
-            onChange={(event) => onChange("account", "nickname", event.target.value)}
-            onBlur={() => onBlur("nickname")}
-            aria-invalid={Boolean(errors["account.nickname"])}
-          />
-          <AccountAvailabilityStatus state={availability.nickname} />
-          <FieldError message={errors["account.nickname"]} />
-        </label>
-      </div>
-    </section>
-  );
-}
-
-function AccountAvailabilityStatus({ state }) {
-  if (!state || state.status === "idle") {
-    return null;
-  }
-
-  const tone = state.status === "available" ? "success" : state.status === "checking" ? "checking" : "error";
-  const role = state.status === "available" || state.status === "checking" ? "status" : "alert";
-
-  return (
-    <small className={`account-availability account-availability--${tone}`} role={role}>
-      {state.message}
-    </small>
   );
 }
 
@@ -998,15 +710,7 @@ function readDraft() {
 
 function persistDraft(form) {
   try {
-    const safeForm = {
-      ...form,
-      account: {
-        ...form.account,
-        password: "",
-        passwordConfirm: "",
-      },
-    };
-    window.sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(safeForm));
+    window.sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(form));
   } catch (error) {
     // Draft persistence is a convenience only.
   }
@@ -1023,11 +727,6 @@ function clearDraft() {
 function mergeForm(base, draft) {
   return {
     ...base,
-    ...draft,
-    account: {
-      ...base.account,
-      ...draft.account,
-    },
     ownerProfile: {
       ...base.ownerProfile,
       ...draft.ownerProfile,
@@ -1048,16 +747,9 @@ function mergeForm(base, draft) {
 function validateStep(
   step,
   form,
-  isAuthenticated,
-  businessVerification = createBusinessVerificationState(),
-  accountAvailability = createAccountAvailabilityState()
+  businessVerification = createBusinessVerificationState()
 ) {
   const errors = {};
-
-  if (step === "account" && !isAuthenticated) {
-    validateAccount(form.account, errors);
-    validateAccountAvailabilityRequirements(form.account, errors, accountAvailability);
-  }
 
   if (step === "owner") {
     validateOwner(form.ownerProfile, errors);
@@ -1078,52 +770,13 @@ function validateStep(
   return errors;
 }
 
-function validateAll(form, isAuthenticated, businessVerification, accountAvailability) {
+function validateAll(form, businessVerification) {
   return {
-    ...validateStep("account", form, isAuthenticated, businessVerification, accountAvailability),
-    ...validateStep("owner", form, isAuthenticated, businessVerification, accountAvailability),
-    ...validateStep("business", form, isAuthenticated, businessVerification, accountAvailability),
-    ...validateStep("store", form, isAuthenticated, businessVerification, accountAvailability),
-    ...validateStep("menus", form, isAuthenticated, businessVerification, accountAvailability),
+    ...validateStep("owner", form, businessVerification),
+    ...validateStep("business", form, businessVerification),
+    ...validateStep("store", form, businessVerification),
+    ...validateStep("menus", form, businessVerification),
   };
-}
-
-function validateAccount(account, errors) {
-  ["username", "email", "nickname"].forEach((field) => {
-    const localError = getAccountLocalError(field, account[field]);
-    if (localError) {
-      errors[`account.${field}`] = localError;
-    }
-  });
-
-  if (String(account.password || "").length < 8) {
-    errors["account.password"] = "비밀번호는 8자 이상이어야 합니다.";
-  }
-
-  if (account.password !== account.passwordConfirm) {
-    errors["account.passwordConfirm"] = "비밀번호가 일치하지 않습니다.";
-  }
-
-}
-
-function validateAccountAvailabilityRequirements(account, errors, accountAvailability) {
-  requireAccountAvailability(account, errors, accountAvailability, "username", "회원 ID 중복 확인을 완료해 주세요.");
-  requireAccountAvailability(account, errors, accountAvailability, "email", "이메일 중복 확인을 완료해 주세요.");
-  requireAccountAvailability(account, errors, accountAvailability, "nickname", "닉네임 중복 확인을 완료해 주세요.");
-}
-
-function requireAccountAvailability(account, errors, accountAvailability, field, message) {
-  const errorKey = `account.${field}`;
-  const value = normalizeAccountValidationValue(field, account[field]);
-  const availability = accountAvailability?.[field];
-
-  if (errors[errorKey]) {
-    return;
-  }
-
-  if (availability?.status !== "available" || availability.checkedValue !== value) {
-    errors[errorKey] = message;
-  }
 }
 
 function validateOwner(ownerProfile, errors) {
@@ -1194,15 +847,6 @@ function validateCategoriesAndMenus(form, errors) {
   });
 }
 
-function buildAccountPayload(account) {
-  return {
-    username: account.username.trim(),
-    email: account.email.trim(),
-    password: account.password,
-    nickname: account.nickname.trim(),
-  };
-}
-
 function buildApplicationPayload(form, businessVerification) {
   return {
     ownerProfile: {
@@ -1256,38 +900,6 @@ function createBusinessVerificationState() {
     status: "idle",
     message: "",
     verifiedAt: null,
-  };
-}
-
-function createAccountAvailabilityState() {
-  return {
-    username: createAccountAvailabilityFieldState(),
-    email: createAccountAvailabilityFieldState(),
-    nickname: createAccountAvailabilityFieldState(),
-  };
-}
-
-function createAccountAvailabilityFieldState() {
-  return {
-    status: "idle",
-    message: "",
-    checkedValue: "",
-  };
-}
-
-function createAccountValidationRequestState() {
-  return {
-    username: createAccountValidationRequestFieldState(),
-    email: createAccountValidationRequestFieldState(),
-    nickname: createAccountValidationRequestFieldState(),
-  };
-}
-
-function createAccountValidationRequestFieldState() {
-  return {
-    requestId: 0,
-    status: "idle",
-    value: "",
   };
 }
 
@@ -1370,55 +982,6 @@ function isValidDateString(value) {
 
   const date = new Date(`${normalized}T00:00:00Z`);
   return !Number.isNaN(date.getTime()) && normalized === date.toISOString().slice(0, 10);
-}
-
-function isValidUsername(value) {
-  return /^[A-Za-z0-9]{4,30}$/.test(String(value || "").trim());
-}
-
-function getAccountLocalError(field, value) {
-  if (field === "username" && !isValidUsername(value)) {
-    return "회원 ID는 영문과 숫자 조합 4~30자로 입력해 주세요.";
-  }
-
-  if (field === "email" && (!isValidEmail(value) || String(value).length > 320)) {
-    return "올바른 이메일을 입력해 주세요.";
-  }
-
-  if (field === "nickname" && (!String(value || "").trim() || String(value).trim().length > 100)) {
-    return "닉네임은 1~100자로 입력해 주세요.";
-  }
-
-  return "";
-}
-
-function normalizeAccountValidationValue(field, value) {
-  const normalized = String(value || "").trim();
-  return field === "email" ? normalized.toLowerCase() : normalized;
-}
-
-function getAccountAvailableMessage(field) {
-  if (field === "username") {
-    return "사용 가능한 회원 ID입니다.";
-  }
-
-  if (field === "email") {
-    return "사용 가능한 이메일입니다.";
-  }
-
-  return "사용 가능한 닉네임입니다.";
-}
-
-function getAccountUnavailableMessage(field) {
-  if (field === "username") {
-    return "이미 사용 중인 회원 ID입니다.";
-  }
-
-  if (field === "email") {
-    return "이미 가입된 이메일입니다.";
-  }
-
-  return "이미 사용 중인 닉네임입니다.";
 }
 
 export default BusinessSignup;

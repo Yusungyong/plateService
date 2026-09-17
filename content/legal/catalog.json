@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "origin": "https://plate-service.com",
+  "documents": [
+    {
+      "id": "service-terms",
+      "slug": "terms-of-service",
+      "title": "이용약관",
+      "currentVersion": "2026-09-15-correction",
+      "versions": [
+        {
+          "version": "2026-09-15-correction",
+          "status": "correction",
+          "label": "운영 정보 정정 안내",
+          "effectiveDate": null,
+          "recordedOn": "2026-09-15",
+          "source": "public/2026-09-15-correction/terms-of-service.md",
+          "sourceSha256": "71f877a2afab12dd550bf706241b3a6fabe90329be7402c8bc2aa1d6a41a1872",
+          "changeSummary": "운영자·문의처·서비스 범위 정정. 신규 정책 시행 아님.",
+          "htmlSha256": "04f89ae1cc2567dc1e7d0162acf0d26095b1569bf4be08e6a6ac9d2967ef10d3"
+        },
+        {
+          "version": "legacy-629dc8a",
+          "status": "snapshot",
+          "label": "기존 화면 보관본",
+          "effectiveDate": null,
+          "recordedOn": "2026-09-15",
+          "source": "public/legacy-629dc8a/terms-of-service.md",
+          "sourceSha256": "dceeedad804af6d4a0fe2e22b9fa8864d374c923f4f707359e420d78ee27a185",
+          "changeSummary": "기존 화면의 본문 보관. 과거 시행 여부·시행일 확인 안 됨.",
+          "htmlSha256": "334542fac21e75ed224d92893adee0ffd48cf7eba5e2c616c1075527a621c58f"
+        }
+      ]
+    },
+    {
+      "id": "privacy-notice",
+      "slug": "privacy-policy",
+      "title": "개인정보 처리방침",
+      "currentVersion": "2026-09-15-correction",
+      "versions": [
+        {
+          "version": "2026-09-15-correction",
+          "status": "correction",
+          "label": "운영 정보 정정 안내",
+          "effectiveDate": null,
+          "recordedOn": "2026-09-15",
+          "source": "public/2026-09-15-correction/privacy-policy.md",
+          "sourceSha256": "75e3a39a26a2f255bcf8e3e4f28a763abfc094b53221a1d47aa72c968d669ae0",
+          "changeSummary": "운영자·문의처·서비스 범위 정정. 신규 정책 시행 아님.",
+          "htmlSha256": "2f7441aaf7c6999e794ac560ddf96b3bcd3512aeddd37888af37632e1bee8509"
+        },
+        {
+          "version": "legacy-629dc8a",
+          "status": "snapshot",
+          "label": "기존 화면 보관본",
+          "effectiveDate": null,
+          "recordedOn": "2026-09-15",
+          "source": "public/legacy-629dc8a/privacy-policy.md",
+          "sourceSha256": "9ebca22c41c7d87ddcdbb769846c42f0611fb66528d601d9762a090700572f8f",
+          "changeSummary": "기존 화면의 본문 보관. 과거 시행 여부·시행일 확인 안 됨.",
+          "htmlSha256": "5728fae79e7c7517048d69b72a7740547c9ce145edccd259202f59d378ee6c00"
+        }
+      ]
+    },
+    {
+      "id": "location-terms",
+      "slug": "location-terms",
+      "title": "위치기반서비스 이용약관",
+      "currentVersion": null,
+      "versions": []
+    }
+  ]
+}

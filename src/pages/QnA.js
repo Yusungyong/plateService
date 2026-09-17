@@ -191,7 +191,7 @@ function QnAWrite() {
 
     try {
       await createQna(payload);
-      setSubmitMessage("질문이 접수되었습니다. 운영팀 답변 후 공개 Q&A 목록에서 확인할 수 있습니다.");
+      setSubmitMessage("질문이 접수되었습니다. 운영팀 답변 후 공개 질문·답변 목록에서 확인할 수 있습니다.");
       resetForm();
     } catch (error) {
       setSubmitMessage(error.message || "질문 등록에 실패했습니다.");
@@ -213,12 +213,12 @@ function QnAWrite() {
             <h3>개인 확인이 필요한 내용은 등록하지 마세요.</h3>
           </div>
           <p className="page-layout__description">
-            계정, 연락처, 결제, 사업자 정보처럼 개인 확인이 필요한 내용은 공개 Q&A에 포함하지 마세요.
+            계정, 연락처, 결제, 사업자 정보처럼 개인 확인이 필요한 내용은 공개 질문·답변에 포함하지 마세요.
             개인 확인이 필요한 문의는 1:1 비공개 문의로 접수할 수 있습니다.
           </p>
           <div className="support-panel__actions">
             <Link className="support-page-action support-page-action--secondary" to="/qna/private">
-              1:1 문의로 이동
+              비공개 1:1 문의로 이동
             </Link>
           </div>
         </section>
@@ -287,7 +287,7 @@ function QnAWrite() {
                 placeholder="공개되어도 괜찮은 문의 내용을 남겨 주세요."
               />
               <small className="restaurant-field-hint">
-                개인정보가 포함된 문의는 공개 Q&A에 남기지 말아 주세요.
+                개인정보가 포함된 문의는 공개 질문·답변에 남기지 말아 주세요.
               </small>
             </label>
 
@@ -314,7 +314,7 @@ function QnAWrite() {
                 목록으로 돌아가기
               </Link>
               <Link className="support-page-action support-page-action--secondary" to="/qna/private">
-                1:1 문의로 전환
+                비공개 1:1 문의로 전환
               </Link>
             </div>
           </form>
@@ -666,7 +666,7 @@ function QnA({ adminMode = false }) {
 
   return (
     <PageLayout
-      title="공개 Q&A"
+      title="공개 질문·답변"
       className="support-page support-page--qna"
       description="다른 사용자의 질문과 운영팀 답변을 먼저 확인할 수 있습니다."
     >
@@ -677,12 +677,12 @@ function QnA({ adminMode = false }) {
             <h3>공개되어도 괜찮은 질문만 남겨 주세요.</h3>
           </div>
           <p className="page-layout__description">
-            계정, 연락처, 결제, 사업자 정보처럼 개인 확인이 필요한 내용은 공개 Q&A에 포함하지 마세요.
+            계정, 연락처, 결제, 사업자 정보처럼 개인 확인이 필요한 내용은 공개 질문·답변에 포함하지 마세요.
             개인 확인이 필요한 문의는 1:1 비공개 문의로 접수할 수 있습니다.
           </p>
           <div className="support-panel__actions">
             <Link className="support-page-action support-page-action--secondary" to="/qna/private">
-              1:1 문의로 이동
+              비공개 1:1 문의로 이동
             </Link>
           </div>
         </section>
@@ -707,7 +707,7 @@ function QnA({ adminMode = false }) {
               질문 등록
             </Link>
             <Link className="support-page-action support-page-action--secondary" to="/qna/private">
-              1:1 문의
+              비공개 1:1 문의
             </Link>
           </div>
         </div>
@@ -721,7 +721,7 @@ function QnA({ adminMode = false }) {
           </div>
         ) : null}
 
-        <section className="board-table qna-public-board" aria-label="공개 Q&A 목록">
+        <section className="board-table qna-public-board" aria-label="공개 질문·답변 목록">
           <div className="board-table__head qna-public-board__head">
             <span>상태</span>
             <span>질문</span>
@@ -858,7 +858,7 @@ function getQnaFilterSummary(filters) {
     summary.push(`상태: ${getStatusLabel(filters.statusCode)}`);
   }
 
-  return summary.length > 0 ? summary.join(" · ") : "전체 공개 Q&A를 보고 있습니다.";
+  return summary.length > 0 ? summary.join(" · ") : "전체 공개 질문·답변를 보고 있습니다.";
 }
 
 export { QnAWrite };

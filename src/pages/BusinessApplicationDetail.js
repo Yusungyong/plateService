@@ -124,7 +124,7 @@ function BusinessApplicationDetail() {
 
   return (
     <PageLayout
-      title={application.store?.storeName || "입점 신청 상세"}
+      title="입점 신청 상세"
       description={`신청 ID ${application.applicationId}의 검토 상태와 제출 정보를 확인합니다.`}
     >
       <div className="stack-layout restaurant-registration">
@@ -152,7 +152,7 @@ function BusinessApplicationDetail() {
               </Link>
             ) : null}
             <Link className="restaurant-text-link restaurant-text-link--secondary" to="/business/applications">
-              목록
+              입점 신청 현황으로
             </Link>
           </div>
         </section>

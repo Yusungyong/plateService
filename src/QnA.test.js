@@ -55,7 +55,7 @@ test("explains public Q&A scope and submits the reply email", async () => {
 
   expect(await screen.findByRole("heading", { name: "공개 질문 등록" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "목록으로 돌아가기" })).toHaveAttribute("href", "/qna");
-  expect(screen.getByRole("link", { name: "1:1 문의로 전환" })).toHaveAttribute("href", "/qna/private");
+  expect(screen.getByRole("link", { name: "비공개 1:1 문의로 전환" })).toHaveAttribute("href", "/qna/private");
   expect(
     screen.getByText("공개 질문으로 등록됩니다. 답변 받을 이메일은 운영팀 확인과 답변 안내 목적으로만 사용되며 목록에는 표시되지 않습니다.")
   ).toBeInTheDocument();
@@ -92,7 +92,7 @@ test("filters the public Q&A list by category and status", async () => {
 
   expect(await screen.findByText("아직 공개 질문이 없습니다.")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "질문 등록" })).toHaveAttribute("href", "/qna/new");
-  expect(screen.getByRole("link", { name: "1:1 문의" })).toHaveAttribute("href", "/qna/private");
+  expect(screen.getByRole("link", { name: "비공개 1:1 문의" })).toHaveAttribute("href", "/qna/private");
 
   fireEvent.change(screen.getAllByLabelText("문의 유형")[0], {
     target: { value: "계정문의" },
@@ -128,8 +128,8 @@ test("hides private inquiries from the public Q&A list", async () => {
     {
       qnaId: 2,
       category: "이용문의",
-      question: "공개 Q&A는 어디에서 확인하나요?",
-      answer: "고객지원의 공개 Q&A에서 확인할 수 있습니다.",
+      question: "공개 질문·답변는 어디에서 확인하나요?",
+      answer: "고객지원의 공개 질문·답변에서 확인할 수 있습니다.",
       statusCode: "answered",
       isPublic: true,
       guestName: "공개 사용자",
@@ -145,7 +145,7 @@ test("hides private inquiries from the public Q&A list", async () => {
     </MemoryRouter>
   );
 
-  expect(await screen.findByText("공개 Q&A는 어디에서 확인하나요?")).toBeInTheDocument();
+  expect(await screen.findByText("공개 질문·답변는 어디에서 확인하나요?")).toBeInTheDocument();
   expect(screen.queryByText("계정 이메일을 바꾸고 싶습니다.")).not.toBeInTheDocument();
   expect(screen.getByText("전체 1건 중 1건 표시")).toBeInTheDocument();
 });
@@ -161,8 +161,8 @@ test("submits private inquiries without exposing them as public Q&A", async () =
     </MemoryRouter>
   );
 
-  expect(await screen.findByRole("heading", { name: "1:1 문의" })).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "공개 Q&A 보기" })).toHaveAttribute("href", "/qna");
+  expect(await screen.findByRole("heading", { name: "비공개 1:1 문의" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "공개 질문·답변 보기" })).toHaveAttribute("href", "/qna");
 
   fireEvent.change(screen.getByPlaceholderText("이름 또는 닉네임"), {
     target: { value: "비공개 사용자" },
@@ -173,7 +173,7 @@ test("submits private inquiries without exposing them as public Q&A", async () =
   fireEvent.change(screen.getByPlaceholderText("운영팀이 확인해야 하는 내용을 적어 주세요."), {
     target: { value: "사업자 정보 확인이 필요합니다." },
   });
-  fireEvent.click(screen.getByRole("button", { name: "1:1 문의 접수" }));
+  fireEvent.click(screen.getByRole("button", { name: "비공개 1:1 문의 접수" }));
 
   await waitFor(() =>
     expect(createQna).toHaveBeenCalledWith(

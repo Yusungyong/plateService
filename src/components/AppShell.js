@@ -1,6 +1,7 @@
 import React from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import PlateBrand, { PlateFooter } from "./PlateBrand";
 import {
   businessNavigationItems,
   publicNavigationItems,
@@ -35,10 +36,11 @@ function AppShell({ children }) {
     ? visibleBusinessNavigationItems
     : visiblePublicNavigationItems;
   const primaryNavigationLabel = isBusinessArea ? "식당 비즈니스 메뉴" : "고객 지원 메뉴";
-  const headerTitle = isBusinessArea ? "식당 비즈니스 센터" : "고객 지원 센터";
+  const isAccountPage = location.pathname === "/signup";
+  const headerTitle = isAccountPage ? "접시 계정" : isBusinessArea ? "식당 비즈니스" : "고객지원";
   const headerDescription = isBusinessArea
     ? "입점 신청부터 승인된 매장 관리까지 식당 담당자의 작업 흐름을 제공합니다."
-    : "궁금한 내용을 먼저 찾아보고, 공개 Q&A와 1:1 문의로 운영팀 답변을 받을 수 있습니다.";
+    : "궁금한 내용을 먼저 찾아보고, 공개 질문·답변와 비공개 1:1 문의로 운영팀 답변을 받을 수 있습니다.";
 
   function isPublicNavigationActive(path) {
     if (path === "/qna") {
@@ -55,13 +57,15 @@ function AppShell({ children }) {
 
   return (
     <div className="app-shell">
+      <a className="plate-skip" href="#app-main">본문 바로가기</a>
       <header className="app-header">
         <div className="app-header__inner">
+          <div className="plate-section-bar"><PlateBrand /><span>{isAccountPage ? "계정 만들기" : isBusinessArea ? "접시 비즈니스" : "무엇을 도와드릴까요?"}</span></div>
           <p className="app-header__eyebrow">{isBusinessArea ? "PLATE BUSINESS" : "PLATE SERVICE"}</p>
           <div className="app-header__topline">
             <div>
-              <h1 className="app-header__title">{headerTitle}</h1>
-              <p className="app-header__description">{headerDescription}</p>
+              <p className="app-header__area">{headerTitle}</p>
+              {!isAccountPage && <p className="app-header__description">{headerDescription}</p>}
             </div>
 
             <div className="app-header__actions">
@@ -102,7 +106,7 @@ function AppShell({ children }) {
                     </button>
                   </>
                 ) : (
-                  <button type="button" onClick={() => navigate("/login")}>
+                  <button type="button" onClick={() => navigate("/login", { state: { from: isBusinessArea ? businessHomePath : location.pathname === "/signup" ? location.state?.from || "/faq" : location.pathname } })}>
                     로그인
                   </button>
                 )}
@@ -135,7 +139,11 @@ function AppShell({ children }) {
         </div>
       </header>
 
-      <main className="app-main">{children}</main>
+      <main className="app-main" id="app-main">
+        <nav className="page-breadcrumb" aria-label="현재 위치"><NavLink to="/">접시 홈</NavLink><span aria-hidden="true">/</span><span>{headerTitle}</span>{location.pathname.startsWith("/business/applications/") && <><span aria-hidden="true">/</span><NavLink to="/business/applications">입점 신청 현황</NavLink><span aria-hidden="true">/</span><span aria-current="page">신청 상세</span></>}</nav>
+        {children}
+      </main>
+      <PlateFooter />
     </div>
   );
 }

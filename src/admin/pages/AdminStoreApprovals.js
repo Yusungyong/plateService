@@ -281,7 +281,7 @@ function AdminStoreApprovals() {
     <div className="admin-page">
       <AdminPageHeader
         eyebrow="STORE ONBOARDING"
-        title="매장 승인 관리"
+        title="입점 신청 심사"
         description="신규 매장 신청과 제출 서류를 검토하고 승인, 보류, 반려 처리합니다."
         actions={
           <div className="admin-page-summary">

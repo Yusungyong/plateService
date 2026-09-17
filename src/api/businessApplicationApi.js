@@ -4,22 +4,6 @@ function unwrapData(response) {
   return response?.data ?? response;
 }
 
-export async function signupAndCreateBusinessApplication(payload) {
-  const response = await apiClient.post("/api/owner/signup-applications", payload, {
-    withAuth: false,
-  });
-
-  return unwrapData(response);
-}
-
-export async function validateBusinessSignupAccountField(payload) {
-  const response = await apiClient.post("/api/owner/signup-account-validations", payload, {
-    withAuth: false,
-  });
-
-  return unwrapData(response);
-}
-
 export async function createBusinessApplication(payload) {
   return unwrapData(await apiClient.post("/api/owner/store-applications", payload));
 }

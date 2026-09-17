@@ -20,9 +20,10 @@ import AdminSeasonalCurations from "../admin/pages/AdminSeasonalCurations";
 import { userHasAdminPermission, ADMIN_PERMISSIONS } from "../admin/constants/adminPermissions";
 
 export const publicNavigationItems = [
+  { path: "/", label: "접시 홈" },
   { path: "/faq", label: "자주 묻는 질문" },
-  { path: "/qna", label: "공개 Q&A" },
-  { path: "/qna/private", label: "1:1 문의" },
+  { path: "/qna", label: "공개 질문·답변" },
+  { path: "/qna/private", label: "비공개 1:1 문의" },
   { path: "/feedback", label: "서비스 의견", available: false },
   { path: "/content-verification", label: "콘텐츠 검증", available: false },
   { path: "/terms-of-service", label: "이용약관" },
@@ -39,7 +40,7 @@ export const adminNavigationItems = [
   },
   {
     path: "/admin/store-approvals",
-    label: "승인 관리",
+    label: "입점 신청 심사",
     icon: "approval",
     permission: ADMIN_PERMISSIONS.STORE_READ,
     group: "운영",
@@ -91,10 +92,10 @@ export const adminNavigationItems = [
 ];
 
 export const businessNavigationItems = [
-  { path: "/business/dashboard", label: "홈", requireBusiness: true },
-  { path: "/business/signup", label: "입점 신청" },
-  { path: "/business/applications", label: "신청 현황", requireAuth: true },
-  { path: "/business/stores", label: "매장 관리", requireBusiness: true },
+  { path: "/business/dashboard", label: "매장 운영 현황", requireBusiness: true },
+  { path: "/business/signup", label: "식당 입점 신청" },
+  { path: "/business/applications", label: "입점 신청 현황", requireAuth: true },
+  { path: "/business/stores", label: "내 매장 관리", requireBusiness: true },
 ];
 
 export const publicRoutes = [
@@ -112,11 +113,13 @@ export const openSupportRoutes = [
 ];
 
 export const policyRoutes = [
-  { path: "/terms-of-service", component: TermsOfService },
-  { path: "/privacy-policy", component: PrivacyPolicy },
+  { path: "/terms-of-service/*", component: TermsOfService },
+  { path: "/privacy-policy/*", component: PrivacyPolicy },
+  // Reserved; unpublished documents return a missing-document page, never a draft.
+  { path: "/location-terms/*", component: TermsOfService },
 ];
 
-export const businessPublicRoutes = [
+export const businessSignupRoutes = [
   {
     path: "/business/signup",
     component: BusinessSignup,

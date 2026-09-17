@@ -4,6 +4,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { adminNavigationItems } from "../../config/routes";
 import { getPrimaryAdminRole } from "../constants/adminPermissions";
 import "../styles/admin.css";
+import PlateBrand from "../../components/PlateBrand";
 
 const ROLE_LABELS = {
   SUPER_ADMIN: "최고 관리자",
@@ -62,6 +63,7 @@ function AdminShell({ children }) {
 
   return (
     <div className="admin-shell">
+      <a className="plate-skip" href="#admin-main">본문 바로가기</a>
       <aside
         id="admin-sidebar"
         className={
@@ -70,15 +72,7 @@ function AdminShell({ children }) {
             : "admin-sidebar"
         }
       >
-        <Link className="admin-brand" to="/admin/dashboard">
-          <span className="admin-brand__mark" aria-hidden="true">
-            P
-          </span>
-          <span>
-            <strong>접시</strong>
-            <small>운영자 관리자</small>
-          </span>
-        </Link>
+        <PlateBrand />
 
         <nav className="admin-navigation" aria-label="운영자 관리 메뉴">
           {Object.entries(navigationGroups).map(([groupName, items]) => (
@@ -125,6 +119,7 @@ function AdminShell({ children }) {
       <div className="admin-workspace">
         <header className="admin-topbar">
           <div className="admin-topbar__leading">
+            <PlateBrand compact />
             <button
               type="button"
               className="admin-mobile-menu"
@@ -172,7 +167,7 @@ function AdminShell({ children }) {
           </div>
         </header>
 
-        <main className="admin-main">{children}</main>
+        <main className="admin-main" id="admin-main">{children}</main>
       </div>
     </div>
   );
