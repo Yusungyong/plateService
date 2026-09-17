@@ -6,6 +6,7 @@ import StatusBadge from "../components/StatusBadge";
 import { ADMIN_PERMISSIONS } from "../constants/adminPermissions";
 import {
   createSeasonalCuration,
+  importSeasonalFoods,
   deleteSeasonalCuration,
   getSeasonalCuration,
   getSeasonalCurations,
@@ -83,6 +84,22 @@ function AdminSeasonalCurations() {
   useEffect(() => {
     loadPage(0, status);
   }, [loadPage, status]);
+
+  async function importFoods() {
+    setIsSubmitting(true);
+    setMessage("");
+    try {
+      const result = await importSeasonalFoods();
+      setMessageType("success");
+      setMessage(`${result.created}개 식재료를 현재 관리자 계정의 초안으로 가져왔습니다. 항목을 선택해 이미지를 저장하면 앱 식재료에도 반영됩니다.`);
+      setStatus("");
+      await loadPage(0, "");
+    } catch (error) {
+      showError(error, setMessage, setMessageType, "식재료를 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   function startCreate() {
     setForm(EMPTY_FORM);
@@ -189,6 +206,9 @@ function AdminSeasonalCurations() {
         description="월별 제철 음식 콘텐츠를 작성하고 노출 기간과 연결 매장·메뉴를 관리합니다."
         actions={
           <PermissionGuard permission={ADMIN_PERMISSIONS.SEASONAL_MANAGE}>
+            <button type="button" className="admin-button" onClick={importFoods} disabled={isSubmitting || isLoading}>
+              {isSubmitting ? "처리 중…" : "앱 식재료 가져오기"}
+            </button>
             <button type="button" className="admin-button admin-button--primary" onClick={startCreate}>
               새 큐레이션
             </button>
@@ -202,6 +222,7 @@ function AdminSeasonalCurations() {
         </div>
       ) : null}
 
+      <p className="admin-field-hint">앱의 공용 식재료가 목록에 없다면 ‘앱 식재료 가져오기’를 눌러주세요. 기존 항목은 유지되며, 가져온 초안에서 이미지 저장만 해도 앱에 반영됩니다. 초안의 월은 관리용 대표 월이며 앱의 제철 기간은 변경되지 않습니다.</p>
       <section className="admin-card admin-seasonal-toolbar">
         <label className="admin-field">
           <span>상태</span>

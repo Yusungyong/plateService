@@ -450,3 +450,23 @@ test("creates a seasonal curation from the admin menu", async () => {
   URL.createObjectURL = originalCreateObjectURL;
   URL.revokeObjectURL = originalRevokeObjectURL;
 }, 15000);
+
+test("imports app foods explicitly and refreshes the administrator list", async () => {
+  storeAuth({roles: ["CONTENT_MANAGER"], permissions: ["ADMIN_ACCESS", "SEASONAL_READ", "SEASONAL_MANAGE"]});
+  let imported = false;
+  const fetchSpy = jest.spyOn(global, "fetch").mockImplementation(async (url, options = {}) => {
+    const isImport = String(url).endsWith("/import-foods");
+    if (isImport) imported = true;
+    const data = isImport ? {created: 1} : {content: imported ? [{id: 99, title: "대하", status: "DRAFT", month: 9, version: 0}] : [], totalElements: imported ? 1 : 0, page: 0, size: 20, totalPages: 1};
+    return {ok: true, status: 200, headers: {get: () => "application/json"}, json: async () => ({data}), text: async () => ""};
+  });
+  renderAt("/admin/seasonal-curations");
+  const button = screen.getByRole("button", {name: "앱 식재료 가져오기"});
+  await waitFor(() => expect(button).toBeEnabled());
+  expect(imported).toBe(false);
+  fireEvent.click(button);
+  expect(await screen.findByText("대하")).toBeInTheDocument();
+  expect(screen.getByText(/1개 식재료를 현재 관리자 계정의 초안으로/)).toBeInTheDocument();
+  expect(fetchSpy.mock.calls.some(([url, options]) => String(url).endsWith("/import-foods") && options.method === "POST")).toBe(true);
+  fetchSpy.mockRestore();
+});
