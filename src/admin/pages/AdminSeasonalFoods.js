@@ -22,7 +22,8 @@ export default function AdminSeasonalFoods() {
     catch { if (id === request.current) setMessage('식재료 목록을 불러오지 못했습니다. 다시 시도해 주세요.'); }
     finally { if (id === request.current) setLoading(false); }
   }, []);
-  useEffect(() => {load(); return () => {request.current++;};}, [load]);
+  const cancelLoad = useCallback(() => {request.current++;}, []);
+  useEffect(() => {load(); return cancelLoad;}, [load, cancelLoad]);
   function select(food) {setForm({...food}); setFiles({}); setMessage('');}
   async function save(event) {
     event.preventDefault(); setSaving(true); setMessage('');
