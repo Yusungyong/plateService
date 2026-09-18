@@ -60,3 +60,7 @@ export async function reorderSeasonalCurations(items) {
 export async function importSeasonalFoods() {
   return unwrapAdminResponse(await apiClient.post("/api/admin/seasonal-curations/import-foods", {}));
 }
+
+export async function unpublishSeasonalCuration(id, version) {
+  return unwrapAdminResponse(await apiClient.post(`/api/admin/seasonal-curations/${id}/unpublish`, {version}));
+}

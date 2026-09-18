@@ -6,15 +6,18 @@ import StatusBadge from "../components/StatusBadge";
 import { ADMIN_PERMISSIONS } from "../constants/adminPermissions";
 import {
   createSeasonalCuration,
-  importSeasonalFoods,
   deleteSeasonalCuration,
   getSeasonalCuration,
   getSeasonalCurations,
   publishSeasonalCuration,
+  unpublishSeasonalCuration,
   reorderSeasonalCurations,
   updateSeasonalCuration,
   uploadSeasonalCurationFile,
 } from "../api/seasonalCurationApi";
+
+import {Link} from "react-router-dom";
+import {getPublishedSeasonalFoodOptions} from "../api/seasonalFoodApi";
 
 const STATUS_OPTIONS = [
   { value: "", label: "전체" },
@@ -36,6 +39,7 @@ const SEASONAL_TERMS = [
 
 const EMPTY_FORM = {
   id: null,
+  seasonalFoodId: "",
   title: "",
   headline: "",
   description: "",
@@ -57,6 +61,9 @@ const EMPTY_FORM = {
 };
 
 function AdminSeasonalCurations() {
+  const [foodOptions, setFoodOptions] = useState([]);
+  const [foodError, setFoodError] = useState(false);
+  useEffect(() => {let live = true; getPublishedSeasonalFoodOptions().then(items => {if(live) setFoodOptions(items);}).catch(() => {if(live) setFoodError(true);}); return () => {live = false;};}, []);
   const [status, setStatus] = useState("");
   const [page, setPage] = useState({
     content: [], page: 0, size: 20, totalElements: 0, totalPages: 1, hasNext: false,
@@ -85,22 +92,6 @@ function AdminSeasonalCurations() {
     loadPage(0, status);
   }, [loadPage, status]);
 
-  async function importFoods() {
-    setIsSubmitting(true);
-    setMessage("");
-    try {
-      const result = await importSeasonalFoods();
-      setMessageType("success");
-      setMessage(`${result.created}개 식재료를 현재 관리자 계정의 초안으로 가져왔습니다. 항목을 선택해 이미지를 저장하면 앱 식재료에도 반영됩니다.`);
-      setStatus("");
-      await loadPage(0, "");
-    } catch (error) {
-      showError(error, setMessage, setMessageType, "식재료를 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
   function startCreate() {
     setForm(EMPTY_FORM);
     setMessage("");
@@ -119,7 +110,13 @@ function AdminSeasonalCurations() {
   }
 
   function updateField(field, value) {
-    setForm((current) => ({ ...current, [field]: value }));
+    setForm((current) => {
+      if (field === "seasonalFoodId") {
+        const selected = foodOptions.find(food => String(food.id) === String(value));
+        return {...current, seasonalFoodId: value, title: current.title || selected?.nameKo || ""};
+      }
+      return {...current, [field]: value};
+    });
   }
 
   async function handleSubmit(event) {
@@ -133,6 +130,8 @@ function AdminSeasonalCurations() {
       ]);
       const command = {
         ...toCommand(form),
+        seasonalFoodId: Number(form.seasonalFoodId),
+        independentImages: true,
         cardImageUrl: cardImage?.fileUrl || emptyToNull(form.cardImageUrl),
         cardImageMobileUrl: cardImageMobile?.fileUrl || emptyToNull(form.cardImageMobileUrl),
       };
@@ -159,6 +158,9 @@ function AdminSeasonalCurations() {
         const published = await publishSeasonalCuration(pendingAction.item.id, pendingAction.item.version);
         setForm(toForm(published));
         setMessage("제철 큐레이션을 발행했습니다.");
+      } else if (pendingAction.type === "unpublish") {
+        setForm(toForm(await unpublishSeasonalCuration(pendingAction.item.id, pendingAction.item.version)));
+        setMessage("PICK 발행을 해제했습니다.");
       } else {
         await deleteSeasonalCuration(pendingAction.item.id, pendingAction.item.version);
         if (form.id === pendingAction.item.id) setForm(EMPTY_FORM);
@@ -203,12 +205,9 @@ function AdminSeasonalCurations() {
       <AdminPageHeader
         eyebrow="PLATE SEASONAL"
         title="제철 큐레이션"
-        description="월별 제철 음식 콘텐츠를 작성하고 노출 기간과 연결 매장·메뉴를 관리합니다."
+        description="앱 상단 접시 PICK에 소개할 식재료와 추천 문구·이미지·노출 순서를 관리합니다."
         actions={
           <PermissionGuard permission={ADMIN_PERMISSIONS.SEASONAL_MANAGE}>
-            <button type="button" className="admin-button" onClick={importFoods} disabled={isSubmitting || isLoading}>
-              {isSubmitting ? "처리 중…" : "앱 식재료 가져오기"}
-            </button>
             <button type="button" className="admin-button admin-button--primary" onClick={startCreate}>
               새 큐레이션
             </button>
@@ -222,7 +221,8 @@ function AdminSeasonalCurations() {
         </div>
       ) : null}
 
-      <p className="admin-field-hint">앱의 공용 식재료가 목록에 없다면 ‘앱 식재료 가져오기’를 눌러주세요. 기존 항목은 유지되며, 가져온 초안에서 이미지 저장만 해도 앱에 반영됩니다. 초안의 월은 관리용 대표 월이며 앱의 제철 기간은 변경되지 않습니다.</p>
+      <p className="admin-field-hint">앱 상단 접시 PICK에 노출할 식재료를 선택하고 발행하세요. 월·절기·기간과 원본 제철 조건에 맞는 추천이 순서대로 최대 3개 표시됩니다. <Link to="/admin/seasonal-foods">원본 정보·이미지 수정은 식재료 관리에서</Link></p>
+      {foodError ? <p role="alert">식재료 선택 목록을 불러오지 못했습니다. 페이지를 새로고침해 주세요.</p> : null}
       <section className="admin-card admin-seasonal-toolbar">
         <label className="admin-field">
           <span>상태</span>
@@ -254,8 +254,8 @@ function AdminSeasonalCurations() {
                   <div className="admin-seasonal-item__actions">
                     <button type="button" onClick={() => moveItem(index, -1)} disabled={index === 0 || isSubmitting} aria-label={`${item.title} 위로 이동`}>↑</button>
                     <button type="button" onClick={() => moveItem(index, 1)} disabled={index === page.content.length - 1 || isSubmitting} aria-label={`${item.title} 아래로 이동`}>↓</button>
-                    {item.status !== "ARCHIVED" ? (
-                      <button type="button" onClick={() => setPendingAction({ type: "publish", item })} disabled={isSubmitting}>발행</button>
+                    {["PUBLISHED", "SCHEDULED"].includes(item.status) ? <button type="button" onClick={() => setPendingAction({type: "unpublish", item})} disabled={isSubmitting}>발행 해제</button> : item.status !== "ARCHIVED" ? (
+                      <button type="button" onClick={() => setPendingAction({ type: "publish", item })} disabled={isSubmitting || !item.seasonalFoodId} title={!item.seasonalFoodId ? "수정 화면에서 추천 식재료를 먼저 선택하세요" : undefined}>발행</button>
                     ) : null}
                     <button type="button" onClick={() => setPendingAction({ type: "delete", item })} disabled={isSubmitting}>삭제</button>
                   </div>
@@ -276,6 +276,7 @@ function AdminSeasonalCurations() {
           fallback={<section className="admin-card admin-empty-state">조회 권한만 있어 콘텐츠를 편집할 수 없습니다.</section>}
         >
           <SeasonalEditor
+            foodOptions={foodOptions}
             form={form}
             isEditing={isEditing}
             isLoading={isDetailLoading}
@@ -288,13 +289,13 @@ function AdminSeasonalCurations() {
 
       <ConfirmDialog
         isOpen={Boolean(pendingAction)}
-        title={pendingAction?.type === "publish" ? "제철 큐레이션 발행" : "제철 큐레이션 삭제"}
+        title={pendingAction?.type === "unpublish" ? "PICK 발행 해제" : pendingAction?.type === "publish" ? "제철 큐레이션 발행" : "제철 큐레이션 삭제"}
         description={
-          pendingAction?.type === "publish"
+          pendingAction?.type === "unpublish" ? "앱 추천 노출을 중단하고 초안으로 되돌립니다. 식재료 원본은 유지됩니다." : pendingAction?.type === "publish"
             ? `${pendingAction?.item?.title || "선택한 콘텐츠"}을 운영 환경에 발행할까요?`
             : `${pendingAction?.item?.title || "선택한 콘텐츠"}을 삭제할까요? 이 작업은 되돌릴 수 없습니다.`
         }
-        confirmLabel={pendingAction?.type === "publish" ? "발행하기" : "삭제하기"}
+        confirmLabel={pendingAction?.type === "unpublish" ? "발행 해제" : pendingAction?.type === "publish" ? "발행하기" : "삭제하기"}
         isSubmitting={isSubmitting}
         onCancel={() => setPendingAction(null)}
         onConfirm={executeAction}
@@ -303,7 +304,7 @@ function AdminSeasonalCurations() {
   );
 }
 
-function SeasonalEditor({ form, isEditing, isLoading, isSubmitting, onChange, onSubmit }) {
+function SeasonalEditor({ foodOptions, form, isEditing, isLoading, isSubmitting, onChange, onSubmit }) {
   if (isLoading) {
     return <section className="admin-card admin-empty-state">상세 정보를 불러오는 중입니다.</section>;
   }
@@ -317,32 +318,29 @@ function SeasonalEditor({ form, isEditing, isLoading, isSubmitting, onChange, on
       </header>
 
       <div className="admin-seasonal-form-grid">
-        <Field label="제목" required wide><input value={form.title} maxLength={150} required onChange={(event) => onChange("title", event.target.value)} /></Field>
+        <Field label="추천 식재료" required wide><select required value={form.seasonalFoodId} onChange={event => onChange("seasonalFoodId", event.target.value)}><option value="">식재료 선택</option>{foodOptions.map(food => <option key={food.id} value={food.id}>{food.nameKo}</option>)}</select></Field>
+        <Field label="제목" required wide><input aria-label="제목 *" value={form.title} maxLength={150} required onChange={(event) => onChange("title", event.target.value)} /><small>관리 목록용 제목입니다. 앱에는 선택한 식재료 이름이 표시됩니다.</small></Field>
         <Field label="헤드라인" wide><input value={form.headline} maxLength={300} onChange={(event) => onChange("headline", event.target.value)} /></Field>
         <Field label="월" required><select value={form.month} required onChange={(event) => onChange("month", event.target.value)}><option value="">선택</option>{Array.from({ length: 12 }, (_, index) => index + 1).map((month) => <option key={month} value={month}>{month}월</option>)}</select></Field>
         <Field label="절기"><select value={form.seasonalTerm} onChange={(event) => onChange("seasonalTerm", event.target.value)}><option value="">선택 안 함</option>{SEASONAL_TERMS.map((term) => <option key={term} value={term}>{term}</option>)}</select></Field>
-        <Field label="카테고리"><input value={form.category} maxLength={100} onChange={(event) => onChange("category", event.target.value)} placeholder="예: 봄나물" /></Field>
         <Field label="노출 순서"><input type="number" min="0" value={form.displayOrder} onChange={(event) => onChange("displayOrder", event.target.value)} /></Field>
         <Field label="시작 일시"><input type="datetime-local" value={form.startsAt} onChange={(event) => onChange("startsAt", event.target.value)} /></Field>
         <Field label="종료 일시"><input type="datetime-local" value={form.endsAt} onChange={(event) => onChange("endsAt", event.target.value)} /></Field>
         <ImageUploadField
-          label="PC 카드 이미지"
+          label="PICK 대표 이미지 (비우면 원본 사용)"
           file={form.cardImageFile}
           currentUrl={form.cardImageUrl}
           onFileChange={(file) => onChange("cardImageFile", file)}
           onUrlChange={(value) => onChange("cardImageUrl", value)}
         />
         <ImageUploadField
-          label="모바일 카드 이미지"
+          label="PICK 모바일 이미지 (비우면 대표 이미지 사용)"
           file={form.cardImageMobileFile}
           currentUrl={form.cardImageMobileUrl}
           onFileChange={(file) => onChange("cardImageMobileFile", file)}
           onUrlChange={(value) => onChange("cardImageMobileUrl", value)}
         />
-        <Field label="연결 매장 ID" wide><input value={form.storeIds} onChange={(event) => onChange("storeIds", event.target.value)} placeholder="예: 12, 15" /><small>쉼표로 구분합니다.</small></Field>
-        <Field label="연결 메뉴 ID" wide><input value={form.menuIds} onChange={(event) => onChange("menuIds", event.target.value)} placeholder="예: 101, 104" /><small>선택한 매장에 속한 메뉴만 입력할 수 있습니다.</small></Field>
-        <Field label="설명" wide><textarea rows="5" value={form.description} maxLength={5000} onChange={(event) => onChange("description", event.target.value)} /></Field>
-        <Field label="카드 보조 문구" wide><textarea rows="3" value={form.subcopy} maxLength={5000} onChange={(event) => onChange("subcopy", event.target.value)} /></Field>
+        <Field label="앱 추천 문구" wide><textarea rows="3" value={form.subcopy} maxLength={5000} onChange={(event) => onChange("subcopy", event.target.value)} /></Field>
       </div>
 
       <div className="admin-drawer-actions">
@@ -404,6 +402,7 @@ function toForm(item = {}) {
   return {
     ...EMPTY_FORM,
     ...item,
+    seasonalFoodId: item.seasonalFoodId == null ? "" : String(item.seasonalFoodId),
     month: item.month == null ? "" : String(item.month),
     displayOrder: item.displayOrder == null ? "0" : String(item.displayOrder),
     startsAt: toDateTimeLocal(item.startsAt),
