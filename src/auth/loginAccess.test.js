@@ -12,6 +12,6 @@ test.each(["ADMIN", "CONTENT_MANAGER", "VIEWER"])("%s enters the dashboard", (ro
 
 test("limited administrators enter their first permitted menu", () => {
   expect(getAdminEntryPath({ roles: ["ADMIN"], permissions: ["ADMIN_ACCESS", "SEASONAL_READ"] }))
-    .toBe("/admin/seasonal-curations");
+    .toBe("/admin/seasonal-foods");
   expect(getAdminEntryPath({ roles: ["ADMIN"], permissions: [] })).toBe("/faq");
 });

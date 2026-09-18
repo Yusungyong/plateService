@@ -16,6 +16,7 @@ import BusinessSignup from "../pages/BusinessSignup";
 import AdminDashboard from "../admin/pages/AdminDashboard";
 import AdminPlaceholderPage from "../admin/pages/AdminPlaceholderPage";
 import AdminStoreApprovals from "../admin/pages/AdminStoreApprovals";
+import AdminSeasonalFoods from "../admin/pages/AdminSeasonalFoods";
 import AdminSeasonalCurations from "../admin/pages/AdminSeasonalCurations";
 import { userHasAdminPermission, ADMIN_PERMISSIONS } from "../admin/constants/adminPermissions";
 
@@ -59,6 +60,10 @@ export const adminNavigationItems = [
     permission: ADMIN_PERMISSIONS.FEED_READ,
     group: "운영",
     available: false,
+  },
+  {
+    path: "/admin/seasonal-foods", label: "제철 식재료 관리", icon: "seasonal",
+    permission: ADMIN_PERMISSIONS.SEASONAL_READ, group: "운영",
   },
   {
     path: "/admin/seasonal-curations",
@@ -183,6 +188,10 @@ export const adminRoutes = [
       description: "신고, 숨김, 추천 노출 흐름을 포함한 콘텐츠 검수 화면을 준비하고 있습니다.",
     },
     permission: ADMIN_PERMISSIONS.FEED_READ,
+  },
+  {
+    path: "/admin/seasonal-foods", component: AdminSeasonalFoods,
+    permission: ADMIN_PERMISSIONS.SEASONAL_READ,
   },
   {
     path: "/admin/seasonal-curations",

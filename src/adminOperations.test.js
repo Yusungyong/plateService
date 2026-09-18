@@ -360,7 +360,7 @@ test("creates a seasonal curation from the admin menu", async () => {
   const fetchSpy = jest.spyOn(global, "fetch").mockImplementation(async (url, options = {}) => {
     const method = options.method || "GET";
     const isFileUpload = String(url).endsWith("/api/admin/seasonal-curations/files");
-    const body = isFileUpload
+    const body = String(url).includes('/api/admin/seasonal-foods') ? {data: {content: [{id: 99, nameKo: '대하', status: 'PUBLISHED'}], hasNext: false}} : isFileUpload
       ? {
           data: {
             fileUrl: "https://cdn.example.com/seasonal/autumn.webp",
@@ -410,6 +410,8 @@ test("creates a seasonal curation from the admin menu", async () => {
     "href",
     "/admin/seasonal-curations"
   );
+  await screen.findByRole("option", {name: "대하"});
+  fireEvent.change(screen.getByLabelText("추천 식재료 *"), {target: {value: "99"}});
   fireEvent.change(screen.getByLabelText("제목 *"), {
     target: { value: "가을 제철 생선" },
   });
@@ -433,6 +435,8 @@ test("creates a seasonal curation from the admin menu", async () => {
     expect(JSON.parse(createCall[1].body)).toEqual(
       expect.objectContaining({
         title: "가을 제철 생선",
+        seasonalFoodId: 99,
+        independentImages: true,
         month: 9,
         cardImageUrl: "https://cdn.example.com/seasonal/autumn.webp",
       })
@@ -451,22 +455,21 @@ test("creates a seasonal curation from the admin menu", async () => {
   URL.revokeObjectURL = originalRevokeObjectURL;
 }, 15000);
 
-test("imports app foods explicitly and refreshes the administrator list", async () => {
+test("edits a master food directly without importing or publishing", async () => {
   storeAuth({roles: ["CONTENT_MANAGER"], permissions: ["ADMIN_ACCESS", "SEASONAL_READ", "SEASONAL_MANAGE"]});
-  let imported = false;
+  const food = {id: 99, nameKo: "대하", status: "PUBLISHED", categoryCode: "CRUSTACEAN", version: 3, shortDescription: "기존 소개"};
   const fetchSpy = jest.spyOn(global, "fetch").mockImplementation(async (url, options = {}) => {
-    const isImport = String(url).endsWith("/import-foods");
-    if (isImport) imported = true;
-    const data = isImport ? {created: 1} : {content: imported ? [{id: 99, title: "대하", status: "DRAFT", month: 9, version: 0}] : [], totalElements: imported ? 1 : 0, page: 0, size: 20, totalPages: 1};
+    const data = options.method === "PUT" ? {...food, ...JSON.parse(options.body), version: 4} : {content: [food], page: 0, totalPages: 1, hasNext: false};
     return {ok: true, status: 200, headers: {get: () => "application/json"}, json: async () => ({data}), text: async () => ""};
   });
-  renderAt("/admin/seasonal-curations");
-  const button = screen.getByRole("button", {name: "앱 식재료 가져오기"});
-  await waitFor(() => expect(button).toBeEnabled());
-  expect(imported).toBe(false);
-  fireEvent.click(button);
-  expect(await screen.findByText("대하")).toBeInTheDocument();
-  expect(screen.getByText(/1개 식재료를 현재 관리자 계정의 초안으로/)).toBeInTheDocument();
-  expect(fetchSpy.mock.calls.some(([url, options]) => String(url).endsWith("/import-foods") && options.method === "POST")).toBe(true);
+  renderAt("/admin/seasonal-foods");
+  fireEvent.click(await screen.findByRole("button", {name: /대하/}));
+  fireEvent.change(screen.getByLabelText("소개"), {target: {value: "변경한 소개"}});
+  fireEvent.click(screen.getByRole("button", {name: "식재료 저장"}));
+  expect(await screen.findByText(/식재료를 저장했습니다/)).toBeInTheDocument();
+  const put = fetchSpy.mock.calls.find(([url, options]) => options.method === "PUT");
+  expect(String(put[0])).toContain('/api/admin/seasonal-foods/99');
+  expect(JSON.parse(put[1].body)).toEqual(expect.objectContaining({version: 3, shortDescription: "변경한 소개"}));
+  expect(fetchSpy.mock.calls.some(([url]) => /import-foods|publish/.test(String(url)))).toBe(false);
   fetchSpy.mockRestore();
 });
