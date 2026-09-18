@@ -255,7 +255,7 @@ function AdminSeasonalCurations() {
                     <button type="button" onClick={() => moveItem(index, -1)} disabled={index === 0 || isSubmitting} aria-label={`${item.title} 위로 이동`}>↑</button>
                     <button type="button" onClick={() => moveItem(index, 1)} disabled={index === page.content.length - 1 || isSubmitting} aria-label={`${item.title} 아래로 이동`}>↓</button>
                     {["PUBLISHED", "SCHEDULED"].includes(item.status) ? <button type="button" onClick={() => setPendingAction({type: "unpublish", item})} disabled={isSubmitting}>발행 해제</button> : item.status !== "ARCHIVED" ? (
-                      <button type="button" onClick={() => setPendingAction({ type: "publish", item })} disabled={isSubmitting}>발행</button>
+                      <button type="button" onClick={() => setPendingAction({ type: "publish", item })} disabled={isSubmitting || !item.seasonalFoodId} title={!item.seasonalFoodId ? "수정 화면에서 추천 식재료를 먼저 선택하세요" : undefined}>발행</button>
                     ) : null}
                     <button type="button" onClick={() => setPendingAction({ type: "delete", item })} disabled={isSubmitting}>삭제</button>
                   </div>
