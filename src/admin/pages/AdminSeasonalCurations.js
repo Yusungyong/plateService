@@ -110,7 +110,13 @@ function AdminSeasonalCurations() {
   }
 
   function updateField(field, value) {
-    setForm((current) => ({ ...current, [field]: value }));
+    setForm((current) => {
+      if (field === "seasonalFoodId") {
+        const selected = foodOptions.find(food => String(food.id) === String(value));
+        return {...current, seasonalFoodId: value, title: current.title || selected?.nameKo || ""};
+      }
+      return {...current, [field]: value};
+    });
   }
 
   async function handleSubmit(event) {
@@ -313,11 +319,10 @@ function SeasonalEditor({ foodOptions, form, isEditing, isLoading, isSubmitting,
 
       <div className="admin-seasonal-form-grid">
         <Field label="추천 식재료" required wide><select required value={form.seasonalFoodId} onChange={event => onChange("seasonalFoodId", event.target.value)}><option value="">식재료 선택</option>{foodOptions.map(food => <option key={food.id} value={food.id}>{food.nameKo}</option>)}</select></Field>
-        <Field label="제목" required wide><input value={form.title} maxLength={150} required onChange={(event) => onChange("title", event.target.value)} /></Field>
+        <Field label="제목" required wide><input aria-label="제목 *" value={form.title} maxLength={150} required onChange={(event) => onChange("title", event.target.value)} /><small>관리 목록용 제목입니다. 앱에는 선택한 식재료 이름이 표시됩니다.</small></Field>
         <Field label="헤드라인" wide><input value={form.headline} maxLength={300} onChange={(event) => onChange("headline", event.target.value)} /></Field>
         <Field label="월" required><select value={form.month} required onChange={(event) => onChange("month", event.target.value)}><option value="">선택</option>{Array.from({ length: 12 }, (_, index) => index + 1).map((month) => <option key={month} value={month}>{month}월</option>)}</select></Field>
         <Field label="절기"><select value={form.seasonalTerm} onChange={(event) => onChange("seasonalTerm", event.target.value)}><option value="">선택 안 함</option>{SEASONAL_TERMS.map((term) => <option key={term} value={term}>{term}</option>)}</select></Field>
-        <Field label="카테고리"><input value={form.category} maxLength={100} onChange={(event) => onChange("category", event.target.value)} placeholder="예: 봄나물" /></Field>
         <Field label="노출 순서"><input type="number" min="0" value={form.displayOrder} onChange={(event) => onChange("displayOrder", event.target.value)} /></Field>
         <Field label="시작 일시"><input type="datetime-local" value={form.startsAt} onChange={(event) => onChange("startsAt", event.target.value)} /></Field>
         <Field label="종료 일시"><input type="datetime-local" value={form.endsAt} onChange={(event) => onChange("endsAt", event.target.value)} /></Field>
@@ -335,10 +340,7 @@ function SeasonalEditor({ foodOptions, form, isEditing, isLoading, isSubmitting,
           onFileChange={(file) => onChange("cardImageMobileFile", file)}
           onUrlChange={(value) => onChange("cardImageMobileUrl", value)}
         />
-        <Field label="연결 매장 ID" wide><input value={form.storeIds} onChange={(event) => onChange("storeIds", event.target.value)} placeholder="예: 12, 15" /><small>쉼표로 구분합니다.</small></Field>
-        <Field label="연결 메뉴 ID" wide><input value={form.menuIds} onChange={(event) => onChange("menuIds", event.target.value)} placeholder="예: 101, 104" /><small>선택한 매장에 속한 메뉴만 입력할 수 있습니다.</small></Field>
-        <Field label="설명" wide><textarea rows="5" value={form.description} maxLength={5000} onChange={(event) => onChange("description", event.target.value)} /></Field>
-        <Field label="카드 보조 문구" wide><textarea rows="3" value={form.subcopy} maxLength={5000} onChange={(event) => onChange("subcopy", event.target.value)} /></Field>
+        <Field label="앱 추천 문구" wide><textarea rows="3" value={form.subcopy} maxLength={5000} onChange={(event) => onChange("subcopy", event.target.value)} /></Field>
       </div>
 
       <div className="admin-drawer-actions">
