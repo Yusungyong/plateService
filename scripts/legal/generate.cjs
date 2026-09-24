@@ -22,9 +22,13 @@ if (process.argv.includes("--build")) {
   var request = event.request;
   var uri = request.uri.replace(/\\/+$/, "");
   var routes = ${JSON.stringify(routes)};
+  var staticFiles = ${JSON.stringify(Object.fromEntries(Object.keys(files).filter(key => key.startsWith('legal/')).map(key => ['/' + key, true])))};
   if (Object.prototype.hasOwnProperty.call(routes, uri)) {
     request.uri = routes[uri];
     return request;
+  }
+  if (/^\\/legal(\\/|$)/.test(uri) && !Object.prototype.hasOwnProperty.call(staticFiles, uri)) {
+    return { statusCode: 404, statusDescription: "Not Found", headers: { "cache-control": { value: "no-store" } }, body: "Document not found" };
   }
   if (/^\\/(terms-of-service|privacy-policy|location-terms)(\\/|$)/.test(uri)) {
     if (/\\/index\\.html$/.test(uri) && Object.prototype.hasOwnProperty.call(routes, uri.slice(0, -11))) return request;

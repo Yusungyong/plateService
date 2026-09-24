@@ -113,3 +113,34 @@ test("generated CloudFront function preserves legal HTML routing and rejects unk
   assert.equal(scope.handler({ request: { uri: "/privacy-policy/versions/missing" } }).statusCode, 404);
   assert.equal(scope.handler({ request: { uri: "/faq" } }).uri, "/faq");
 });
+
+test("mobile packets preserve source bytes, block structure and immutable hash URLs", () => {
+  const {files, manifest} = loadPublic();
+  for (const doc of manifest.documents) for (const version of doc.versions) {
+    const raw = files[new URL(version.mobileUrl).pathname.slice(1)];
+    assert.equal(hash(raw), version.mobileSha256);
+    assert.ok(version.mobileUrl.endsWith(`.${version.mobileSha256}.json`));
+    const packet = JSON.parse(raw);
+    assert.equal(packet.documentId, doc.id);
+    assert.equal(packet.version, version.version);
+    assert.equal(packet.purpose, "DOCUMENT_DISPLAY_ONLY");
+    assert.equal(packet.consentEligible, false);
+    assert.equal(hash(packet.sourceMarkdown), version.sourceSha256);
+    assert.equal(packet.sourceMarkdown, files[`legal/documents/${doc.id}/${version.version}.md`].toString("utf8"));
+    assert.ok(packet.blocks.some(block => block.type === "heading"));
+    assert.ok(packet.blocks.some(block => block.type === "paragraph"));
+    assert.ok(!JSON.stringify(packet).includes("확인 필요"));
+  }
+});
+
+test("mobile Markdown keeps table columns, numbered lists and safe link targets", () => {
+  const {mobileBlocks} = require("./mobile.cjs");
+  const blocks = mobileBlocks('## 제목\n\n3. **항목** [문의](mailto:su12ng@gmail.com)\n4. 다음\n\n| 항목 | 기간 |\n| --- | --- |\n| 계정 | 확인 중 |');
+  assert.equal(blocks[0].type, "heading");
+  assert.equal(blocks[1].marker, "3.");
+  assert.equal(blocks[2].marker, "4.");
+  assert.equal(blocks[1].spans[0].bold, true);
+  assert.equal(blocks[1].spans.find(span => span.href).href, "mailto:su12ng@gmail.com");
+  assert.deepEqual(blocks[3].rows.map(row => row.map(cell => cell.map(span => span.text).join(""))), [["항목", "기간"], ["계정", "확인 중"]]);
+  assert.throws(() => mobileBlocks('![unreviewed image](https://example.org/a.png)'), /Unsupported/);
+});
