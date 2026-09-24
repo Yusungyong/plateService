@@ -2,6 +2,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
 const MarkdownIt = require("markdown-it");
+const { mobileBlocks } = require("./mobile.cjs");
 
 const root = path.resolve(__dirname, "../..");
 const contentRoot = path.join(root, "content/legal");
@@ -124,10 +125,20 @@ function loadPublic({ allowUnfrozen = false } = {}) {
       files[`${versionPath.slice(1)}/index.html`] = displayHtml;
       files[htmlPath.slice(1)] = fullHtml;
       files[`legal/documents/${doc.id}/${version.version}.md`] = source;
+      const mobile = JSON.stringify({ schemaVersion: 1, purpose: "DOCUMENT_DISPLAY_ONLY",
+        documentId: doc.id, title: doc.title, version: version.version, status: version.status,
+        label: version.label, effectiveDate: version.effectiveDate, recordedOn: version.recordedOn,
+        changeSummary: version.changeSummary, consentEligible: version.status === "published",
+        sourceSha256: hash(source), sourceMarkdown: source.toString("utf8"),
+        blocks: mobileBlocks(source.toString("utf8")) }) + "\n";
+      // Content-addressed paths prevent renderer changes overwriting an old packet.
+      const mobileSha256 = hash(mobile);
+      const mobilePath = `/legal/mobile/v1/${doc.id}/${version.version}.${mobileSha256}.json`;
+      files[mobilePath.slice(1)] = mobile;
       publicDoc.versions.push({ version: version.version, status: version.status, effectiveDate: version.effectiveDate,
         recordedOn: version.recordedOn, changeSummary: version.changeSummary, url: catalog.origin + versionPath,
         htmlUrl: catalog.origin + htmlPath, sha256: hash(fullHtml), sourceSha256: hash(source),
-        consentEligible: version.status === "published" });
+        consentEligible: version.status === "published", mobileUrl: catalog.origin + mobilePath, mobileSha256 });
       if (version.version === doc.currentVersion) {
         pages[`/${doc.slug}`] = pages[versionPath];
         files[`${doc.slug}/index.html`] = displayHtml;
