@@ -84,7 +84,7 @@ export const adminNavigationItems = [
     path: "/admin/qna",
     label: "Q&A 관리",
     icon: "support",
-    permission: ADMIN_PERMISSIONS.SUPPORT_MANAGE,
+    permission: ADMIN_PERMISSIONS.QNA_MANAGE,
     group: "고객 지원",
   },
   {
@@ -212,7 +212,7 @@ export const adminRoutes = [
     props: {
       adminMode: true,
     },
-    permission: ADMIN_PERMISSIONS.SUPPORT_MANAGE,
+    permission: ADMIN_PERMISSIONS.QNA_MANAGE,
   },
   {
     path: "/admin/member-monitoring",
