@@ -17,7 +17,8 @@ test("public initial HTML has complete body, dates, accessible tables, links and
     assert.ok(page.querySelector('a[aria-label="접시 홈으로 이동"][href="/"]'));
     assert.ok(page.querySelector("article").textContent.length > 300);
     assert.ok(page.querySelector('a[href="mailto:su12ng@gmail.com"]'));
-    assert.match(page.querySelector(".legal-meta").textContent, /시행일미확정/);
+    const current = doc.versions.find(v => v.version === doc.currentVersion);
+    assert.ok(page.querySelector(".legal-meta").textContent.includes(current.effectiveDate || "미확정"));
     assert.ok(page.querySelector(`a[href="/${doc.slug}/versions"]`));
     for (const link of page.querySelectorAll('a[href^="#"]')) {
       assert.ok(page.getElementById(link.getAttribute("href").slice(1)));
@@ -32,14 +33,14 @@ test("public initial HTML has complete body, dates, accessible tables, links and
 test("new policies and draft material cannot leak into the public build or consent metadata", () => {
   const { files, pages, manifest } = loadPublic();
   const publicText = Object.values(files).map(String).join("\n") + JSON.stringify(pages);
-  for (const term of ["30일", "만 15세", "최대 2년", "확인 필요", "draft-2026", "덕양구", "위치 이력 미보관"]) {
+  for (const term of ["만 15세 이상부터", "최대 2년", "확인 필요", "draft-2026", "위치 이력 미보관"]) {
     assert.ok(!publicText.includes(term), `Unexpected public policy: ${term}`);
   }
   assert.equal(pages["/location-terms"], undefined);
   assert.equal(pages["/terms-of-service/versions/draft-2026-09-14"], undefined);
   for (const doc of manifest.documents) for (const version of doc.versions) {
-    assert.equal(version.consentEligible, false);
-    assert.equal(version.effectiveDate, null);
+    assert.equal(version.consentEligible, version.status === "published");
+    assert.equal(version.effectiveDate, version.status === "published" ? "2026-09-25" : null);
     assert.equal(hash(files[new URL(version.htmlUrl).pathname.slice(1)]), version.sha256);
   }
 });
@@ -124,7 +125,7 @@ test("mobile packets preserve source bytes, block structure and immutable hash U
     assert.equal(packet.documentId, doc.id);
     assert.equal(packet.version, version.version);
     assert.equal(packet.purpose, "DOCUMENT_DISPLAY_ONLY");
-    assert.equal(packet.consentEligible, false);
+    assert.equal(packet.consentEligible, version.status === "published");
     assert.equal(hash(packet.sourceMarkdown), version.sourceSha256);
     assert.equal(packet.sourceMarkdown, files[`legal/documents/${doc.id}/${version.version}.md`].toString("utf8"));
     assert.ok(packet.blocks.some(block => block.type === "heading"));

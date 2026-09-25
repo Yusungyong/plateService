@@ -6,8 +6,20 @@
       "id": "service-terms",
       "slug": "terms-of-service",
       "title": "이용약관",
-      "currentVersion": "2026-09-15-correction",
+      "currentVersion": "2026-09-25",
       "versions": [
+        {
+          "version": "2026-09-25",
+          "status": "published",
+          "label": "이용약관",
+          "effectiveDate": "2026-09-25",
+          "recordedOn": "2026-09-25",
+          "source": "public/2026-09-25/terms-of-service.md",
+          "sourceSha256": "a38303a772d232ff6d003397bb638cef80d327d3868c5fcb0f34373a66f60107",
+          "changeSummary": "현재 제공 기능 기준 약관 최초 공개. 명시적 동의 시부터 적용하며 과거 동의 추정 없음. 30일 복구·가입 연령 정책 미시행.",
+          "releaseEvidence": "releases/2026-09-25.md",
+          "htmlSha256": "cf6c83a5ce3f2893ac51a657b9a5bfd8cfaa684f4ed81bbfb2d0c6e95d1f667e"
+        },
         {
           "version": "2026-09-15-correction",
           "status": "correction",
@@ -36,8 +48,19 @@
       "id": "privacy-notice",
       "slug": "privacy-policy",
       "title": "개인정보 처리방침",
-      "currentVersion": "2026-09-15-correction",
+      "currentVersion": "2026-09-25-correction",
       "versions": [
+        {
+          "version": "2026-09-25-correction",
+          "status": "correction",
+          "label": "운영 정보·동의 기록 처리 안내",
+          "effectiveDate": null,
+          "recordedOn": "2026-09-25",
+          "source": "public/2026-09-25/privacy-policy.md",
+          "sourceSha256": "46453be5c5b20c8dcb603891ffcd185b108fcce4e20cb75cd80de861cf896571",
+          "changeSummary": "실제 약관 동의 기록의 항목·목적·운영 DB 삭제·권리 요청 안내 추가. 개인정보 처리방침 전문 정비는 진행 중.",
+          "htmlSha256": "0dbb11287a70417ab30df91e6cdbf0cdf73f6a1c5ed7b67889ad1f0af9972aeb"
+        },
         {
           "version": "2026-09-15-correction",
           "status": "correction",
