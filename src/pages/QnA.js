@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import PageLayout from "../components/PageLayout";
+import InquiryRetentionNotice from "../components/InquiryRetentionNotice";
 import { useAuth } from "../auth/AuthContext";
 import { createQna, fetchQna, updateQna } from "../api/qnaApi";
 
@@ -363,6 +364,7 @@ function QnA({ adminMode = false }) {
         size: PAGE_SIZE,
         category: appliedFilters.category,
         statusCode: appliedFilters.statusCode,
+        adminMode,
       });
       const nextPage = normalizeQnaPage(response, page);
 
@@ -396,7 +398,7 @@ function QnA({ adminMode = false }) {
     } finally {
       setIsLoading(false);
     }
-  }, [appliedFilters]);
+  }, [appliedFilters, adminMode]);
 
   useEffect(() => {
     loadEntries();
@@ -470,7 +472,7 @@ function QnA({ adminMode = false }) {
         answer: answerDraft.answer.trim(),
         statusCode: answerDraft.statusCode,
         isPublic: answerDraft.isPublic,
-      });
+      }, adminMode);
       setSubmitMessage("답변이 저장되었습니다.");
       await loadEntries();
       setSelectedQnaId(selectedEntry.qnaId);
@@ -618,6 +620,8 @@ function QnA({ adminMode = false }) {
                       <option value="hidden">비공개</option>
                     </select>
                   </label>
+
+                  <InquiryRetentionNotice entry={selectedEntry} />
 
                   <label className="admin-field">
                     <span>답변 내용</span>
