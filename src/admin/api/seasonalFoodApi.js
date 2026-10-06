@@ -16,3 +16,16 @@ export async function getPublishedSeasonalFoodOptions() {
     if (!response.content.length) throw new Error('식재료 목록을 끝까지 불러오지 못했습니다.');
   }
 }
+
+export async function getAllSeasonalFoods() {
+  const foods = [];
+  const seen = new Set();
+  for (let page = 0; ; page++) {
+    const result = await getSeasonalFoods(page);
+    const fresh = (result.content || []).filter(food => !seen.has(food.id));
+    fresh.forEach(food => seen.add(food.id));
+    foods.push(...fresh);
+    if (!result.hasNext) return foods;
+    if (!fresh.length) throw new Error("음식 목록을 끝까지 불러오지 못했습니다. 다시 시도해 주세요.");
+  }
+}

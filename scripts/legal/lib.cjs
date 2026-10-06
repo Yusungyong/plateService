@@ -66,12 +66,12 @@ function documentBody(doc, version, rendered, review = false) {
     ? "공개 약관이 아닙니다. 확인 주석과 미구현 정책을 포함한 준비본이며 시행일은 미확정입니다."
     : isSnapshot
       ? "이 문서는 정비 전 화면의 보관본입니다. 당시 미완성 문구와 이전 연락처를 그대로 보존했으며, 현재 안내나 시행된 약관의 증거가 아닙니다."
-      : version.status === "published" ? "이 문서의 시행일과 변경 내용을 확인해 주세요."
+      : version.status === "published" ? ""
         : "확인된 운영 정보를 먼저 정정한 안내입니다. 정식 전문의 시행이나 새로운 동의를 의미하지 않습니다.";
   const toc = rendered.headings.map(({ id, title }) => `<li><a href="#${id}">${escape(title)}</a></li>`).join("");
   return frame(doc.title, `<p class="legal-status">${escape(status)}</p>
 <dl class="legal-meta"><div><dt>문서 버전</dt><dd>${escape(version.version)}</dd></div><div><dt>시행일</dt><dd>${escape(version.effectiveDate || "미확정")}</dd></div><div><dt>기록일</dt><dd>${escape(version.recordedOn)}</dd></div></dl>
-<p class="legal-notice">${notice}</p>
+${notice ? `<p class="legal-notice">${notice}</p>` : ""}
 ${review ? '<p><a href="/">준비본 목록으로</a></p>' : `<nav class="legal-actions" aria-label="문서 버전"><a href="/${doc.slug}">현재 안내</a><a href="/${doc.slug}/versions">이전 버전 열람</a><a href="/legal/documents/${doc.id}/${version.version}.md" download>원문 다운로드</a></nav>`}
 ${toc ? `<nav class="legal-toc" aria-label="문서 목차"><h2>목차</h2><ol>${toc}</ol></nav>` : ""}
 <article class="legal-prose" aria-label="${escape(doc.title)} 본문">${rendered.html}</article>
@@ -118,7 +118,15 @@ function loadPublic({ allowUnfrozen = false } = {}) {
         body = fullHtml.match(/<body>([\s\S]*)<\/body>/)[1];
       }
       // The downloadable artifact stays immutable. Browsing pages use today's navigation.
-      const displayBody = body.replace(/<header class="legal-site-header">[\s\S]*?<\/header>/, legalHeader());
+      // Presentation changes never rewrite the frozen download or legal article.
+      const articleStart = body.indexOf('<article class="legal-prose"');
+      const displayIntro = body.slice(0, articleStart)
+        .replace(/<header class="legal-site-header">[\s\S]*?<\/header>/, legalHeader())
+        .replace(/<p class="legal-notice">이 문서의 시행일과 변경 내용을 확인해 주세요\.\s*<\/p>/, "")
+        .replace(/<dl class="legal-meta">[\s\S]*?<\/dl>/, `<dl class="legal-meta"><div><dt>시행일</dt><dd>${escape(version.effectiveDate || "미확정")}</dd></div><div><dt>문서 버전</dt><dd>${escape(version.version)}</dd></div><div><dt>기록일</dt><dd>${escape(version.recordedOn)}</dd></div></dl>`)
+        .replace(/(<p class="legal-status">[\s\S]*?<\/p>)\s*(<dl class="legal-meta">[\s\S]*?<\/dl>)/, "$2\n$1")
+        .replace(`href="/${doc.slug}/versions">이전 버전 열람`, `href="/${doc.slug}/versions">${doc.id === "service-terms" ? "이전 약관 보기" : "이전 버전 열람"}`);
+      const displayBody = displayIntro + body.slice(articleStart);
       const displayHtml = fullHtml.replace(/<body>[\s\S]*<\/body>/, () => `<body>${displayBody}</body>`);
       pages[versionPath] = { title: doc.title, body: displayBody, noindex: version.status !== "published" };
       files[`${versionPath.slice(1)}/index.html`] = displayHtml;
