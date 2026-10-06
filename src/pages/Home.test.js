@@ -4,6 +4,16 @@ import { MemoryRouter } from "react-router-dom";
 import Home from "./Home";
 import App from "../App";
 
+test("failed optimized screenshots fall back to the latest original without srcset retries", () => {
+  render(<MemoryRouter><Home /></MemoryRouter>);
+  const image = screen.getByAltText("접시 앱의 음식 사진과 영상 콘텐츠 홈 화면");
+  fireEvent.error(image);
+  expect(image).toHaveAttribute("src", "/images/home/KakaoTalk_20260915_211008421_02.png");
+  expect(image).not.toHaveAttribute("srcset");
+  fireEvent.error(image);
+  expect(image).toHaveAttribute("src", "/images/home/KakaoTalk_20260915_211008421_02.png");
+});
+
 test("the root route shows the app homepage and keeps support, admin and policy links", () => {
   window.history.replaceState({}, "", "/");
   render(<App />);
