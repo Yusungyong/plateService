@@ -123,3 +123,15 @@ npm run build
 - `src/pages/TermsOfService.js`, `PrivacyPolicy.js`, `src/config/routes.js`, `src/App.js`: 기존 진입 URL 및 문서 이력 라우팅.
 - `scripts/legal/`: 정적 HTML 생성, 미리보기, 새 버전 고정, 문서 검증.
 - `src/legal/LegalPage.test.js`, `package.json`, `package-lock.json`, `.gitattributes`, `.gitignore`: 화면 테스트·빌드 연결·Markdown 도구·바이트 보존/산출물 제외.
+
+## 2026-09-24 앱 문서 열람 보완
+
+공개 HTML이 운영에서 SPA 초기 화면으로 반환되는 문제를 확인했다. 기존 불변 HTML·Markdown·시행 상태는 변경하지 않고, `manifest.json`에 `mobileUrl`/`mobileSha256`을 추가했다. 콘텐츠 해시를 경로에 넣은 `/legal/mobile/v1/{id}/{version}.{sha256}.json`은 공개 원문에서 생성한 네이티브 표시용 문단·목차·표·링크와 원문 문자열을 담는다. JSON 전체 SHA-256 및 원문 SHA-256을 앱에서 검사한다. 이 목록과 전송 파일은 `DOCUMENT_DISPLAY_ONLY`이며 동의 API/동의 원장이 아니다. 정정 안내는 계속 `consentEligible=false`다.
+
+앱은 로그인 토큰 없이 문서를 읽고 실패 시 HTML이나 구 API로 우회하지 않는다. 웹의 공개 원문과 JSON을 별도 수작업으로 관리하지 않는다. 공개 빌드에 검토본을 넣지 않는 기존 검사를 유지한다. `export-review.cjs`는 앱 개발 빌드의 검토 자료를 명시적으로 생성할 때만 사용하며 공개 빌드에서는 실행하지 않는다.
+
+```sh
+node scripts/legal/export-review.cjs /path/to/plateAppNew/docs/legal/drafts/2026-09-14 > /path/to/plateAppNew/src/dev/legalReview.generated.json
+```
+
+현재 HTML 경로가 빈 SPA로 응답하는 CDN 설정 문제는 JSON 경로 추가만으로 해결되었다고 볼 수 없다. 위 초기 HTML 배포 절차에 따라 경로와 캐시를 별도로 정비해야 한다. 생성된 CloudFront 함수는 이제 없는 `/legal/*` 정적 파일도 404로 반환한다. 함수 파일 생성은 AWS 설정 적용과 다르다.

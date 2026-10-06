@@ -1,15 +1,17 @@
 import { apiClient } from "./index";
+import { unwrapAdminResponse } from "../admin/api/adminApiUtils";
 
-export async function fetchQna({ category, statusCode, page = 0, size = 10 } = {}) {
-  return apiClient.get("/api/qna", {
+export async function fetchQna({ category, statusCode, page = 0, size = 10, adminMode = false } = {}) {
+  const response = await apiClient.get(adminMode ? "/api/admin/qna" : "/api/qna", {
     query: {
       category,
       statusCode,
       page,
       size,
     },
-    withAuth: false,
+    withAuth: adminMode,
   });
+  return adminMode ? unwrapAdminResponse(response) : response;
 }
 
 export async function fetchQnaDetail(qnaId) {
@@ -24,6 +26,7 @@ export async function createQna(payload) {
   });
 }
 
-export async function updateQna(qnaId, payload) {
-  return apiClient.patch(`/api/qna/${qnaId}`, payload);
+export async function updateQna(qnaId, payload, adminMode = false) {
+  const response = await apiClient.patch(`${adminMode ? "/api/admin/qna" : "/api/qna"}/${qnaId}`, payload);
+  return adminMode ? unwrapAdminResponse(response) : response;
 }

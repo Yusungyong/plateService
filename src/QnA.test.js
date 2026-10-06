@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
 import PrivateInquiry from "./pages/PrivateInquiry";
 import QnA, { QnAWrite } from "./pages/QnA";
-import { createQna, fetchQna } from "./api/qnaApi";
+import { createQna, fetchQna, updateQna } from "./api/qnaApi";
 
 jest.mock("./api/qnaApi", () => ({
   createQna: jest.fn(),
@@ -185,4 +185,16 @@ test("submits private inquiries without exposing them as public Q&A", async () =
       })
     )
   );
+});
+
+
+test("admin mode displays private retention metadata and saves through admin API", async () => {
+  fetchQna.mockResolvedValue({content: [{qnaId: 42, question: "합성 비공개 문의", category: "계정문의", isPublic: false, statusCode: "answered", answer: "처리 안내", retentionState: "COMPLETION_UNCONFIRMED"}], hasNext: false});
+  updateQna.mockResolvedValue({});
+  render(<MemoryRouter><AuthProvider><QnA adminMode /></AuthProvider></MemoryRouter>);
+  expect(await screen.findByRole("note", {name: "문의 개인정보 보관 안내"})).toHaveTextContent("과거 처리 완료일이 확인되지 않은 문의");
+  expect(fetchQna).toHaveBeenCalledWith(expect.objectContaining({adminMode: true}));
+  await waitFor(() => expect(screen.getByLabelText("답변 내용")).toHaveValue("처리 안내"));
+  fireEvent.click(screen.getByRole("button", {name: "답변 저장"}));
+  await waitFor(() => expect(updateQna).toHaveBeenCalledWith(42, expect.objectContaining({statusCode: "answered", isPublic: false}), true));
 });

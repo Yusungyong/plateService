@@ -5,7 +5,15 @@ const { root, loadPublic, htmlPage, notFoundBody } = require("./lib.cjs");
 const { pages, files, manifest } = loadPublic();
 const generated = path.join(root, "src/legal/generated.json");
 fs.mkdirSync(path.dirname(generated), { recursive: true });
-fs.writeFileSync(generated, JSON.stringify({ pages, notFound: notFoundBody() }));
+// Only loadPublic-verified immutable Markdown enters downloadable browser blobs.
+// Generic SPA hosting may rewrite .md requests to index.html.
+const downloads = Object.fromEntries(Object.entries(files)
+  .filter(([relative]) => /^legal\/documents\/[^/]+\/[^/]+\.md$/.test(relative))
+  .map(([relative, source]) => ['/' + relative, {
+    filename: relative.split('/').slice(-2).join('-'),
+    source: source.toString('utf8'),
+  }]));
+fs.writeFileSync(generated, JSON.stringify({ pages, downloads, notFound: notFoundBody() }));
 
 if (process.argv.includes("--build")) {
   files["legal/legal.css"] = fs.readFileSync(path.join(root, "src/legal/legal.css"));
@@ -22,9 +30,13 @@ if (process.argv.includes("--build")) {
   var request = event.request;
   var uri = request.uri.replace(/\\/+$/, "");
   var routes = ${JSON.stringify(routes)};
+  var staticFiles = ${JSON.stringify(Object.fromEntries(Object.keys(files).filter(key => key.startsWith('legal/')).map(key => ['/' + key, true])))};
   if (Object.prototype.hasOwnProperty.call(routes, uri)) {
     request.uri = routes[uri];
     return request;
+  }
+  if (/^\\/legal(\\/|$)/.test(uri) && !Object.prototype.hasOwnProperty.call(staticFiles, uri)) {
+    return { statusCode: 404, statusDescription: "Not Found", headers: { "cache-control": { value: "no-store" } }, body: "Document not found" };
   }
   if (/^\\/(terms-of-service|privacy-policy|location-terms)(\\/|$)/.test(uri)) {
     if (/\\/index\\.html$/.test(uri) && Object.prototype.hasOwnProperty.call(routes, uri.slice(0, -11))) return request;

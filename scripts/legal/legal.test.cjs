@@ -17,7 +17,8 @@ test("public initial HTML has complete body, dates, accessible tables, links and
     assert.ok(page.querySelector('a[aria-label="접시 홈으로 이동"][href="/"]'));
     assert.ok(page.querySelector("article").textContent.length > 300);
     assert.ok(page.querySelector('a[href="mailto:su12ng@gmail.com"]'));
-    assert.match(page.querySelector(".legal-meta").textContent, /시행일미확정/);
+    const current = doc.versions.find(v => v.version === doc.currentVersion);
+    assert.ok(page.querySelector(".legal-meta").textContent.includes(current.effectiveDate || "미확정"));
     assert.ok(page.querySelector(`a[href="/${doc.slug}/versions"]`));
     for (const link of page.querySelectorAll('a[href^="#"]')) {
       assert.ok(page.getElementById(link.getAttribute("href").slice(1)));
@@ -32,14 +33,14 @@ test("public initial HTML has complete body, dates, accessible tables, links and
 test("new policies and draft material cannot leak into the public build or consent metadata", () => {
   const { files, pages, manifest } = loadPublic();
   const publicText = Object.values(files).map(String).join("\n") + JSON.stringify(pages);
-  for (const term of ["30일", "만 15세", "최대 2년", "확인 필요", "draft-2026", "덕양구", "위치 이력 미보관"]) {
+  for (const term of ["만 15세 이상부터", "최대 2년", "확인 필요", "draft-2026", "위치 이력 미보관"]) {
     assert.ok(!publicText.includes(term), `Unexpected public policy: ${term}`);
   }
   assert.equal(pages["/location-terms"], undefined);
   assert.equal(pages["/terms-of-service/versions/draft-2026-09-14"], undefined);
   for (const doc of manifest.documents) for (const version of doc.versions) {
-    assert.equal(version.consentEligible, false);
-    assert.equal(version.effectiveDate, null);
+    assert.equal(version.consentEligible, version.status === "published");
+    assert.equal(version.effectiveDate, version.status === "published" ? "2026-09-25" : null);
     assert.equal(hash(files[new URL(version.htmlUrl).pathname.slice(1)]), version.sha256);
   }
 });
@@ -112,4 +113,35 @@ test("generated CloudFront function preserves legal HTML routing and rejects unk
   assert.equal(scope.handler({ request: { uri: "/location-terms" } }).statusCode, 404);
   assert.equal(scope.handler({ request: { uri: "/privacy-policy/versions/missing" } }).statusCode, 404);
   assert.equal(scope.handler({ request: { uri: "/faq" } }).uri, "/faq");
+});
+
+test("mobile packets preserve source bytes, block structure and immutable hash URLs", () => {
+  const {files, manifest} = loadPublic();
+  for (const doc of manifest.documents) for (const version of doc.versions) {
+    const raw = files[new URL(version.mobileUrl).pathname.slice(1)];
+    assert.equal(hash(raw), version.mobileSha256);
+    assert.ok(version.mobileUrl.endsWith(`.${version.mobileSha256}.json`));
+    const packet = JSON.parse(raw);
+    assert.equal(packet.documentId, doc.id);
+    assert.equal(packet.version, version.version);
+    assert.equal(packet.purpose, "DOCUMENT_DISPLAY_ONLY");
+    assert.equal(packet.consentEligible, version.status === "published");
+    assert.equal(hash(packet.sourceMarkdown), version.sourceSha256);
+    assert.equal(packet.sourceMarkdown, files[`legal/documents/${doc.id}/${version.version}.md`].toString("utf8"));
+    assert.ok(packet.blocks.some(block => block.type === "heading"));
+    assert.ok(packet.blocks.some(block => block.type === "paragraph"));
+    assert.ok(!JSON.stringify(packet).includes("확인 필요"));
+  }
+});
+
+test("mobile Markdown keeps table columns, numbered lists and safe link targets", () => {
+  const {mobileBlocks} = require("./mobile.cjs");
+  const blocks = mobileBlocks('## 제목\n\n3. **항목** [문의](mailto:su12ng@gmail.com)\n4. 다음\n\n| 항목 | 기간 |\n| --- | --- |\n| 계정 | 확인 중 |');
+  assert.equal(blocks[0].type, "heading");
+  assert.equal(blocks[1].marker, "3.");
+  assert.equal(blocks[2].marker, "4.");
+  assert.equal(blocks[1].spans[0].bold, true);
+  assert.equal(blocks[1].spans.find(span => span.href).href, "mailto:su12ng@gmail.com");
+  assert.deepEqual(blocks[3].rows.map(row => row.map(cell => cell.map(span => span.text).join(""))), [["항목", "기간"], ["계정", "확인 중"]]);
+  assert.throws(() => mobileBlocks('![unreviewed image](https://example.org/a.png)'), /Unsupported/);
 });
