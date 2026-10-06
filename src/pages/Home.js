@@ -5,9 +5,9 @@ import "./Home.css";
 
 const ASSETS = "/images/home";
 const APP_SCREENS = {
-  "app-home": "KakaoTalk_20260915_211008421_02.png",
-  "app-map": "KakaoTalk_20260915_211008421_01.png",
-  "app-profile": "KakaoTalk_20260915_211008421.png",
+  "app-home": "app-home-800.webp",
+  "app-map": "app-map-800.webp",
+  "app-profile": "app-profile-800.webp",
 };
 
 function StoreIcon({ platform }) {
@@ -29,7 +29,7 @@ function StoreButtons({ onUnavailable }) {
 
 function Phone({ screen, className, label }) {
   return <figure className={`home-phone ${className}`}>
-    <div className="home-phone-screen"><img src={`${ASSETS}/${APP_SCREENS[screen]}`} alt={label} width="1206" height="2622" fetchPriority={screen === "app-home" ? "high" : "auto"} /></div>
+    <div className="home-phone-screen"><img src={`${ASSETS}/${APP_SCREENS[screen]}`} srcSet={`${ASSETS}/${screen}-400.webp 400w, ${ASSETS}/${screen}-800.webp 800w`} sizes="(max-width: 600px) 220px, 300px" alt={label} width="1206" height="2622" fetchPriority={screen === "app-home" ? "high" : "auto"} /></div>
     <span className="home-phone-camera" aria-hidden="true" />
   </figure>;
 }
@@ -103,7 +103,7 @@ export default function Home() {
           {screen:"app-home", number:"01", title:"사진에서 시작되는 발견", description:"음식 사진과 영상을 둘러보며 오늘 먹고 싶은 메뉴를 찾아보세요.", alt:"음식 사진과 영상이 모여 있는 접시 콘텐츠 홈", className:"content"},
           {screen:"app-map", number:"02", title:"지도에서 만나는 장소", description:"내 주변 음식점을 지도에서 살펴보고, 음식 종류별로 찾아보세요.", alt:"음식점 위치와 음식 종류 필터를 보여 주는 접시 내 주변 지도", className:"map"},
           {screen:"app-profile", number:"03", title:"내 취향이 쌓이는 기록", description:"내가 남긴 콘텐츠와 좋아요한 음식을 프로필에서 다시 만나보세요.", alt:"최근 내 콘텐츠와 좋아요를 모아 보여 주는 접시 프로필", className:"profile"},
-        ].map(item => <article className={`home-product-card home-product-card--${item.className}`} key={item.screen}><div className="home-product-copy"><span>{item.number}</span><h3>{item.title}</h3><p>{item.description}</p></div><div className="home-product-screen"><img src={`${ASSETS}/${APP_SCREENS[item.screen]}`} width="1206" height="2622" loading="lazy" alt={item.alt} /></div></article>)}</div>
+        ].map(item => <article className={`home-product-card home-product-card--${item.className}`} key={item.screen}><div className="home-product-copy"><span>{item.number}</span><h3>{item.title}</h3><p>{item.description}</p></div><div className="home-product-screen"><img src={`${ASSETS}/${APP_SCREENS[item.screen]}`} srcSet={`${ASSETS}/${item.screen}-400.webp 400w, ${ASSETS}/${item.screen}-800.webp 800w`} sizes="(max-width: 600px) 280px, 360px" width="1206" height="2622" loading="lazy" alt={item.alt} /></div></article>)}</div>
         <p className="home-product-caption">접시 앱 실제 화면 · 콘텐츠와 화면 구성은 업데이트에 따라 달라질 수 있습니다.</p>
       </section>
 

@@ -96,7 +96,8 @@ test("shows the application status navigation from regular pages after login", a
     "href",
     "/business/dashboard"
   );
-  expect(await screen.findByText(/조회된 FAQ가 없습니다/)).toBeInTheDocument();
+  expect(await screen.findByText(/자주 묻는 질문을 준비하고 있습니다/)).toBeInTheDocument();
+  expect(screen.getByRole("link", {name: /궁금한 내용은 비공개/})).toHaveAttribute("href", "/qna/private");
 
   fireEvent.change(screen.getByLabelText("분류"), {
     target: { value: "account" },

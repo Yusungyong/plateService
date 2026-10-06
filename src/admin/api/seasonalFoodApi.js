@@ -29,3 +29,13 @@ export async function getAllSeasonalFoods() {
     if (!fresh.length) throw new Error("음식 목록을 끝까지 불러오지 못했습니다. 다시 시도해 주세요.");
   }
 }
+
+export async function getSeasonalFood(id) {
+  return unwrapAdminResponse(await apiClient.get(`/api/admin/seasonal-foods/${id}`));
+}
+export async function createSeasonalFood(command) {
+  return unwrapAdminResponse(await apiClient.post('/api/admin/seasonal-foods', command));
+}
+export async function deleteSeasonalFood(id, version) {
+  return unwrapAdminResponse(await apiClient.delete(`/api/admin/seasonal-foods/${id}`, {query: {version}}));
+}

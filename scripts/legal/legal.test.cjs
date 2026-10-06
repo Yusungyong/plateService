@@ -134,6 +134,24 @@ test("mobile packets preserve source bytes, block structure and immutable hash U
   }
 });
 
+test('complete website router bypasses SPA for documents and assets, returns real 404 for unknown paths', () => {
+  require('node:child_process').execFileSync(process.execPath, [path.join(__dirname, 'generate.cjs'), '--build']);
+  const source = fs.readFileSync(path.join(root, '.legal-preview/cloudfront-viewer-request.js'), 'utf8');
+  assert.ok(Buffer.byteLength(source) <= 10240, 'CloudFront function size limit');
+  const scope = {};
+  vm.runInNewContext(source, scope);
+  for (const uri of ['/faq', '/admin/seasonal-foods', '/business/applications/123', '/signup'])
+    assert.equal(scope.handler({request:{uri}}).uri, '/index.html');
+  for (const uri of ['/legal/documents/service-terms/2026-09-25.html', '/static/js/main.js', '/images/home/app-home-400.webp', '/sitemap.xml'])
+    assert.equal(scope.handler({request:{uri}}).uri, uri);
+  assert.equal(scope.handler({request:{uri:'/terms-of-service'}}).uri, '/terms-of-service/index.html');
+  for (const uri of ['/not-a-real-page', '/legal/documents/missing.html', '/location-terms'])
+    assert.equal(scope.handler({request:{uri}}).statusCode, 404);
+  const sitemap = fs.readFileSync(path.join(root, 'build/sitemap.xml'), 'utf8');
+  assert.match(sitemap, /https:\/\/plate-service.com\/terms-of-service/);
+  assert.doesNotMatch(sitemap, /location-terms|\/admin|\/signup/);
+});
+
 test("mobile Markdown keeps table columns, numbered lists and safe link targets", () => {
   const {mobileBlocks} = require("./mobile.cjs");
   const blocks = mobileBlocks('## 제목\n\n3. **항목** [문의](mailto:su12ng@gmail.com)\n4. 다음\n\n| 항목 | 기간 |\n| --- | --- |\n| 계정 | 확인 중 |');
