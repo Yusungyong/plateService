@@ -6,19 +6,19 @@ function Feedback() {
   return (
     <PageLayout
       title="서비스 의견 기능 준비 중"
-      description="실제 의견 접수와 처리 상태를 안전하게 저장할 서버 기능을 준비하고 있습니다."
+      description="접시를 사용하며 느낀 점이나 개선 아이디어를 알려 주세요."
     >
       <section className="support-panel">
         <div className="support-panel__header">
           <span className="support-kicker">준비 중</span>
-          <h3>가짜 통계나 동작하지 않는 제출 버튼은 노출하지 않습니다.</h3>
+          <h3>여러분의 의견을 기다립니다</h3>
         </div>
         <p className="page-layout__description">
-          서버 연동이 완료되기 전까지 서비스 관련 문의는 Q&amp;A에서 접수해 주세요.
+          의견과 문의는 비공개 1:1 문의로 보내 주세요. 작성한 내용은 본인과 담당자만 확인할 수 있습니다.
         </p>
         <div className="admin-actions">
-          <Link className="button-primary" to="/qna">
-            Q&amp;A로 이동
+          <Link className="button-primary" to="/qna/private">
+            비공개 1:1 문의
           </Link>
         </div>
       </section>

@@ -2,16 +2,16 @@ import React, {useCallback, useEffect, useRef, useState} from "react";
 import AdminPageHeader from "../components/AdminPageHeader";
 import {ADMIN_PERMISSIONS, userHasAdminPermission} from "../constants/adminPermissions";
 import {useAuth} from "../../auth/AuthContext";
-import {getAllSeasonalFoods, updateSeasonalFood} from "../api/seasonalFoodApi";
+import {getAllSeasonalFoods, updateSeasonalFood, createSeasonalFood, deleteSeasonalFood, getSeasonalFood} from "../api/seasonalFoodApi";
 import {uploadSeasonalCurationFile} from "../api/seasonalCurationApi";
 import "./SeasonalFoods.css";
 
 const TEXT_FIELDS = [["shortDescription", "소개", "어떤 맛과 매력이 있는 음식인가요?"], ["selectionGuide", "고르는 법", "신선한 재료를 알아보는 방법을 알려 주세요."], ["storageGuide", "보관법", "보관 장소와 방법을 적어 주세요."], ["cautionText", "주의사항", "손질·섭취 시 주의할 내용을 적어 주세요."], ["afterSeasonText", "제철이 지난 후 안내", "제철이 아닐 때 보여줄 안내를 적어 주세요."]];
 const IMAGES = [["representativeImageUrl", "대표 이미지", "imagePreviewUrl"], ["representativeImageMobileUrl", "모바일 이미지", "mobileImagePreviewUrl"]];
 const STATUS = {PUBLISHED: "공개", DRAFT: "초안", ARCHIVED: "보관"};
-const CATEGORIES = {CRUSTACEAN: "갑각류", FISH: "생선", SHELLFISH: "조개류", SEAFOOD: "해산물", VEGETABLE: "채소", FRUIT: "과일", MUSHROOM: "버섯", SEAWEED: "해조류"};
+const CATEGORIES = {CRUSTACEAN: "갑각류", FISH: "생선", SHELLFISH: "조개류", VEGETABLE: "채소", FRUIT: "과일", SEAWEED: "해조류", WILD_GREEN: "나물", GRAIN: "곡물", OTHER: "기타"};
 const categoryName = value => CATEGORIES[value] || value || "미분류";
-const normalized = food => ({...food, ...Object.fromEntries([...TEXT_FIELDS, ...IMAGES].map(([key]) => [key, food[key] || ""]))});
+const normalized = food => ({...food, months: food.months || [], ...Object.fromEntries([...TEXT_FIELDS, ...IMAGES].map(([key]) => [key, food[key] || ""]))});
 const blankFood = () => normalized({id: null, nameKo: "", categoryCode: "", status: "DRAFT", months: []});
 
 export default function AdminSeasonalFoods() {
@@ -41,7 +41,7 @@ export default function AdminSeasonalFoods() {
     catch (error) {if (id === request.current) setLoadError(error.message || "음식 목록을 불러오지 못했습니다.");}
     finally {if (id === request.current) setLoading(false);}
   }, []);
-  useEffect(() => {load(); return () => {request.current++;};}, [load]);
+  useEffect(() => {load(); const sequence = request; return () => {sequence.current++;};}, [load]);
   useEffect(() => {
     if (!dirty) return;
     const warn = event => {event.preventDefault(); event.returnValue = "";};
@@ -50,15 +50,20 @@ export default function AdminSeasonalFoods() {
   }, [dirty]);
   useEffect(() => {if (creating) newName.current?.focus();}, [creating]);
   useEffect(() => {if (deleteOpen) deleteDialog.current?.showModal?.();}, [deleteOpen]);
-  function select(food) {
+  async function select(food) {
     if (saving || (dirty && !window.confirm("저장하지 않은 변경 내용을 버리고 이동할까요?"))) return;
-    const next = food ? normalized(food) : null;
+    let next;
+    try {
+      if (food?.id != null) {setSaving(true); next = normalized(await getSeasonalFood(food.id));}
+      else next = food ? normalized(food) : null;
+    } catch (error) {setNotice({type: "error", text: error.message || "최신 정보를 불러오지 못했습니다."}); return;}
+    finally {setSaving(false);}
     setForm(next); setBaseline(next); setFiles({}); setNotice(null);
   }
   function change(key, value) {setForm(current => ({...current, [key]: value}));}
   async function save(event) {
     event.preventDefault();
-    if (saving || !canManage || !form || creating) return;
+    if (saving || !canManage || !form) return;
     setSaving(true); setNotice(null);
     try {
       const images = {};
@@ -72,15 +77,28 @@ export default function AdminSeasonalFoods() {
         images[key] = files[key] ? (await uploadSeasonalCurationFile(files[key])).fileUrl : value || null;
         if (files[key] && !images[key]) throw new Error("이미지 업로드 결과를 확인하지 못했습니다. 다시 시도해 주세요.");
       }
-      const command = {version: form.version, ...images};
+      const command = {version: form.version, ...images, nameKo: form.nameKo.trim(), categoryCode: form.categoryCode};
+      if (creating || JSON.stringify(form.months) !== JSON.stringify(baseline.months)) command.months = form.months;
+      if (!creating && form.status !== baseline.status) command.status = form.status;
       TEXT_FIELDS.forEach(([key]) => {command[key] = form[key].trim() || null;});
-      const saved = normalized(await updateSeasonalFood(form.id, command));
+      const saved = normalized(await (creating ? createSeasonalFood(command) : updateSeasonalFood(form.id, command)));
       setForm(saved); setBaseline(saved); setFiles({});
-      setFoods(current => current.map(food => food.id === saved.id ? saved : food));
-      setNotice({type: "success", text: "식재료를 저장했습니다. 앱에 표시되는 정보에 반영됩니다."});
+      setFoods(current => creating ? [...current, saved] : current.map(food => food.id === saved.id ? saved : food));
+      setNotice({type: "success", text: creating ? "음식을 초안으로 등록했습니다. 검토 후 공개 상태로 변경해 주세요." : "식재료를 저장했습니다."});
     } catch (error) {
-      setNotice({type: "error", text: error.status === 409 ? "다른 관리자가 먼저 수정했습니다. 입력 내용은 유지했습니다. 목록을 새로고침한 후 최신 항목을 다시 선택해 주세요." : error.message || "저장하지 못했습니다. 다시 시도해 주세요."});
+      setNotice({type: "error", text: error.status === 409 ? `${error.message || "저장 요청이 충돌했습니다."} 입력 내용은 유지했습니다. 최신 항목을 다시 확인해 주세요.` : error.message || "저장하지 못했습니다. 다시 시도해 주세요."});
     } finally {setSaving(false);}
+  }
+  async function removeFood() {
+    if (saving || !canManage || !form?.id) return;
+    setSaving(true); setNotice(null);
+    try {
+      await deleteSeasonalFood(form.id, form.version);
+      setFoods(current => current.filter(food => food.id !== form.id));
+      setForm(null); setBaseline(null); setFiles({}); setDeleteOpen(false);
+      setNotice({type: "success", text: "음식을 삭제했습니다."});
+    } catch (error) {setDeleteOpen(false); setNotice({type: "error", text: error.message || "삭제하지 못했습니다."});}
+    finally {setSaving(false);}
   }
   const visible = foods.filter(food => (!status || food.status === status) && (!category || food.categoryCode === category) && `${food.nameKo} ${food.shortDescription || ""}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   const categories = [...new Set(foods.map(food => food.categoryCode).filter(Boolean))];
@@ -97,16 +115,16 @@ export default function AdminSeasonalFoods() {
       {form && <form className="food-editor" onSubmit={save}>
         <header><div><span>{creating ? "NEW SEASONAL FOOD" : `${canManage ? "음식 편집" : "음식 상세"} · #${form.id}`}</span><h2>{creating ? form.nameKo || "새 음식 등록" : form.nameKo}</h2><p>{creating ? "이름과 제철 정보를 먼저 채워 주세요." : `${categoryName(form.categoryCode)} · ${STATUS[form.status] || form.status}`}</p></div><button type="button" aria-label="음식 상세 닫기" onClick={() => select(null)} disabled={saving}>×</button></header>
         {!canManage && <p className="food-helper">조회 권한으로 열람 중입니다.</p>}
-        {creating && <p className="food-pending" role="status">등록 기능 연결 준비 중입니다. 지금 입력한 내용은 서버에 저장되지 않습니다.</p>}
+
         <fieldset disabled={saving || !canManage}><legend>음식 정보</legend>
-          {creating ? <section className="food-editor-section"><h3>01 · 기본 정보</h3><label className="food-input"><span>음식 이름 *</span><input ref={newName} aria-label="음식 이름" maxLength={100} required value={form.nameKo} onChange={event => change("nameKo", event.target.value)} placeholder="예: 대하" /></label><label className="food-input"><span>음식 분류 *</span><select aria-label="음식 분류" value={form.categoryCode} onChange={event => change("categoryCode", event.target.value)} required><option value="">분류 선택</option>{Object.entries(CATEGORIES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><div className="food-input"><span>제철 월 · 여러 달 선택 가능</span><div className="food-months">{Array.from({length: 12}, (_, i) => i + 1).map(month => <label key={month}><input type="checkbox" checked={form.months.includes(month)} onChange={event => change("months", event.target.checked ? [...form.months, month].sort((a,b) => a-b) : form.months.filter(value => value !== month))} /><span>{month}월</span></label>)}</div></div><p className="food-helper">새 음식은 초안으로 등록하는 흐름을 준비 중입니다.</p></section> : <p className="food-helper">현재는 설명과 사진을 수정할 수 있습니다. 이름·분류·제철 기간·공개 상태 변경은 추가 연결 예정입니다.</p>}
-          <section className="food-editor-section"><h3>{creating ? "02" : "01"} · 음식 이야기</h3>{TEXT_FIELDS.map(([key, label, placeholder], index) => <label className="food-input" key={key}><span>{label}</span><textarea aria-label={label} rows={index === 0 ? 4 : 3} maxLength={5000} placeholder={placeholder} value={form[key]} onChange={event => change(key, event.target.value)} /><small>{form[key].length.toLocaleString()} / 5,000</small></label>)}</section>
-          <section className="food-editor-section"><h3>{creating ? "03" : "02"} · 음식 사진</h3><p className="food-helper">대표 사진과 모바일 사진을 관리합니다. 선택한 파일이 URL보다 우선합니다.</p>{IMAGES.map(([key, label, preview]) => <FoodImageInput key={`${form.id}-${form.version}-${key}`} label={label} value={form[key]} preview={form[key] === baseline[key] ? form[preview] || form[key] : form[key]} file={files[key]} onFile={file => setFiles(current => ({...current, [key]: file}))} onChange={value => change(key, value)} />)}</section>
+          <section className="food-editor-section"><h3>01 · 기본 정보</h3><label className="food-input"><span>음식 이름 *</span><input ref={newName} aria-label="음식 이름" maxLength={100} required value={form.nameKo} onChange={event => change("nameKo", event.target.value)} placeholder="예: 대하" /></label><label className="food-input"><span>음식 분류 *</span><select aria-label="음식 분류" value={form.categoryCode} onChange={event => change("categoryCode", event.target.value)} required><option value="">분류 선택</option>{Object.entries(CATEGORIES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><div className="food-input"><span>제철 월 · 여러 달 선택 가능</span><div className="food-months">{Array.from({length: 12}, (_, i) => i + 1).map(month => <label key={month}><input type="checkbox" disabled={!creating && !form.monthsEditable} checked={form.months.includes(month)} onChange={event => change("months", event.target.checked ? [...form.months, month].sort((a,b) => a-b) : form.months.filter(value => value !== month))} /><span>{month}월</span></label>)}</div></div><p className="food-helper">{creating ? "새 음식은 초안으로 등록됩니다." : form.monthsEditable ? "제철 월은 전국 기준으로 저장됩니다." : "날짜·지역·출처가 있는 기존 제철 정보는 보존됩니다. 이 화면에서는 월을 변경할 수 없습니다."}</p>{!creating && <label className="food-input"><span>공개 상태 변경</span><select aria-label="공개 상태 변경" value={form.status} onChange={event => change("status", event.target.value)}>{Object.entries(STATUS).map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select><small>공개하려면 소개·대표 이미지·제철 기간이 필요합니다. 보관하면 앱 카탈로그에서 숨겨집니다.</small></label>}</section>
+          <section className="food-editor-section"><h3>02 · 음식 이야기</h3>{TEXT_FIELDS.map(([key, label, placeholder], index) => <label className="food-input" key={key}><span>{label}</span><textarea aria-label={label} rows={index === 0 ? 4 : 3} maxLength={5000} placeholder={placeholder} value={form[key]} onChange={event => change(key, event.target.value)} /><small>{form[key].length.toLocaleString()} / 5,000</small></label>)}</section>
+          <section className="food-editor-section"><h3>03 · 음식 사진</h3><p className="food-helper">대표 사진과 모바일 사진을 관리합니다. 선택한 파일이 URL보다 우선합니다.</p>{IMAGES.map(([key, label, preview]) => <FoodImageInput key={`${form.id}-${form.version}-${key}`} label={label} value={form[key]} preview={form[key] === baseline[key] ? form[preview] || form[key] : form[key]} file={files[key]} onFile={file => setFiles(current => ({...current, [key]: file}))} onChange={value => change(key, value)} />)}</section>
         </fieldset>
-        {canManage && <footer className="food-editor-actions"><span>{creating ? "등록 연결 대기" : dirty ? "저장하지 않은 변경 사항" : "저장된 내용"}</span><div>{!creating && <button type="button" className="food-delete" onClick={() => setDeleteOpen(true)} disabled={saving}>음식 삭제</button>}<button type="submit" className="admin-button admin-button--primary" disabled={saving || !dirty || creating}>{creating ? "등록 준비 중" : saving ? "저장 중…" : "식재료 저장"}</button></div></footer>}
+        {canManage && <footer className="food-editor-actions"><span>{creating ? "초안으로 등록" : dirty ? "저장하지 않은 변경 사항" : "저장된 내용"}</span><div>{!creating && <button type="button" className="food-delete" onClick={() => setDeleteOpen(true)} disabled={saving}>음식 삭제</button>}<button type="submit" className="admin-button admin-button--primary" disabled={saving || !dirty}>{saving ? "저장 중…" : creating ? "초안 등록" : "식재료 저장"}</button></div></footer>}
       </form>}
     </div>
-    {deleteOpen && <dialog ref={deleteDialog} className="food-delete-dialog" aria-labelledby="food-delete-title" onCancel={() => setDeleteOpen(false)}><h2 id="food-delete-title">{form?.nameKo} 삭제</h2><p>연결된 추천과 앱 노출에 영향을 줄 수 있어, 삭제 전 사용 여부를 확인해야 합니다.</p><p className="food-pending">삭제 기능 연결 준비 중입니다. 현재 데이터는 삭제되지 않습니다.</p><div><button className="admin-button" autoFocus onClick={() => {deleteDialog.current?.close?.(); setDeleteOpen(false);}}>돌아가기</button><button className="admin-button" disabled>삭제 준비 중</button></div></dialog>}
+    {deleteOpen && <dialog ref={deleteDialog} className="food-delete-dialog" aria-labelledby="food-delete-title" onCancel={() => setDeleteOpen(false)}><h2 id="food-delete-title">{form?.nameKo} 삭제</h2><p>연결된 추천과 앱 노출에 영향을 줄 수 있어, 삭제 전 사용 여부를 확인해야 합니다.</p><p>삭제하면 되돌릴 수 없습니다. 연결된 콘텐츠가 있으면 삭제가 제한됩니다.</p><div><button className="admin-button" autoFocus disabled={saving} onClick={() => {deleteDialog.current?.close?.(); setDeleteOpen(false);}}>돌아가기</button><button className="admin-button" disabled={saving} onClick={removeFood}>{saving ? "삭제 중…" : "삭제 확인"}</button></div></dialog>}
   </div>;
 }
 

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {Link} from 'react-router-dom';
 import { createFaq, deleteFaq, fetchFaqDetail, fetchFaqs, updateFaq } from "../api/faqApi";
 import ConfirmDialog from "../admin/components/ConfirmDialog";
 import PageLayout from "../components/PageLayout";
@@ -377,7 +378,8 @@ function FAQ({ adminMode = false }) {
               <div className="board-empty">FAQ 목록을 불러오는 중입니다.</div>
             ) : faqPosts.length === 0 ? (
               <div className="board-empty">
-                조회된 FAQ가 없습니다. 분류나 검색어를 바꿔 다시 확인해 주세요.
+                <p>{appliedFilters.category || appliedFilters.keyword ? '조회된 FAQ가 없습니다. 분류나 검색어를 바꿔 다시 확인해 주세요.' : '자주 묻는 질문을 준비하고 있습니다.'}</p>
+                {!adminMode && <Link to="/qna/private">궁금한 내용은 비공개 1:1 문의로 남겨 주세요.</Link>}
               </div>
             ) : (
               faqPosts.map((post) => {

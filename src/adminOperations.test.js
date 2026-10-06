@@ -345,11 +345,12 @@ test("edits a master food directly without importing or publishing", async () =>
   storeAuth({roles: ["CONTENT_MANAGER"], permissions: ["ADMIN_ACCESS", "SEASONAL_READ", "SEASONAL_MANAGE"]});
   const food = {id: 99, nameKo: "대하", status: "PUBLISHED", categoryCode: "CRUSTACEAN", version: 3, shortDescription: "기존 소개"};
   const fetchSpy = jest.spyOn(global, "fetch").mockImplementation(async (url, options = {}) => {
-    const data = options.method === "PUT" ? {...food, ...JSON.parse(options.body), version: 4} : {content: [food], page: 0, totalPages: 1, hasNext: false};
+    const data = options.method === "PUT" ? {...food, ...JSON.parse(options.body), version: 4} : /seasonal-foods\/99/.test(url) ? food : {content: [food], page: 0, totalPages: 1, hasNext: false};
     return {ok: true, status: 200, headers: {get: () => "application/json"}, json: async () => ({data}), text: async () => ""};
   });
   renderAt("/admin/seasonal-foods");
   fireEvent.click(await screen.findByRole("button", {name: /대하/}));
+  await screen.findByLabelText("소개");
   fireEvent.change(screen.getByLabelText("소개"), {target: {value: "변경한 소개"}});
   fireEvent.click(screen.getByRole("button", {name: "식재료 저장"}));
   expect(await screen.findByText(/식재료를 저장했습니다/)).toBeInTheDocument();

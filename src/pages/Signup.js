@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { signup } from "../api/signupApi";
+import SignupAgreements from "../legal/SignupAgreements";
 import PageLayout from "../components/PageLayout";
 
 const initialForm = {
@@ -9,14 +10,15 @@ const initialForm = {
   password: "",
   passwordConfirm: "",
   nickname: "",
-  termsAccepted: false,
-  privacyAccepted: false,
 };
 
 function Signup() {
   const navigate = useNavigate();
   const location = useLocation();
   const returnPath = location.state?.from;
+  const [legalAcceptance, setLegalAcceptance] = useState(null);
+  const [documentAttempt, setDocumentAttempt] = useState(0);
+  const submission = useRef(null);
   const [form, setForm] = useState(initialForm);
   const [fieldErrors, setFieldErrors] = useState({});
   const [message, setMessage] = useState("");
@@ -41,6 +43,7 @@ function Signup() {
   async function handleSubmit(event) {
     event.preventDefault();
 
+    if (isSubmitting || !legalAcceptance) return;
     const errors = validateSignup(form);
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -52,7 +55,13 @@ function Signup() {
     setMessage("");
 
     try {
-      await signup(form);
+      const content = JSON.stringify({...form, legalAcceptance});
+      if (submission.current?.content !== content) {
+        const bytes = new Uint8Array(16);
+        window.crypto.getRandomValues(bytes);
+        submission.current = {content, key: Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("")};
+      }
+      await signup({...form, legalAcceptance: {...legalAcceptance, idempotencyKey: submission.current.key}});
       navigate("/login", {
         replace: true,
         state: {
@@ -61,6 +70,7 @@ function Signup() {
         },
       });
     } catch (error) {
+      if (error.code === "LEGAL_DOCUMENT_CHANGED" || error.code === "LEGAL_CATALOG_UNAVAILABLE") {setLegalAcceptance(null); setDocumentAttempt(v => v + 1);}
       setMessage(error.message || "회원가입에 실패했습니다.");
     } finally {
       setIsSubmitting(false);
@@ -166,43 +176,13 @@ function Signup() {
         </section>
 
         <section className="support-panel signup-completion-panel">
-          <div className="signup-agreements">
-            <label className="admin-toggle">
-              <input
-                type="checkbox"
-                checked={form.termsAccepted}
-                onChange={(event) => updateField("termsAccepted", event.target.checked)}
-              />
-              <span>이용약관에 동의합니다.</span>
-            </label>
-            <small className="restaurant-field-hint">
-              <Link to="/terms-of-service">이용약관 전문 보기</Link>
-            </small>
-            {fieldErrors.termsAccepted ? (
-              <small className="restaurant-field-error">{fieldErrors.termsAccepted}</small>
-            ) : null}
-
-            <label className="admin-toggle">
-              <input
-                type="checkbox"
-                checked={form.privacyAccepted}
-                onChange={(event) => updateField("privacyAccepted", event.target.checked)}
-              />
-              <span>개인정보 처리방침에 동의합니다.</span>
-            </label>
-            <small className="restaurant-field-hint">
-              <Link to="/privacy-policy">개인정보 처리방침 전문 보기</Link>
-            </small>
-            {fieldErrors.privacyAccepted ? (
-              <small className="restaurant-field-error">{fieldErrors.privacyAccepted}</small>
-            ) : null}
-          </div>
+          <SignupAgreements key={documentAttempt} onChange={setLegalAcceptance} disabled={isSubmitting} />
 
           <div className="admin-actions signup-actions">
             <Link className="restaurant-text-link restaurant-text-link--secondary" to="/login" state={{ from: returnPath }}>
               이미 계정이 있어요
             </Link>
-            <button className="button-primary" type="submit" disabled={isSubmitting}>
+            <button className="button-primary" type="submit" disabled={isSubmitting || !legalAcceptance}>
               {isSubmitting ? "가입 중" : "가입하기"}
             </button>
           </div>
@@ -233,14 +213,6 @@ function validateSignup(form) {
 
   if (!String(form.nickname || "").trim()) {
     errors.nickname = "닉네임을 입력해 주세요.";
-  }
-
-  if (!form.termsAccepted) {
-    errors.termsAccepted = "이용약관 동의가 필요합니다.";
-  }
-
-  if (!form.privacyAccepted) {
-    errors.privacyAccepted = "개인정보 처리방침 동의가 필요합니다.";
   }
 
   return errors;
