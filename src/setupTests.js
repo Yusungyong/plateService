@@ -3,6 +3,5 @@
 // expect(element).toHaveTextContent(/react/i)
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
-Object.defineProperty(window, 'crypto', {value: require('crypto').webcrypto, configurable: true});
 
 jest.setTimeout(15000);

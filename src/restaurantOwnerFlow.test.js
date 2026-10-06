@@ -97,7 +97,7 @@ test("shows the application status navigation from regular pages after login", a
     "/business/dashboard"
   );
   expect(await screen.findByText(/자주 묻는 질문을 준비하고 있습니다/)).toBeInTheDocument();
-  expect(screen.getByRole('link', {name: /궁금한 내용은 비공개/})).toHaveAttribute('href', '/qna/private');
+  expect(screen.getByRole("link", {name: /궁금한 내용은 비공개/})).toHaveAttribute("href", "/qna/private");
 
   fireEvent.change(screen.getByLabelText("분류"), {
     target: { value: "account" },
@@ -823,13 +823,7 @@ test("submits an application as a logged-in member without owner permission", as
 
 
 test.each([false, true])("returns to the application after authentication (new account: %s)", async (newAccount) => {
-  if (newAccount) {
-    global.fetch.mockResolvedValueOnce(await createJsonResponse({data: {enabled:true,catalogRevision:2,minimumAge:15,documents:[
-      {documentId:"terms",version:"v2",title:"이용약관",body:"약관 원문",sha256:"a".repeat(64),actionType:"ACCEPT",required:true},
-      {documentId:"privacy",version:"v2",title:"개인정보 처리방침",body:"처리방침 원문",sha256:"b".repeat(64),actionType:"NOTICE",required:true}
-    ]}}));
-    global.fetch.mockResolvedValueOnce(await createJsonResponse({ data: {} }));
-  }
+  if (newAccount) global.fetch.mockResolvedValueOnce(await createJsonResponse({ data: {} }));
   global.fetch.mockResolvedValueOnce(await createJsonResponse({ data: {
     accessToken: createAccessToken({ permissions: [] }), refreshToken: "refresh-token",
   } }));
@@ -839,17 +833,10 @@ test.each([false, true])("returns to the application after authentication (new a
     for (const [label, value] of [["회원 ID", "newowner"], ["닉네임", "새사장"], ["이메일", "new@example.com"], ["비밀번호", "password123"], ["비밀번호 확인", "password123"]]) {
       fireEvent.change(screen.getByLabelText(label === "회원 ID" ? /^회원 ID/ : label === "비밀번호" ? /^비밀번호\s*비밀번호는/ : label), { target: { value } });
     }
-    fireEvent.click(await screen.findByLabelText("[필수] 이용약관에 동의합니다."));
-    fireEvent.click(screen.getByLabelText("[필수] 개인정보 처리방침 내용을 확인했습니다."));
-    fireEvent.click(screen.getByLabelText("[필수] 만 15세 이상입니다."));
+    fireEvent.click(screen.getByLabelText("이용약관에 동의합니다."));
+    fireEvent.click(screen.getByLabelText("개인정보 처리방침에 동의합니다."));
     fireEvent.click(screen.getByRole("button", { name: "가입하기" }));
     expect(await screen.findByRole("heading", { name: "비즈니스 로그인" })).toBeInTheDocument();
-    const signupCall = global.fetch.mock.calls.find(([url, options]) => url.endsWith('/api/auth/signup') && options.method === 'POST');
-    expect(JSON.parse(signupCall[1].body).legalAcceptance).toMatchObject({catalogRevision: 2, expectedRevision: 0, minimumAgeConfirmed: true,
-      idempotencyKey: expect.stringMatching(/^[a-f0-9]{32}$/), decisions: [
-        {documentId: 'terms', version: 'v2', sha256: 'a'.repeat(64), decision: 'ACCEPTED'},
-        {documentId: 'privacy', version: 'v2', sha256: 'b'.repeat(64), decision: 'ACKNOWLEDGED'},
-      ]});
   }
   fireEvent.change(screen.getByLabelText("아이디"), { target: { value: "newowner" } });
   fireEvent.change(screen.getByLabelText("비밀번호"), { target: { value: "password123" } });
