@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 
 function ProtectedRoute({ requireAdmin = false, requireBusiness = false }) {
-  const { isAdmin, isAuthenticated, isBusinessUser } = useAuth();
+  const { isAdmin, isAuthenticated, isBusinessUser, user } = useAuth();
   const location = useLocation();
 
   if (!isAuthenticated) {
@@ -18,7 +18,7 @@ function ProtectedRoute({ requireAdmin = false, requireBusiness = false }) {
     return <Navigate to="/faq" replace />;
   }
 
-  return <Outlet />;
+  return <Outlet key={user?.username || "anonymous"} />;
 }
 
 export default ProtectedRoute;

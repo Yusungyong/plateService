@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
   fetchBusinessApplicationDetail,
-  submitBusinessApplication,
 } from "../api/businessApplicationApi";
 import PageLayout from "../components/PageLayout";
 import {
@@ -46,7 +45,6 @@ function BusinessApplicationDetail() {
   const location = useLocation();
   const [application, setApplication] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState(location.state?.notice || "");
   const [messageType, setMessageType] = useState(location.state?.notice ? "success" : "error");
 
@@ -72,32 +70,6 @@ function BusinessApplicationDetail() {
   useEffect(() => {
     loadDetail();
   }, [loadDetail]);
-
-  async function handleSubmitReview(event) {
-    event.preventDefault();
-
-    if (!application) {
-      return;
-    }
-
-    setIsSubmitting(true);
-    setMessage("");
-
-    try {
-      await submitBusinessApplication(application.applicationId, {
-        version: application.version,
-      });
-
-      setMessageType("success");
-      setMessage("입점 신청이 제출되었습니다.");
-      await loadDetail();
-    } catch (error) {
-      setMessageType("error");
-      setMessage(error.message || "입점 신청 제출에 실패했습니다.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
 
   if (isLoading) {
     return (
@@ -125,7 +97,7 @@ function BusinessApplicationDetail() {
   return (
     <PageLayout
       title="입점 신청 상세"
-      description={`신청 ID ${application.applicationId}의 검토 상태와 제출 정보를 확인합니다.`}
+      description="운영팀의 검토 상태와 제출한 정보를 확인합니다."
     >
       <div className="stack-layout restaurant-registration">
         {message ? (
@@ -142,7 +114,7 @@ function BusinessApplicationDetail() {
             <span className={`status-pill status-pill--${application.approvalStatus || "default"}`}>
               {toApprovalStatusLabel(application.approvalStatus)}
             </span>
-            <h3>{application.store?.storeName || "-"}</h3>
+            <h2>{application.store?.storeName || "-"}</h2>
             <p>{application.store?.address || "-"}</p>
           </div>
           <div className="admin-actions">
@@ -168,11 +140,11 @@ function BusinessApplicationDetail() {
             <div className="business-review-result__icon" aria-hidden="true">!</div>
             <div>
               <span className="support-kicker">REVIEW RESULT</span>
-              <h3 id="business-review-result-title">
+              <h2 id="business-review-result-title">
                 {application.approvalStatus === "rejected"
                   ? "입점 신청이 반려되었습니다."
                   : "입점 신청에 보완이 필요합니다."}
-              </h3>
+              </h2>
               {application.reviewReasonCode ? (
                 <strong className="business-review-result__reason-type">
                   {toReviewReasonLabel(application.reviewReasonCode)}
@@ -183,7 +155,7 @@ function BusinessApplicationDetail() {
                   "등록된 상세 사유가 없습니다. 자세한 내용은 운영팀에 문의해 주세요."}
               </p>
               {application.approvalStatus === "rejected" ? (
-                <Link className="restaurant-text-link" to="/qna">
+                <Link className="restaurant-text-link" to="/qna/private" state={{ applicationId: application.applicationId }}>
                   운영팀에 문의하기
                 </Link>
               ) : null}
@@ -195,21 +167,21 @@ function BusinessApplicationDetail() {
           <section className="support-panel">
             <div className="support-panel__header">
               <span className="support-kicker">STATUS</span>
-              <h3>검토 상태</h3>
+              <h2>검토 상태</h2>
             </div>
             <dl className="restaurant-summary">
               <SummaryRow label="심사 상태" value={toApprovalStatusLabel(application.approvalStatus)} />
               <SummaryRow label="입점 심사" value={toVerificationStatusLabel(application.verificationStatus)} />
               <SummaryRow label="신청일" value={formatDate(application.appliedAt)} />
               <SummaryRow label="수정일" value={formatDate(application.updatedAt)} />
-              <SummaryRow label="버전" value={application.version} />
+
             </dl>
           </section>
 
           <section className="support-panel">
             <div className="support-panel__header">
               <span className="support-kicker">OWNER</span>
-              <h3>담당자와 사업자</h3>
+              <h2>담당자와 사업자</h2>
             </div>
             <dl className="restaurant-summary">
               <SummaryRow label="담당자" value={application.ownerProfile?.ownerName} />
@@ -224,7 +196,7 @@ function BusinessApplicationDetail() {
         <section className="support-panel">
           <div className="support-panel__header">
             <span className="support-kicker">STORE</span>
-            <h3>매장 정보</h3>
+            <h2>매장 정보</h2>
           </div>
           <dl className="restaurant-summary">
             <SummaryRow label="매장명" value={application.store?.storeName} />
@@ -239,7 +211,7 @@ function BusinessApplicationDetail() {
         <section className="support-panel">
           <div className="support-panel__header">
             <span className="support-kicker">CONTENT</span>
-            <h3>카테고리와 메뉴</h3>
+            <h2>카테고리와 메뉴</h2>
           </div>
           <div className="business-chip-list">
             {(application.categories || []).map((category, index) => (
@@ -267,18 +239,12 @@ function BusinessApplicationDetail() {
           <section className="support-panel">
             <div className="support-panel__header">
               <span className="support-kicker">SUBMIT</span>
-              <h3>{application.approvalStatus === "on_hold" ? "보완 제출" : "검토 제출"}</h3>
+              <h2>{application.approvalStatus === "on_hold" ? "보완 제출" : "검토 제출"}</h2>
             </div>
-            <form className="business-resubmit-form" onSubmit={handleSubmitReview}>
-              <p className="restaurant-field-hint">
-                사업자 정보 검증이 완료된 신청은 첨부파일 없이 제출할 수 있습니다.
-              </p>
-              <div className="admin-actions">
-                <button className="button-primary" type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "제출 중" : application.approvalStatus === "on_hold" ? "보완 제출" : "검토 제출"}
-                </button>
-              </div>
-            </form>
+            <div className="business-resubmit-form">
+              <p>운영팀 안내에 따라 기존 신청서를 수정한 뒤 다시 제출해 주세요.</p>
+              <Link className="button-primary" to={`/business/applications/${application.applicationId}/edit`}>신청서 수정·제출</Link>
+            </div>
           </section>
         ) : null}
       </div>
@@ -293,7 +259,7 @@ function ApplicationNextStep({ application }) {
     <section className="support-panel business-next-step">
       <div className="support-panel__header">
         <span className="support-kicker">NEXT STEP</span>
-        <h3>{guidance.title}</h3>
+        <h2>{guidance.title}</h2>
       </div>
       <p className="page-layout__description">{guidance.description}</p>
       <ul className="bullet-list">
@@ -317,7 +283,7 @@ function ApplicationStatusTimeline({ application }) {
     <section className="support-panel business-status-timeline">
       <div className="support-panel__header">
         <span className="support-kicker">TIMELINE</span>
-        <h3>신청 진행 흐름</h3>
+        <h2>신청 진행 흐름</h2>
       </div>
       <ol className="business-status-timeline__list">
         {timeline.map((step) => (
@@ -461,7 +427,7 @@ function getApplicationGuidance(application) {
         items: [
           "최근 처리 사유가 표시되어 있다면 해당 항목을 먼저 확인해 주세요.",
           "보완 제출 후 운영팀이 같은 신청을 다시 검토합니다.",
-          "보완할 내용이 명확하지 않으면 Q&A로 문의해 주세요.",
+          "보완할 내용이 명확하지 않으면 비공개 1:1 문의로 알려 주세요.",
         ],
       };
     case "approved":

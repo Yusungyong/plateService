@@ -31,11 +31,13 @@ function Login() {
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if (isSubmitting) return;
+    if (!form.username.trim() || !form.password) { setErrorMessage("아이디와 비밀번호를 입력해 주세요."); document.querySelector(!form.username.trim() ? 'input[autocomplete="username"]' : 'input[autocomplete="current-password"]')?.focus(); return; }
     setIsSubmitting(true);
     setErrorMessage("");
 
     try {
-      const response = await loginWithPassword(form);
+      const response = await loginWithPassword({...form, username: form.username.trim()});
 
       const session = login({
         accessToken: response.accessToken,
@@ -105,7 +107,6 @@ function Login() {
                     setForm((current) => ({ ...current, username: event.target.value }))
                   }
                   placeholder="아이디를 입력해 주세요"
-                  autoFocus
                 />
               </label>
 
@@ -131,7 +132,7 @@ function Login() {
                   />
                   <span>아이디 기억하기</span>
                 </label>
-                <span>계정 문의는 서비스 담당자에게 요청해 주세요.</span>
+                <Link to="/qna/private" state={{ category: "계정문의" }}>아이디·비밀번호를 잊으셨나요?</Link>
               </div>
 
               {errorMessage ? (
@@ -154,7 +155,7 @@ function Login() {
                 <Link className="login-card__footer-action login-card__footer-action--primary" to="/business/signup">
                   로그인 후 입점 신청
                 </Link>
-                <Link className="login-card__footer-action login-card__footer-action--secondary" to="/qna">
+                <Link className="login-card__footer-action login-card__footer-action--secondary" to="/qna/private">
                   문의하기
                 </Link>
               </div>
@@ -203,11 +204,11 @@ function getLoginContext(path) {
   return {
     eyebrow: "WELCOME BACK",
     audience: "접시 이용자",
-    intro: "궁금한 점을 묻고, 답변을 확인하세요.",
+    intro: "내 문의와 신청 현황을 확인하세요.",
     nextStep: "로그인 후 이용하던 화면으로 돌아갑니다.",
-    features: ["공개 질문 등록", "비공개 문의 접수", "내 문의 답변 확인"],
+    features: ["내 문의 답변 확인", "입점 신청 현황", "승인된 매장 관리"],
     title: "로그인",
-    description: "접시 서비스와 고객지원 기능을 이용하려면 로그인해 주세요.",
+    description: "내 문의와 입점 신청 현황은 로그인 후 확인할 수 있습니다. 일반 문의는 로그인 없이도 접수할 수 있습니다.",
   };
 }
 

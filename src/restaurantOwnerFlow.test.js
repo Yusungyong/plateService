@@ -70,7 +70,7 @@ test("redirects unauthenticated restaurant managers to login", () => {
   expect(screen.queryByRole("link", { name: "매장 관리" })).not.toBeInTheDocument();
 });
 
-test.each(["/business", "/business/signup", "/business/stores/new"])("requires login before applying at %s", (path) => {
+test.each(["/business/signup", "/business/stores/new"])("requires login before applying at %s", (path) => {
   renderAt(path);
   expect(screen.getByRole("heading", { name: "비즈니스 로그인" })).toBeInTheDocument();
   expect(screen.queryByLabelText("담당자 이름")).not.toBeInTheDocument();
@@ -92,13 +92,20 @@ test("shows the application status navigation from regular pages after login", a
   renderAt("/faq");
 
   expect(screen.queryByText("식당 파트너")).not.toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "식당 점주" })).toHaveAttribute(
+  expect(screen.getByRole("link", { name: "식당 비즈니스" })).toHaveAttribute(
     "href",
     "/business/dashboard"
   );
   expect(await screen.findByText(/자주 묻는 질문을 준비하고 있습니다/)).toBeInTheDocument();
   expect(screen.getByRole("link", {name: /궁금한 내용은 비공개/})).toHaveAttribute("href", "/qna/private");
 
+  expect(screen.queryByLabelText("검색어")).not.toBeInTheDocument();
+});
+
+test("searches FAQ when published entries are available", async () => {
+  global.fetch.mockResolvedValue(await createJsonResponse({content:[{faqId:1,title:"도움말",answer:"안내",category:"account"}],totalElements:1,hasNext:false}));
+  renderAt("/faq");
+  await screen.findByText("도움말");
   fireEvent.change(screen.getByLabelText("분류"), {
     target: { value: "account" },
   });
@@ -107,8 +114,8 @@ test("shows the application status navigation from regular pages after login", a
   });
   fireEvent.click(screen.getByRole("button", { name: "조회" }));
 
-  await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
-  const lastRequestUrl = global.fetch.mock.calls.at(-1)[0];
+  await waitFor(() => expect(global.fetch.mock.calls.some(([url]) => url.includes("category=account"))).toBe(true));
+  const lastRequestUrl = global.fetch.mock.calls.find(([url]) => url.includes("category=account"))[0];
   expect(lastRequestUrl).toContain("/api/faqs?");
   expect(lastRequestUrl).toContain("category=account");
   expect(decodeURIComponent(lastRequestUrl)).toContain("keyword=비밀번호");
@@ -645,7 +652,7 @@ test("shows the rejection reason to the applicant on the application detail", as
   ).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "운영팀에 문의하기" })).toHaveAttribute(
     "href",
-    "/qna"
+    "/qna/private"
   );
 });
 
@@ -854,4 +861,31 @@ test("keeps the application destination when switching from signup through the h
   fireEvent.click(screen.getByRole("button", { name: "로그인" }));
   expect(screen.getByRole("heading", { name: "비즈니스 로그인" })).toBeInTheDocument();
   expect(window.history.state.usr.from).toBe("/business/signup");
+});
+
+
+test("business introduction explains login and review before collecting information", () => {
+  renderAt("/business");
+  expect(screen.getByRole("heading", {name: "우리 식당을 접시에 소개하세요"})).toBeInTheDocument();
+  expect(screen.getByRole("link", {name: "로그인하고 입점 신청"})).toHaveAttribute("href", "/business/signup");
+  expect(screen.queryByLabelText("담당자 이름")).not.toBeInTheDocument();
+});
+
+
+test("loads an on-hold application for editing and asks to re-enter masked business number", async () => {
+  storeAuth({permissions: []});
+  global.fetch.mockResolvedValue(await createJsonResponse({data:{
+    applicationId: 17, approvalStatus:"on_hold", version:3,
+    ownerProfile:{ownerName:"기존 담당자",ownerPhone:"01012345678"},
+    business:{businessNumber:"123-**-*****", businessName:"기존 상호", representativeName:"대표자", openingDate:"2024-01-15",verificationStatus:"verified"},
+    store:{storeName:"기존 식당", address:"서울 기존 주소",regionCode:"SEOUL"},
+    categories:[{categoryCode:"KOREAN"}], menus:[]
+  }}));
+  renderAt("/business/applications/17/edit");
+  expect(await screen.findByLabelText("담당자 이름")).toHaveValue("기존 담당자");
+  fireEvent.click(screen.getByRole("button",{name:"다음"}));
+  expect(screen.getByLabelText("사업자등록번호")).toHaveValue("123-**-*****");
+  fireEvent.click(screen.getByRole("button",{name:"다음"}));
+  expect(screen.getByText("사업자등록번호 10자리를 입력해 주세요.")).toBeInTheDocument();
+  expect(global.fetch).toHaveBeenCalledTimes(1);
 });

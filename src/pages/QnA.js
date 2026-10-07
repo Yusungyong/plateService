@@ -1,5 +1,7 @@
+import useActiveForm from "../components/useActiveForm";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import UnsavedChangesGuard from "../components/UnsavedChangesGuard";
 import PageLayout from "../components/PageLayout";
 import InquiryRetentionNotice from "../components/InquiryRetentionNotice";
 import { useAuth } from "../auth/AuthContext";
@@ -49,7 +51,7 @@ function getStatusLabel(statusCode) {
 }
 
 function getAuthorLabel(entry) {
-  return entry.guestName || entry.username || "비로그인 사용자";
+  return entry.guestName || entry.username || "익명";
 }
 
 function getDateLabel(entry) {
@@ -134,6 +136,12 @@ function isPublicQnaEntry(entry) {
 }
 
 function QnAWrite() {
+  const { user } = useAuth();
+  return <QnaWriteForm key={user?.username || "guest"} />;
+}
+
+function QnaWriteForm() {
+  const {active} = useActiveForm();
   const { isAuthenticated, user } = useAuth();
   const [form, setForm] = useState(() => ({
     ...initialForm,
@@ -149,7 +157,8 @@ function QnAWrite() {
     }));
   }
 
-  function resetForm() {
+  function resetForm(ask = true) {
+    if (ask && form.question && !window.confirm("입력한 질문을 지울까요?")) return;
     setForm({
       ...initialForm,
       authorName: user?.displayName || user?.username || "",
@@ -192,12 +201,14 @@ function QnAWrite() {
 
     try {
       await createQna(payload);
+      if (!active.current) return;
       setSubmitMessage("질문이 접수되었습니다. 운영팀 답변 후 공개 질문·답변 목록에서 확인할 수 있습니다.");
-      resetForm();
+      resetForm(false);
     } catch (error) {
+      if (!active.current) return;
       setSubmitMessage(error.message || "질문 등록에 실패했습니다.");
     } finally {
-      setIsSubmitting(false);
+      if (active.current) setIsSubmitting(false);
     }
   }
 
@@ -208,32 +219,11 @@ function QnAWrite() {
       description="공개되어도 괜찮은 질문만 남겨 주세요. 다른 사용자에게도 도움이 되는 답변으로 정리됩니다."
     >
       <div className="stack-layout">
-        <section className="support-panel qna-scope-panel">
-          <div className="support-panel__header">
-            <span className="support-kicker">공개 범위</span>
-            <h3>개인 확인이 필요한 내용은 등록하지 마세요.</h3>
-          </div>
-          <p className="page-layout__description">
-            계정, 연락처, 결제, 사업자 정보처럼 개인 확인이 필요한 내용은 공개 질문·답변에 포함하지 마세요.
-            개인 확인이 필요한 문의는 1:1 비공개 문의로 접수할 수 있습니다.
-          </p>
-          <div className="support-panel__actions">
-            <Link className="support-page-action support-page-action--secondary" to="/qna/private">
-              비공개 1:1 문의로 이동
-            </Link>
-          </div>
-        </section>
-
+        <UnsavedChangesGuard pending={isSubmitting} when={!!form.question.trim() && !isSubmitting} />
         <section className="support-panel qna-compose-panel qna-compose-panel--page">
-          <div className="qna-compose-panel__summary">
-            <span className="support-kicker">질문 남기기</span>
-            <strong>공개 질문 등록</strong>
-            <span>목록에서 답을 찾지 못했다면 공개되어도 괜찮은 질문을 남길 수 있습니다.</span>
-          </div>
-
           <form className="admin-form" onSubmit={handleCreate}>
             <div className="api-status qna-scope-notice" role="note">
-              공개 질문으로 등록됩니다. 답변 받을 이메일은 운영팀 확인과 답변 안내 목적으로만 사용되며 목록에는 표시되지 않습니다.
+              다른 사용자도 볼 수 있는 질문입니다. 계정·연락처 등 개인 정보가 필요한 내용은 <Link to="/qna/private">비공개 문의</Link>로 남겨 주세요.
             </div>
 
             <div className="admin-inline-fields">
@@ -274,7 +264,6 @@ function QnAWrite() {
               >
                 <option value="이용문의">이용문의</option>
                 <option value="오류제보">오류제보</option>
-                <option value="계정문의">계정문의</option>
                 <option value="기타">기타</option>
               </select>
             </label>
@@ -308,7 +297,7 @@ function QnAWrite() {
               <button type="submit" className="button-primary" disabled={isSubmitting}>
                 {isSubmitting ? "등록 중..." : "질문 등록"}
               </button>
-              <button type="button" onClick={resetForm} disabled={isSubmitting}>
+              <button type="button" onClick={() => resetForm()} disabled={isSubmitting}>
                 입력 초기화
               </button>
               <Link className="support-page-action support-page-action--secondary" to="/qna">
@@ -578,7 +567,7 @@ function QnA({ adminMode = false }) {
           <aside className="faq-side-card">
             <div className="faq-side-card__section">
               <div className="faq-side-card__header">
-                <h3>답변 작성</h3>
+                <h2>답변 작성</h2>
               </div>
 
               {selectedEntry ? (
@@ -678,7 +667,7 @@ function QnA({ adminMode = false }) {
         <section className="support-panel qna-scope-panel">
           <div className="support-panel__header">
             <span className="support-kicker">공개 범위</span>
-            <h3>공개되어도 괜찮은 질문만 남겨 주세요.</h3>
+            <h2>공개되어도 괜찮은 질문만 남겨 주세요.</h2>
           </div>
           <p className="page-layout__description">
             계정, 연락처, 결제, 사업자 정보처럼 개인 확인이 필요한 내용은 공개 질문·답변에 포함하지 마세요.
@@ -862,7 +851,7 @@ function getQnaFilterSummary(filters) {
     summary.push(`상태: ${getStatusLabel(filters.statusCode)}`);
   }
 
-  return summary.length > 0 ? summary.join(" · ") : "전체 공개 질문·답변를 보고 있습니다.";
+  return summary.length > 0 ? summary.join(" · ") : "전체 공개 질문·답변을 보고 있습니다.";
 }
 
 export { QnAWrite };

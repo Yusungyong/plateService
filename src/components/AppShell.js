@@ -1,3 +1,4 @@
+import { confirmFormLeave } from "./formLeaveProtection";
 import React from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
@@ -31,7 +32,7 @@ function AppShell({ children }) {
     ? isBusinessUser
       ? "/business/dashboard"
       : "/business/applications"
-    : "/business/signup";
+    : "/business";
   const primaryNavigationItems = isBusinessArea
     ? visibleBusinessNavigationItems
     : visiblePublicNavigationItems;
@@ -40,7 +41,7 @@ function AppShell({ children }) {
   const headerTitle = isAccountPage ? "접시 계정" : isBusinessArea ? "식당 비즈니스" : "고객지원";
   const headerDescription = isBusinessArea
     ? "입점 신청부터 승인된 매장 관리까지 식당 담당자의 작업 흐름을 제공합니다."
-    : "궁금한 내용을 먼저 찾아보고, 공개 질문·답변와 비공개 1:1 문의로 운영팀 답변을 받을 수 있습니다.";
+    : "궁금한 내용을 먼저 찾아보고, 공개 질문·답변과 비공개 1:1 문의로 운영팀 답변을 받을 수 있습니다.";
 
   function isPublicNavigationActive(path) {
     if (path === "/qna") {
@@ -51,6 +52,7 @@ function AppShell({ children }) {
   }
 
   function handleLogout() {
+    if (!confirmFormLeave()) return;
     logout();
     navigate("/faq", { replace: true });
   }
@@ -79,7 +81,7 @@ function AppShell({ children }) {
                   }
                   aria-current={isBusinessArea ? undefined : "page"}
                 >
-                  일반 사용자
+                  고객지원
                 </NavLink>
                 <NavLink
                   to={businessHomePath}
@@ -90,13 +92,14 @@ function AppShell({ children }) {
                   }
                   aria-current={isBusinessArea ? "page" : undefined}
                 >
-                  식당 점주
+                  식당 비즈니스
                 </NavLink>
               </div>
 
               <div className="app-header__auth">
                 {isAuthenticated ? (
                   <>
+                    <NavLink to="/qna/my">내 문의</NavLink>
                     <span>
                       {user?.displayName || user?.username || "사용자"}
                       {roleLabel ? ` (${roleLabel})` : ""}

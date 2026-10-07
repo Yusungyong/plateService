@@ -57,7 +57,7 @@ test("explains public Q&A scope and submits the reply email", async () => {
   expect(screen.getByRole("link", { name: "목록으로 돌아가기" })).toHaveAttribute("href", "/qna");
   expect(screen.getByRole("link", { name: "비공개 1:1 문의로 전환" })).toHaveAttribute("href", "/qna/private");
   expect(
-    screen.getByText("공개 질문으로 등록됩니다. 답변 받을 이메일은 운영팀 확인과 답변 안내 목적으로만 사용되며 목록에는 표시되지 않습니다.")
+    screen.getByText(/다른 사용자도 볼 수 있는 질문입니다/)
   ).toBeInTheDocument();
 
   fireEvent.change(screen.getByPlaceholderText("답변 알림이 필요하면 입력"), {

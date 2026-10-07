@@ -10,6 +10,7 @@ import {
   userHasAdminPermission,
 } from "../admin/constants/adminPermissions";
 import { userHasBusinessAccess } from "./businessAccess";
+import { clearPrivateDrafts } from "./privateDrafts";
 
 const AUTH_STORAGE_KEY = "plate-service.auth";
 const AUTH_NOTICE_STORAGE_KEY = "plate-service.auth-notice";
@@ -139,6 +140,7 @@ function buildUserFromClaims(claims) {
 
   return {
     username: username || displayName || "",
+    email: claims.email || "",
     displayName: displayName || username || "",
     role,
     roles,
@@ -216,6 +218,21 @@ function AuthProvider({ children }) {
   });
 
   useEffect(() => {
+    const sync = event => {
+      if (event.key !== AUTH_STORAGE_KEY && event.key !== null) return;
+      const next = readStoredAuth();
+      setAuthState(current => {
+        if (current?.user?.username !== next?.user?.username) clearPrivateDrafts();
+        return next;
+      });
+      if (next?.accessToken) setAuthSession(next.accessToken, next.refreshToken);
+      else clearAuthSession();
+    };
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
+  }, []);
+
+  useEffect(() => {
     if (authState?.accessToken) {
       setAuthSession(authState.accessToken, authState.refreshToken);
     } else {
@@ -237,6 +254,7 @@ function AuthProvider({ children }) {
     });
 
     registerAuthFailureHandler(() => {
+      clearPrivateDrafts();
       clearAuthSession();
       writeStoredAuth(null);
       setAuthState(null);
@@ -272,6 +290,7 @@ function AuthProvider({ children }) {
       },
       login(nextAuthState) {
         const normalizedAuthState = normalizeAuthState(nextAuthState);
+        if (authState?.user?.username !== normalizedAuthState?.user?.username) clearPrivateDrafts();
 
         if (normalizedAuthState?.accessToken) {
           setAuthSession(normalizedAuthState.accessToken, normalizedAuthState.refreshToken);
@@ -281,6 +300,7 @@ function AuthProvider({ children }) {
         return normalizedAuthState;
       },
       logout() {
+        clearPrivateDrafts();
         clearAuthSession();
         writeStoredAuth(null);
         setAuthState(null);

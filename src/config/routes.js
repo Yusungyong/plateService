@@ -8,6 +8,7 @@ import QnA, { QnAWrite } from "../pages/QnA";
 import RestaurantDetail from "../pages/RestaurantDetail";
 import RestaurantManagement from "../pages/RestaurantManagement";
 import TermsOfService from "../pages/TermsOfService";
+import MyInquiries from "../pages/MyInquiries";
 import Signup from "../pages/Signup";
 import BusinessDashboard from "../pages/BusinessDashboard";
 import BusinessApplicationDetail from "../pages/BusinessApplicationDetail";
@@ -116,6 +117,7 @@ export const policyRoutes = [
 ];
 
 export const businessSignupRoutes = [
+  { path: "/business/applications/:applicationId/edit", component: BusinessSignup },
   {
     path: "/business/signup",
     component: BusinessSignup,
@@ -227,3 +229,5 @@ export function getAdminEntryPath(user) {
     item.available !== false && userHasAdminPermission(user, item.permission)
   )?.path || "/faq";
 }
+
+export const memberSupportRoutes = [{ path: "/qna/my", component: MyInquiries }];

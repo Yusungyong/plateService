@@ -21,9 +21,11 @@ export async function fetchQnaDetail(qnaId) {
 }
 
 export async function createQna(payload) {
-  return apiClient.post("/api/qna", payload, {
-    withAuth: false,
-  });
+  return apiClient.post("/api/qna", payload);
+}
+
+export async function fetchMyQna({ page = 0 } = {}) {
+  return apiClient.get("/api/qna/my", { query: { page, size: 10 } });
 }
 
 export async function updateQna(qnaId, payload, adminMode = false) {

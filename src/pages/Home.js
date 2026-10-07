@@ -78,6 +78,18 @@ export default function Home() {
     document.title = "접시 — 오늘의 맛있는 발견";
     return () => { document.title = previous; };
   }, []);
+  useEffect(() => {
+    if (!menuOpen) return;
+    function dismiss(event) {
+      if (event.type === "keydown" && event.key === "Escape") {
+        setMenuOpen(false);
+        document.querySelector(".home-menu-toggle")?.focus();
+      } else if (event.type === "pointerdown" && !event.target.closest(".home-header")) setMenuOpen(false);
+    }
+    document.addEventListener("keydown", dismiss);
+    document.addEventListener("pointerdown", dismiss);
+    return () => { document.removeEventListener("keydown", dismiss); document.removeEventListener("pointerdown", dismiss); };
+  }, [menuOpen]);
   const closeMenu = () => setMenuOpen(false);
   return <div className="home-site home-site--refined">
     <a className="home-skip" href="#home-main">본문 바로가기</a>
@@ -125,7 +137,7 @@ export default function Home() {
         <p className="home-product-caption">접시 앱 실제 화면 · 콘텐츠와 화면 구성은 업데이트에 따라 달라질 수 있습니다.</p>
       </section>
 
-      <section className="home-journey home-container" aria-labelledby="home-journey-title"><h2 id="home-journey-title">오늘의 한 끼, 이렇게 찾아보세요</h2><ol><li><span>01</span><div><h3>마음에 드는 음식 발견</h3><p>콘텐츠 홈에서 사진과 영상을 둘러봐요.</p></div></li><li><span>02</span><div><h3>주변 장소 살펴보기</h3><p>내 주변 지도에서 음식점을 찾아봐요.</p></div></li><li><span>03</span><div><h3>나만의 취향 모아보기</h3><p>좋아요한 음식과 내 콘텐츠를 다시 봐요.</p></div></li></ol></section>
+      <section className="home-journey home-container" aria-labelledby="home-journey-title"><h2 id="home-journey-title">오늘의 한 끼, 이렇게 찾아보세요</h2><ol><li><span>01</span><div><h3>점심 메뉴가 고민될 때</h3><p>콘텐츠 홈에서 사진과 영상을 둘러봐요.</p></div></li><li><span>02</span><div><h3>낯선 동네에서 식당 찾기</h3><p>내 주변 지도에서 음식점을 찾아봐요.</p></div></li><li><span>03</span><div><h3>다시 먹고 싶은 음식 기록</h3><p>좋아요한 음식과 내 콘텐츠를 다시 봐요.</p></div></li></ol></section>
 
       <section className="home-install home-container" id="download" tabIndex={-1} aria-labelledby="home-download-title"><div className="home-install-panel"><div><p className="home-section-kicker">MEET PLATE</p><h2 id="home-download-title">다음 한 끼의 발견을<br />접시와 함께하세요.</h2><p>공식 App Store·Google Play 링크는 준비 중입니다.<br />버튼을 누르면 설치 문의 방법을 안내해 드려요.</p></div><StoreButtons onUnavailable={setPlatform} /></div></section>
 

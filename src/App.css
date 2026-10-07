@@ -5502,13 +5502,13 @@ video.media-upload__preview {
 .restaurant-text-link,
 .restaurant-registration .admin-actions .button-primary {
   border-color: #d85e35 !important;
-  background-color: #e56f45 !important;
+  background-color: #b74420 !important;
   color: #fff !important;
 }
 
 .button-primary:hover,
 .restaurant-text-link:hover {
-  background-color: #d85e35 !important;
+  background-color: #963619 !important;
 }
 
 .button-danger {

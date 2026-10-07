@@ -1,0 +1,75 @@
+/* Public-readiness adjustments shared by support, account and business pages. */
+.app-nav { flex-wrap: wrap; overflow: visible; gap: 8px; }
+.app-nav .app-nav__link { width: auto; flex: 0 1 auto; min-height: 44px; white-space: normal; }
+.app-header__eyebrow, .app-header__description { display: none; }
+.app-header__area { font-size: 20px; }
+.app-header__inner { padding-top: 20px; padding-bottom: 20px; }
+.app-header__auth { flex-wrap: wrap; }
+.app-shell .button-primary, .app-shell .support-page-action--primary,
+.app-shell .app-nav__link--active, .home-site .home-download-link { background: #b74420; color: #fff; }
+.app-shell .admin-field small, .app-shell .restaurant-field-hint { color: #52616d; }
+.app-shell input, .app-shell textarea, .app-shell select { scroll-margin-top: 100px; }
+.app-shell :focus-visible, .home-site :focus-visible { outline: 3px solid #95401f; outline-offset: 4px; }
+.qna-compose-panel--page { min-width: 0; }
+.qna-compose-panel__summary { grid-template-columns: 1fr; }
+.support-kicker { white-space: nowrap; }
+.support-panel h2 { font-size: 20px; line-height: 1.5; }
+.inquiry-record { margin: 16px 0; }
+.inquiry-record summary { cursor: pointer; overflow-wrap: anywhere; padding: 12px 0; }
+.inquiry-record p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.signup-existing-account { color: #733b27; text-decoration: underline; }
+.home-site .home-eyebrow, .home-site .home-section-label,
+.home-site .home-phone-caption, .home-site .home-feature-kicker { font-size: 12px; }
+@media (max-width: 700px) {
+  .app-header__inner { padding: 16px; }
+  .app-nav { display: flex; flex-wrap: wrap; overflow: visible; }
+  .app-nav .app-nav__link { width: auto; flex: 1 1 calc(50% - 8px); font-size: 14px; justify-content: center; }
+  .app-header__topline { gap: 12px; }
+  .app-header__actions { gap: 12px; }
+  .app-main { padding-top: 20px; }
+  .page-layout__header { margin-bottom: 20px; }
+  .page-layout__title { font-size: 28px; }
+  .login-showcase { display: block; min-height: auto; padding: 20px 24px; }
+  .login-showcase__content, .login-showcase__footer { display: none; }
+  .qna-compose-panel--page { padding: 20px 16px; }
+  .qna-write-actions { flex-wrap: wrap; }
+  .qna-write-actions > * { min-height: 44px; }
+  .home-site .home-hero-description, .home-site .home-feature-description { font-size: 15px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+}
+
+.food-editor-jumps { display:flex; gap:16px; flex-wrap:wrap; padding:16px 24px; background:#fff7ef; }
+.food-editor-jumps a { color:#733b27; min-height:44px; display:inline-flex; align-items:center; }
+.food-editor-section, #food-library { scroll-margin-top:32px; }
+.seasonal-foods-page .food-helper, .seasonal-foods-page .food-input small { color:#52616d; font-size:13px; }
+
+.home-site--refined .home-product-caption, .home-site--refined .home-availability,
+.home-site .home-section-kicker, .home-site .home-feature-index,
+.home-site .home-image-caption, .home-site .home-screen-caption,
+.home-site .home-footer-bottom, .home-site .home-store-button small { font-size:12px; }
+.home-site .home-section-kicker, .home-site .home-feature-index { color:#83432f; }
+.home-site .home-footer nav { font-size:14px; }
+
+.app-shell, .login-page { --plate-action: #b74420; }
+.app-shell .admin-actions button.button-primary,
+.app-shell .signup-actions button.button-primary,
+.login-page button.login-submit { background:#b74420; border-color:#b74420; color:#fff; }
+.support-page--private-inquiry .qna-compose-panel--page .qna-scope-notice { padding:12px; margin:0 0 16px; font-size:14px; font-weight:400; text-align:left; }
+.support-page--private-inquiry .qna-compose-panel--page { padding:16px; }
+@media(max-width:700px) {
+  .app-header .app-header__inner { padding:12px 16px; }
+  .app-header .app-header__topline { gap:8px; }
+  .app-header .app-header__area { display:none; }
+  .app-header .app-header__actions { flex-direction:row; flex-wrap:wrap; align-items:center; }
+  .app-header .app-mode-switch { flex:1; }
+  .app-header .app-header__auth { width:auto; }
+  .app-header .app-header__auth button { width:auto; }
+}
+
+/* Keep body copy legible against the actual cream/white surfaces. */
+.home-site .home-footer-bottom, .home-site .home-footer-bottom a { color:#655b52; }
+.app-shell .faq-topline > span { color:#52616d; }
+.support-page--qna-write .qna-compose-panel--page { padding:16px; }
+.support-page--qna-write .qna-scope-notice { padding:12px; margin:0 0 16px; font-size:14px; font-weight:400; text-align:left; }

@@ -1,13 +1,17 @@
+import useActiveForm from "../components/useActiveForm";
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   createBusinessApplication,
   fetchBusinessApplicationDetail,
   submitBusinessApplication,
   verifyBusinessRegistration,
+  updateBusinessApplication,
 } from "../api/businessApplicationApi";
 import { useAuth } from "../auth/AuthContext";
 import PageLayout from "../components/PageLayout";
+import UnsavedChangesGuard from "../components/UnsavedChangesGuard";
+import { draftKey } from "../auth/privateDrafts";
 
 const DRAFT_STORAGE_KEY = "plate-service.business-signup-draft";
 
@@ -64,11 +68,24 @@ const initialForm = {
 };
 
 function BusinessSignup() {
+  const { user } = useAuth();
+  const { applicationId } = useParams();
+  return <BusinessSignupForm key={`${user?.username}:${applicationId || "new"}`} applicationId={applicationId} />;
+}
+
+function BusinessSignupForm({ applicationId }) {
+  const {active: formActive, completed} = useActiveForm();
+  const [sourceVersion, setSourceVersion] = useState(null);
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
+  const storageKey = draftKey(user?.username, `business:${applicationId || "new"}`);
   const stepOrder = signedInStepOrder;
   const [stepIndex, setStepIndex] = useState(0);
-  const [form, setForm] = useState(() => readDraft());
+  const [form, setForm] = useState(() => applicationId ? initialForm : readDraft(storageKey));
+  const [baseline, setBaseline] = useState(initialForm);
+  const [savedId, setSavedId] = useState(() => applicationId || readPendingId(storageKey));
+  const [loading, setLoading] = useState(Boolean(applicationId));
+  const [loadError, setLoadError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -86,8 +103,27 @@ function BusinessSignup() {
   );
 
   useEffect(() => {
-    persistDraft(form);
-  }, [form]);
+    if (!loading && !loadError) persistDraft(storageKey, form, savedId, sourceVersion);
+  }, [form, storageKey, savedId, loading, loadError, sourceVersion]);
+
+  useEffect(() => {
+    if (!applicationId) return undefined;
+    let active = true;
+    fetchBusinessApplicationDetail(applicationId).then(detail => {
+      if (!active) return;
+      if (!["draft", "on_hold"].includes(detail.approvalStatus)) throw new Error("이 신청은 현재 수정할 수 없습니다. 신청 현황을 확인해 주세요.");
+      const next = formFromApplication(detail);
+      const stored = readDraftRecord(storageKey);
+      const restore = stored && String(stored.applicationId) === String(applicationId) && stored.sourceVersion === detail.version;
+      setForm(restore ? mergeForm(initialForm, stored.form) : next); setBaseline(next);
+      setSourceVersion(detail.version);
+      if (restore) setMessage("이 탭에서 임시저장한 수정 내용을 복원했습니다. 사업자 정보는 제출 전에 다시 확인해 주세요.");
+      else if (stored) setMessage("서버의 신청 정보가 변경되어 이전 초안 대신 최신 내용을 불러왔습니다. 최신 정보를 기준으로 다시 수정해 주세요.");
+      if (detail.business?.verificationStatus === "verified" && next.business.businessNumber.replace(/\D/g, "").length === 10) setBusinessVerification({status: "verified", message: "저장된 사업자 확인 정보입니다. 사업자 정보를 변경하면 다시 확인합니다.", verifiedAt: detail.business.verificationVerifiedAt || null});
+    }).catch(error => { if (active) setLoadError(error.message); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [applicationId, storageKey]);
 
   function updateNested(section, field, value) {
     setForm((current) => ({
@@ -257,6 +293,7 @@ function BusinessSignup() {
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if (isSubmitting) return;
     if (!isAuthenticated) {
       navigate("/login", { replace: true, state: { from: "/business/signup" } });
       return;
@@ -274,35 +311,53 @@ function BusinessSignup() {
 
     try {
       const applicationPayload = buildApplicationPayload(form, businessVerification);
-      const createdApplication = await createBusinessApplication(applicationPayload);
+      let targetId = savedId;
+      if (targetId) await updateBusinessApplication(targetId, applicationPayload);
+      else {
+        const createdApplication = await createBusinessApplication(applicationPayload);
+        if (!formActive.current) return;
+        targetId = createdApplication.applicationId;
+        if (!targetId) throw new Error("신청 번호를 확인하지 못했습니다. 신청 현황을 먼저 확인해 주세요.");
+        setSavedId(targetId);
+        persistDraft(storageKey, form, targetId);
+      }
+      if (!formActive.current) return;
+      const detail = await fetchBusinessApplicationDetail(targetId);
+      if (!formActive.current) return;
+      setSourceVersion(detail.version);
+      persistDraft(storageKey, form, targetId, detail.version);
 
-      const applicationId = createdApplication.applicationId;
-      const detail = await fetchBusinessApplicationDetail(applicationId);
-
-      await submitBusinessApplication(applicationId, {
+      await submitBusinessApplication(targetId, {
         version: detail.version,
       });
 
-      clearDraft();
-      navigate(`/business/applications/${applicationId}`, {
+      if (!formActive.current) return;
+      completed.current = true;
+      clearDraft(storageKey);
+      navigate(`/business/applications/${targetId}`, {
         replace: true,
         state: {
           notice: "입점 신청이 접수되었습니다. 운영팀 검토가 끝나면 상태가 변경됩니다.",
         },
       });
     } catch (error) {
-      setMessage(error.message || "입점 신청 제출에 실패했습니다.");
+      if (formActive.current) setMessage(error.message || "입점 신청 제출에 실패했습니다.");
     } finally {
-      setIsSubmitting(false);
+      if (formActive.current) setIsSubmitting(false);
     }
   }
 
+  if (loading || loadError) return <PageLayout title="신청서 수정"><p role={loadError ? "alert" : "status"}>{loadError || "기존 신청서를 불러오고 있습니다."}</p><Link to="/business/applications">신청 현황으로</Link></PageLayout>;
   return (
     <PageLayout
-      title="식당 입점 신청"
+      title={applicationId ? "입점 신청서 보완" : "식당 입점 신청"}
       description="로그인한 계정으로 담당자·사업자·매장 정보를 입력하고 입점을 신청합니다."
     >
+      {applicationId && <p className="api-status">사업자등록번호는 보안을 위해 가려져 있습니다. 보완 제출 전 번호를 다시 입력하고 사업자 확인을 진행해 주세요.</p>}
+      {savedId && <p><Link to={`/business/applications/${savedId}`}>저장된 신청 #{savedId} 상태 확인</Link></p>}
+      <UnsavedChangesGuard pending={isSubmitting} completed={completed} when={JSON.stringify(form) !== JSON.stringify(baseline) && !isSubmitting} />
       <form className="stack-layout business-signup" onSubmit={handleSubmit}>
+        <p className="restaurant-field-hint">입력 내용은 현재 계정과 탭에서만 임시 보관되며 로그아웃하면 삭제됩니다.</p>
         <StepIndicator stepOrder={stepOrder} currentStep={currentStep} />
 
         {message ? (
@@ -361,7 +416,7 @@ function BusinessSignup() {
           </button>
           {isLastStep ? (
             <button className="button-primary" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "제출 중" : "입점 신청 제출"}
+              {isSubmitting ? "제출 중" : applicationId ? "수정 저장 후 보완 제출" : savedId ? "저장된 신청 이어 제출" : "입점 신청 제출"}
             </button>
           ) : (
             <button className="button-primary" type="button" onClick={handleNext}>
@@ -395,7 +450,7 @@ function OwnerStep({ form, errors, onChange }) {
     <section className="support-panel">
       <div className="support-panel__header">
         <span className="support-kicker">OWNER</span>
-        <h3>담당자 정보</h3>
+        <h2>담당자 정보</h2>
       </div>
       <div className="admin-form">
         <label className="admin-field">
@@ -450,7 +505,7 @@ function BusinessStep({ form, errors, verification, isVerifying, onChange, onVer
     <section className="support-panel">
       <div className="support-panel__header">
         <span className="support-kicker">BUSINESS</span>
-        <h3>사업자 정보</h3>
+        <h2>사업자 정보</h2>
       </div>
       <div className="admin-form">
         <label className="admin-field">
@@ -517,7 +572,7 @@ function StoreStep({ form, errors, onChange }) {
     <section className="support-panel">
       <div className="support-panel__header">
         <span className="support-kicker">STORE</span>
-        <h3>매장 기본 정보</h3>
+        <h2>매장 기본 정보</h2>
       </div>
       <div className="admin-form">
         <label className="admin-field">
@@ -593,7 +648,7 @@ function MenusStep({ form, errors, onToggleCategory, onUpdateMenu, onAddMenu, on
       <div className="support-panel__header restaurant-menu-header">
         <div>
           <span className="support-kicker">MENU</span>
-          <h3>카테고리와 대표 메뉴</h3>
+          <h2>카테고리와 대표 메뉴</h2>
         </div>
         <button type="button" className="restaurant-menu-add" onClick={onAddMenu}>
           메뉴 추가
@@ -669,7 +724,7 @@ function ReviewStep({ form, selectedCategoryLabels }) {
     <section className="support-panel">
       <div className="support-panel__header">
         <span className="support-kicker">REVIEW</span>
-        <h3>제출 전 확인</h3>
+        <h2>제출 전 확인</h2>
       </div>
       <dl className="restaurant-summary business-review-summary">
         <SummaryRow label="담당자" value={form.ownerProfile.ownerName} />
@@ -699,26 +754,27 @@ function FieldError({ message }) {
   return message ? <small className="restaurant-field-error">{message}</small> : null;
 }
 
-function readDraft() {
+function readDraft(key) {
   try {
-    const raw = window.sessionStorage.getItem(DRAFT_STORAGE_KEY);
-    return raw ? mergeForm(initialForm, JSON.parse(raw)) : initialForm;
+    window.sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+    const raw = JSON.parse(window.sessionStorage.getItem(key) || "null");
+    return raw?.expiresAt > Date.now() ? mergeForm(initialForm, raw.form) : initialForm;
   } catch (error) {
     return initialForm;
   }
 }
 
-function persistDraft(form) {
+function persistDraft(key, form, applicationId, sourceVersion = null) {
   try {
-    window.sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(form));
+    window.sessionStorage.setItem(key, JSON.stringify({form, applicationId, sourceVersion, expiresAt: Date.now() + 8 * 60 * 60 * 1000}));
   } catch (error) {
     // Draft persistence is a convenience only.
   }
 }
 
-function clearDraft() {
+function clearDraft(key) {
   try {
-    window.sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+    window.sessionStorage.removeItem(key);
   } catch (error) {
     // Ignore storage errors.
   }
@@ -984,4 +1040,20 @@ function isValidDateString(value) {
   return !Number.isNaN(date.getTime()) && normalized === date.toISOString().slice(0, 10);
 }
 
+function readDraftRecord(key) {
+  try { const value = JSON.parse(window.sessionStorage.getItem(key) || "null"); return value?.expiresAt > Date.now() ? value : null; } catch { return null; }
+}
+
+function readPendingId(key) {
+  try { const value = JSON.parse(window.sessionStorage.getItem(key) || "null"); return value?.expiresAt > Date.now() ? value.applicationId || null : null; } catch { return null; }
+}
+function formFromApplication(detail) {
+  const form = {};
+  for (const section of ["ownerProfile", "business", "store"]) {
+    form[section] = Object.fromEntries(Object.entries(initialForm[section]).map(([key, fallback]) => [key, String(detail[section]?.[key] ?? fallback)]));
+  }
+  form.categories = (detail.categories || []).map(c => typeof c === "string" ? c : c.categoryCode);
+  form.menus = detail.menus?.length ? detail.menus.map(m => ({name: m.name || "", price: String(m.price ?? ""), description: m.description || ""})) : initialForm.menus;
+  return form;
+}
 export default BusinessSignup;

@@ -110,7 +110,11 @@ function createApiError(response, payload) {
   const message =
     typeof payload === "object" && payload && payload.message
       ? payload.message
-      : `Request failed with status ${response.status}`;
+      : response.status === 401 ? "로그인이 필요합니다. 다시 로그인해 주세요."
+        : response.status === 403 ? "이 작업을 수행할 권한이 없습니다."
+        : response.status === 409 ? "정보가 변경됐거나 이미 처리된 요청입니다. 최신 내용을 확인해 주세요."
+        : response.status === 429 ? "요청이 많습니다. 잠시 후 다시 시도해 주세요."
+        : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.";
 
   return new ApiError(message, {
     status: response.status,
@@ -130,6 +134,7 @@ async function executeRequest(path, options = {}) {
     headers,
     withAuth = true,
     signal,
+    timeoutMs = body instanceof FormData ? 120000 : 20000,
   } = options;
 
   const requestHeaders = {
@@ -148,11 +153,18 @@ async function executeRequest(path, options = {}) {
     requestBody = JSON.stringify(body);
   }
 
+  const controller = new AbortController();
+  let timedOut = false;
+  const abort = () => controller.abort();
+  if (signal?.aborted) abort();
+  signal?.addEventListener("abort", abort, { once: true });
+  const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
+  try {
   const response = await fetch(buildUrl(path, query), {
     method,
     headers: requestHeaders,
     body: method === "GET" || method === "DELETE" ? undefined : requestBody,
-    signal,
+    signal: controller.signal,
   });
 
   const payload = await parseResponse(response);
@@ -161,6 +173,15 @@ async function executeRequest(path, options = {}) {
     response,
     payload,
   };
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    if (timedOut) throw new ApiError("응답이 늦어지고 있습니다. 저장·접수 여부를 먼저 확인한 뒤 다시 시도해 주세요.", { code: "NETWORK_TIMEOUT" });
+    if (signal?.aborted) throw new ApiError("요청이 취소되었습니다.", { code: "REQUEST_CANCELLED" });
+    throw new ApiError("서버에 연결하지 못했습니다. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.", { code: "NETWORK_UNAVAILABLE" });
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", abort);
+  }
 }
 
 async function refreshAuthSession() {
@@ -246,6 +267,7 @@ async function request(path, options = {}) {
       return request(path, { ...options, _retry: true });
     } catch (refreshError) {
       if (version !== sessionVersion) throw refreshError;
+      if (["NETWORK_UNAVAILABLE", "NETWORK_TIMEOUT", "REQUEST_CANCELLED"].includes(refreshError.code)) throw refreshError;
       clearAuthSession();
 
       if (authFailureHandler) {

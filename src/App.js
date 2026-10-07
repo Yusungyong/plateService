@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import {
-  BrowserRouter as Router,
+  createBrowserRouter,
+  RouterProvider,
   Navigate,
   Route,
   Routes,
@@ -16,6 +17,7 @@ import ProtectedRoute from "./auth/ProtectedRoute";
 import {
   getAdminEntryPath,
   accountPublicRoutes,
+  memberSupportRoutes,
   adminRoutes,
   businessApplicationRoutes,
   businessOwnerRoutes,
@@ -26,10 +28,12 @@ import {
   publicRoutes,
 } from "./config/routes";
 import Login from "./pages/Login";
+import BusinessIntro from "./pages/BusinessIntro";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import "./App.css";
 import "./styles/brand.css";
+import "./styles/readiness.css";
 
 function FaqEntryRoute({ Component }) {
   const { canAdmin } = useAuth();
@@ -42,6 +46,8 @@ function FaqEntryRoute({ Component }) {
 }
 
 function ApplicationShell({ children }) {
+  const { user } = useAuth();
+  children = <React.Fragment key={user?.username || "anonymous"}>{children}</React.Fragment>;
   const location = useLocation();
   const isLoginPage = location.pathname === "/login";
   const isLegalPage = /^\/(terms-of-service|privacy-policy|location-terms)(\/|$)/.test(location.pathname);
@@ -64,16 +70,6 @@ function LegacyStoreDetailRedirect() {
   return <Navigate to={`/business/stores/${restaurantId}`} replace />;
 }
 
-function BusinessHomeRedirect() {
-  const { isAuthenticated, isBusinessUser } = useAuth();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/business/signup" replace />;
-  }
-
-  return <Navigate to={isBusinessUser ? "/business/dashboard" : "/business/applications"} replace />;
-}
-
 function AdminEntryRoute() {
   const { user } = useAuth();
   return <Navigate to={getAdminEntryPath(user)} replace />;
@@ -89,10 +85,9 @@ function AdminPermissionRoute({ component: Component, permission, props }) {
   return <Component {...props} />;
 }
 
-function App() {
+function RoutedApp() {
   return (
     <AuthProvider>
-      <Router>
         <ApplicationShell>
           <Routes>
             <Route path="*" element={<NotFound />} />
@@ -107,7 +102,7 @@ function App() {
             {openSupportRoutes.map(({ path, component: Component }) => (
               <Route key={path} path={path} element={<Component />} />
             ))}
-            <Route path="/business" element={<BusinessHomeRedirect />} />
+            <Route path="/business" element={<BusinessIntro />} />
             {publicRoutes.map(({ path, component: Component }) => (
               <Route
                 key={path}
@@ -117,6 +112,7 @@ function App() {
             ))}
             <Route path="/business/stores/new" element={<Navigate to="/business/signup" replace />} />
             <Route element={<ProtectedRoute />}>
+              {memberSupportRoutes.map(({path, component: Component}) => <Route key={path} path={path} element={<Component />} />)}
               {businessSignupRoutes.map(({ path, component: Component }) => (
                 <Route key={path} path={path} element={<Component />} />
               ))}
@@ -158,9 +154,13 @@ function App() {
             </Route>
           </Routes>
         </ApplicationShell>
-      </Router>
     </AuthProvider>
   );
+}
+
+function App() {
+  const [router] = useState(() => createBrowserRouter([{ path: "*", element: <RoutedApp /> }]));
+  return <RouterProvider router={router} />;
 }
 
 export default App;

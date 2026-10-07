@@ -81,3 +81,36 @@ test("refreshes an expired session, publishes new tokens, and retries once", asy
   expect(global.fetch).toHaveBeenCalledTimes(3);
   expect(global.fetch.mock.calls[2][1].headers.Authorization).toBe("Bearer next-access");
 });
+
+
+test("times out stalled requests with actionable text", async () => {
+  const { default: apiClient } = await import("./client");
+  global.fetch.mockImplementation((url, {signal}) => new Promise((resolve, reject) => {
+    signal.addEventListener("abort", () => reject(new Error("aborted")));
+  }));
+  await expect(apiClient.get("/api/stalled", {timeoutMs: 5})).rejects.toMatchObject({code: "NETWORK_TIMEOUT"});
+});
+
+test("network failure during refresh preserves the session for retry", async () => {
+  const { default: apiClient, setAuthSession, registerAuthFailureHandler } = await import("./client");
+  const failure = jest.fn(); registerAuthFailureHandler(failure);
+  setAuthSession("access", "refresh");
+  global.fetch.mockResolvedValueOnce(jsonResponse(401, {})).mockRejectedValueOnce(new TypeError("Failed to fetch"));
+  await expect(apiClient.get("/api/protected")).rejects.toMatchObject({code: "NETWORK_UNAVAILABLE"});
+  expect(failure).not.toHaveBeenCalled();
+  global.fetch.mockResolvedValueOnce(jsonResponse(200, {}));
+  await apiClient.get("/api/check");
+  expect(global.fetch.mock.calls[2][1].headers.Authorization).toBe("Bearer access");
+});
+
+test("member inquiries include authentication and guests remain supported", async () => {
+  const { setAuthSession, clearAuthSession } = await import("./client");
+  const { createQna } = await import("./qnaApi");
+  global.fetch.mockResolvedValue(jsonResponse(200, {qnaId: 7}));
+  setAuthSession("member-access", "refresh");
+  await createQna({question: "test", isPublic: false});
+  expect(global.fetch.mock.calls[0][1].headers.Authorization).toBe("Bearer member-access");
+  clearAuthSession();
+  await createQna({question: "guest", isPublic: false});
+  expect(global.fetch.mock.calls[1][1].headers.Authorization).toBeUndefined();
+});

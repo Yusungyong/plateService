@@ -311,9 +311,16 @@ function FAQ({ adminMode = false }) {
       description={
         adminMode
           ? "관리자는 FAQ 등록, 수정, 삭제를 한 화면에서 처리할 수 있습니다."
-          : "일반 사용자는 자주 묻는 질문 목록과 답변만 간단하게 확인할 수 있습니다."
+          : "궁금한 내용을 찾아보고, 해결되지 않으면 비공개 문의를 남겨 주세요."
       }
     >
+      {!adminMode && !isListLoading && !loadError && faqPage.totalElements === 0 && !appliedFilters.keyword && !appliedFilters.category && <section className="support-panel" aria-label="빠른 이용 안내">
+        <h2>빠른 이용 안내</h2>
+        <p>계정에 접근할 수 없거나 개인 정보 확인이 필요하면 <Link to="/qna/private">비공개 문의</Link>를 이용하세요. 로그인 없이도 접수할 수 있습니다.</p>
+        <p>식당 등록은 <Link to="/business">입점 안내</Link>를 확인한 뒤 로그인하고 신청해 주세요.</p>
+        <p>로그인하고 남긴 문의는 <Link to="/qna/my">내 문의</Link>에서 확인할 수 있습니다.</p>
+      </section>}
+      {(adminMode || isListLoading || loadError || faqPage.totalElements > 0 || appliedFilters.keyword || appliedFilters.category) && <>
       <div className="faq-topline">
         <strong>
           전체 {faqPage.totalElements}건 중 {faqPosts.length}건 표시
@@ -356,6 +363,7 @@ function FAQ({ adminMode = false }) {
         </div>
       </form>
 
+      </>}
       {loadError ? <div className="api-status api-status--error">{loadError}</div> : null}
 
       <div className={adminMode ? "faq-columns faq-columns--admin" : "faq-columns faq-columns--public"}>

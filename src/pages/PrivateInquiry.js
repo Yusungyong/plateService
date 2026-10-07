@@ -1,8 +1,10 @@
+import useActiveForm from "../components/useActiveForm";
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { createQna } from "../api/qnaApi";
 import PageLayout from "../components/PageLayout";
+import UnsavedChangesGuard from "../components/UnsavedChangesGuard";
 
 const privateInquiryCategories = ["계정문의", "사업자문의", "결제문의", "오류제보", "기타"];
 
@@ -14,18 +16,32 @@ const initialPrivateInquiryForm = {
 };
 
 function PrivateInquiry() {
+  const { user } = useAuth();
+  return <InquiryForm key={user?.username || "guest"} />;
+}
+
+function InquiryForm() {
+  const {active} = useActiveForm();
+  const location = useLocation();
   const { isAuthenticated, user } = useAuth();
   const [form, setForm] = useState(() => ({
     ...initialPrivateInquiryForm,
+    category: location.state?.applicationId ? "사업자문의" : "계정문의",
+    question: location.state?.applicationId ? `입점 신청 번호: ${location.state.applicationId}\n` : "",
     authorName: user?.displayName || user?.username || "",
     email: user?.email || "",
   }));
+  const [baseline] = useState(form);
+  const [receipt, setReceipt] = useState(null);
+  const dirty = JSON.stringify(form) !== JSON.stringify(baseline);
   const [submitMessage, setSubmitMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isSuccess = submitMessage.includes("접수되었습니다");
 
   function updateField(field, value) {
+    setReceipt(null);
+    setSubmitMessage("");
     setForm((current) => ({
       ...current,
       [field]: value,
@@ -33,6 +49,7 @@ function PrivateInquiry() {
   }
 
   function resetForm() {
+    if (dirty && !window.confirm("입력한 문의 내용을 지울까요?")) return;
     setForm({
       ...initialPrivateInquiryForm,
       authorName: user?.displayName || user?.username || "",
@@ -43,6 +60,7 @@ function PrivateInquiry() {
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if (isSubmitting) return;
     setSubmitMessage("");
 
     const question = form.question.trim();
@@ -78,17 +96,20 @@ function PrivateInquiry() {
     setIsSubmitting(true);
 
     try {
-      await createQna(payload);
-      setSubmitMessage("비공개 1:1 문의가 접수되었습니다. 운영팀이 확인한 뒤 입력한 이메일로 답변을 안내합니다.");
+      const response = await createQna(payload);
+      if (!active.current) return;
+      setReceipt((response?.data || response)?.qnaId || "확인 필요");
+      setSubmitMessage("비공개 1:1 문의가 접수되었습니다.");
       setForm((current) => ({
         ...initialPrivateInquiryForm,
         authorName: current.authorName,
         email: current.email,
       }));
     } catch (error) {
+      if (!active.current) return;
       setSubmitMessage(error.message || "비공개 1:1 문의 접수에 실패했습니다.");
     } finally {
-      setIsSubmitting(false);
+      if (active.current) setIsSubmitting(false);
     }
   }
 
@@ -99,26 +120,16 @@ function PrivateInquiry() {
       description="계정, 결제, 사업자 정보처럼 개인 확인이 필요한 내용은 비공개 문의로 접수해 주세요."
     >
       <div className="stack-layout">
-        <section className="support-panel qna-scope-panel">
-          <div className="support-panel__header">
-            <span className="support-kicker">비공개 문의</span>
-            <h3>문의 내용과 답변은 공개 질문·답변 목록에 표시되지 않습니다.</h3>
-          </div>
-          <p className="page-layout__description">
-            운영팀 확인을 위해 답변 받을 이메일은 필수입니다. 비밀번호, 카드 전체 번호, 주민등록번호처럼 민감한 정보는 입력하지 마세요.
-          </p>
-        </section>
-
+        <UnsavedChangesGuard pending={isSubmitting} when={dirty && !isSubmitting && !receipt} />
+        {receipt && <div className="api-status api-status--success" role="status">
+          <strong>접수 번호: {receipt}</strong>
+          <p>{isAuthenticated ? "내 문의에서 처리 상태와 답변을 확인할 수 있습니다." : "추가 확인이 필요하면 접수 번호와 함께 공식 이메일 su12ng@gmail.com으로 문의해 주세요."}</p>
+          {isAuthenticated && <Link to="/qna/my">내 문의 확인</Link>}
+        </div>}
         <section className="support-panel qna-compose-panel qna-compose-panel--page">
-          <div className="qna-compose-panel__summary">
-            <span className="support-kicker">문의 접수</span>
-            <strong>비공개 1:1 문의</strong>
-            <span>답변은 입력한 이메일로 안내됩니다. 공개해도 괜찮은 일반 질문은 공개 질문·답변에 남겨 주세요.</span>
-          </div>
-
           <form className="admin-form" onSubmit={handleSubmit}>
             <div className="api-status qna-scope-notice" role="note">
-              공개 질문·답변 목록에는 표시되지 않는 문의입니다. 운영팀 확인과 답변 안내 목적으로만 사용됩니다.
+              문의는 공개되지 않습니다. 비밀번호·주민등록번호·카드 전체 번호는 입력하지 마세요.
             </div>
 
             <div className="admin-inline-fields">
@@ -126,6 +137,8 @@ function PrivateInquiry() {
                 <span>작성자명</span>
                 <input
                   type="text"
+                  maxLength={100}
+                  required={!isAuthenticated}
                   value={form.authorName}
                   onChange={(event) => updateField("authorName", event.target.value)}
                   placeholder={isAuthenticated ? "표시 이름 입력" : "이름 또는 닉네임"}
@@ -133,15 +146,17 @@ function PrivateInquiry() {
               </label>
 
               <label className="admin-field">
-                <span>답변 받을 이메일</span>
+                <span>연락 이메일</span>
                 <input
                   type="email"
+                  maxLength={255}
+                  required
                   value={form.email}
                   onChange={(event) => updateField("email", event.target.value)}
                   placeholder="reply@example.com"
                 />
                 <small className="restaurant-field-hint">
-                  문의 처리 안내와 운영팀 답변을 받을 이메일입니다.
+                  문의 확인에 필요한 연락처입니다.
                 </small>
               </label>
             </div>
@@ -164,6 +179,8 @@ function PrivateInquiry() {
               <span>문의 내용</span>
               <textarea
                 rows={7}
+                required
+                maxLength={10000}
                 value={form.question}
                 onChange={(event) => updateField("question", event.target.value)}
                 placeholder="운영팀이 확인해야 하는 내용을 적어 주세요."
@@ -174,7 +191,7 @@ function PrivateInquiry() {
             </label>
 
             {submitMessage ? (
-              <div className={isSuccess ? "api-status api-status--success" : "api-status api-status--error"}>
+              <div role={isSuccess ? "status" : "alert"} className={isSuccess ? "api-status api-status--success" : "api-status api-status--error"}>
                 {submitMessage}
               </div>
             ) : null}

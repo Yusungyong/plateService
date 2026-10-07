@@ -9,8 +9,8 @@ test("renders the public support center for unauthenticated users", () => {
   expect(screen.queryByRole("heading", { name: "고객 지원 센터" })).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "로그인" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "공개 질문·답변" })).toHaveAttribute("href", "/qna");
-  expect(screen.getByRole("link", { name: "식당 점주" })).toHaveAttribute(
+  expect(screen.getByRole("link", { name: "식당 비즈니스" })).toHaveAttribute(
     "href",
-    "/business/signup"
+    "/business"
   );
 });

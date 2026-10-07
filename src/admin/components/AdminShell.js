@@ -1,3 +1,4 @@
+import { confirmFormLeave } from "../../components/formLeaveProtection";
 import React, { useMemo, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
@@ -46,6 +47,7 @@ function AdminShell({ children }) {
   const roleLabel = ROLE_LABELS[primaryRole] || primaryRole || "운영자";
 
   function handleLogout() {
+    if (!confirmFormLeave()) return;
     logout();
     navigate("/login", { replace: true });
   }
