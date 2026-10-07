@@ -1,3 +1,4 @@
+import useSignupConsent from "../components/useSignupConsent";
 import useActiveForm from "../components/useActiveForm";
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -17,6 +18,7 @@ const initialForm = {
 
 function Signup() {
   const {active, completed} = useActiveForm();
+  const consent = useSignupConsent();
   const navigate = useNavigate();
   const location = useLocation();
   const returnPath = location.state?.from;
@@ -45,7 +47,7 @@ function Signup() {
     event.preventDefault();
 
     if (isSubmitting) return;
-    const errors = validateSignup(form);
+    const errors = validateSignup(consent.enabled ? {...form,termsAccepted:true,privacyAccepted:true} : form);
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       setMessage("입력값을 확인해 주세요.");
@@ -57,7 +59,8 @@ function Signup() {
     setMessage("");
 
     try {
-      await signup(form);
+      const legalAcceptance = consent.acceptance(form);
+      await signup({...form,legalAcceptance});
       if (!active.current) return;
       completed.current = true;
       navigate("/login", {
@@ -69,6 +72,7 @@ function Signup() {
       });
     } catch (error) {
       if (!active.current) return;
+      if (["LEGAL_DOCUMENT_CHANGED","LEGAL_CATALOG_CHANGED"].includes(error.code)) consent.reload();
       const fields = error.payload?.fieldErrors || error.payload?.data?.fieldErrors || error.payload?.data?.fields;
       if (fields && typeof fields === "object") { setFieldErrors(fields); setTimeout(() => document.querySelector('[aria-invalid="true"]')?.focus(), 0); }
       setMessage(error.message || "회원가입에 실패했습니다.");
@@ -177,7 +181,8 @@ function Signup() {
         </section>
 
         <section className="support-panel signup-completion-panel">
-          <div className="signup-agreements">
+          {consent.content}
+          {!consent.enabled && <div className="signup-agreements">
             <label className="admin-toggle">
               <input
                 type="checkbox"
@@ -207,13 +212,13 @@ function Signup() {
             {fieldErrors.privacyAccepted ? (
               <small className="restaurant-field-error">{fieldErrors.privacyAccepted}</small>
             ) : null}
-          </div>
+          </div>}
 
           <div className="admin-actions signup-actions">
             <Link className="signup-existing-account" to="/login" state={{ from: returnPath }}>
               이미 계정이 있어요
             </Link>
-            <button className="button-primary" type="submit" disabled={isSubmitting}>
+            <button className="button-primary" type="submit" disabled={isSubmitting || consent.loading || !!consent.error}>
               {isSubmitting ? "가입 중" : "가입하기"}
             </button>
           </div>

@@ -18,7 +18,9 @@ function InquiryList() {
     let active = true;
     setBusy(true); setError("");
     fetchMyQna({ page }).then(response => {
-      if (active) setResult(response?.data || response);
+      const data = response?.data || response;
+      if (!data || !Array.isArray(data.content)) throw new Error("문의 목록의 응답을 확인하지 못했습니다. 다시 시도해 주세요.");
+      if (active) setResult(data);
     }).catch(e => { if (active) setError(e.message || "문의 목록을 불러오지 못했습니다."); })
       .finally(() => { if (active) setBusy(false); });
     return () => { active = false; };

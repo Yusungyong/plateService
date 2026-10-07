@@ -1,0 +1,28 @@
+{
+  "ResponseHeadersPolicyConfig": {
+    "Name": "plate-service-public-security",
+    "Comment": "Apply after report-only review; never deployed automatically by build",
+    "SecurityHeadersConfig": {
+      "ContentTypeOptions": {
+        "Override": true
+      },
+      "FrameOptions": {
+        "FrameOption": "DENY",
+        "Override": true
+      },
+      "ReferrerPolicy": {
+        "ReferrerPolicy": "strict-origin-when-cross-origin",
+        "Override": true
+      }
+    },
+    "CustomHeadersConfig": {
+      "Items": [
+        {
+          "Header": "Content-Security-Policy-Report-Only",
+          "Value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; connect-src 'self' https://foodplayserver.shop; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'",
+          "Override": true
+        }
+      ]
+    }
+  }
+}

@@ -27,9 +27,11 @@ function storeAuth(claims) {
   );
 }
 
-function renderAt(path) {
+async function renderAt(path) {
   window.history.pushState({}, "", path);
-  return render(<App />);
+  const view = render(<App />);
+  await screen.findByRole("heading", {level:1});
+  return view;
 }
 
 beforeEach(() => {
@@ -38,8 +40,8 @@ beforeEach(() => {
   resetStoreApprovalMocks();
 });
 
-test("redirects unauthenticated operators to login", () => {
-  renderAt("/admin/dashboard");
+test("redirects unauthenticated operators to login", async () => {
+  await renderAt("/admin/dashboard");
 
   expect(screen.getByRole("heading", { name: "운영자 로그인" })).toBeInTheDocument();
   expect(screen.getByText("ADMIN ACCESS")).toBeInTheDocument();
@@ -56,7 +58,7 @@ test("renders the internal operator dashboard and scoped navigation", async () =
     ],
   });
 
-  renderAt("/admin/dashboard");
+  await renderAt("/admin/dashboard");
 
   expect(screen.getByRole("navigation", { name: "운영자 관리 메뉴" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "대시보드" })).toBeInTheDocument();
@@ -77,7 +79,7 @@ test("approves a pending store from the detail drawer", async () => {
     ],
   });
 
-  renderAt("/admin/store-approvals");
+  await renderAt("/admin/store-approvals");
 
   expect((await screen.findAllByText("모닝 베이크")).length).toBeGreaterThan(0);
   fireEvent.click(screen.getAllByRole("button", { name: "검토" })[1]);
@@ -89,9 +91,7 @@ test("approves a pending store from the detail drawer", async () => {
   const confirmDialog = screen.getByRole("dialog", { name: "매장 신청 승인" });
   fireEvent.click(within(confirmDialog).getByRole("button", { name: "승인하기" }));
 
-  expect(
-    screen.queryByRole("dialog", { name: "매장 신청 승인" })
-  ).not.toBeInTheDocument();
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "매장 신청 승인" })).not.toBeInTheDocument());
 
   expect(
     await screen.findByText("모닝 베이크 신청을 승인 처리했습니다.")
@@ -110,7 +110,7 @@ test("allows approval after the application-level business verification", async 
     ],
   });
 
-  renderAt("/admin/store-approvals");
+  await renderAt("/admin/store-approvals");
 
   expect((await screen.findAllByText("오후의 식탁")).length).toBeGreaterThan(0);
   fireEvent.click(screen.getAllByRole("button", { name: "검토" })[0]);
@@ -134,7 +134,7 @@ test("closes the rejection dialog and keeps the submitted reason in the detail",
     ],
   });
 
-  renderAt("/admin/store-approvals");
+  await renderAt("/admin/store-approvals");
 
   expect((await screen.findAllByText("오후의 식탁")).length).toBeGreaterThan(0);
   fireEvent.click(screen.getAllByRole("button", { name: "검토" })[0]);
@@ -148,9 +148,7 @@ test("closes the rejection dialog and keeps the submitted reason in the detail",
   });
   fireEvent.click(within(rejectDialog).getByRole("button", { name: "반려하기" }));
 
-  expect(
-    screen.queryByRole("dialog", { name: "매장 신청 반려" })
-  ).not.toBeInTheDocument();
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "매장 신청 반려" })).not.toBeInTheDocument());
   expect(
     await within(drawer).findByText("사업자 정보와 신청 정보가 일치하지 않습니다.")
   ).toBeInTheDocument();
@@ -168,7 +166,7 @@ test("changes an approved application directly to rejected with a reason", async
     ],
   });
 
-  renderAt("/admin/store-approvals");
+  await renderAt("/admin/store-approvals");
 
   expect((await screen.findAllByText("제주 초록상")).length).toBeGreaterThan(0);
   fireEvent.click(screen.getAllByRole("button", { name: "검토" })[3]);
@@ -184,9 +182,7 @@ test("changes an approved application directly to rejected with a reason", async
     within(rejectDialog).getByRole("button", { name: "반려하기" })
   );
 
-  expect(
-    screen.queryByRole("dialog", { name: "매장 신청 반려" })
-  ).not.toBeInTheDocument();
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "매장 신청 반려" })).not.toBeInTheDocument());
   expect(
     await screen.findByText("제주 초록상 신청을 반려 처리했습니다.")
   ).toBeInTheDocument();
@@ -207,7 +203,7 @@ test("changes a rejected application directly back to approved", async () => {
     ],
   });
 
-  renderAt("/admin/store-approvals");
+  await renderAt("/admin/store-approvals");
 
   expect((await screen.findAllByText("산골 국수")).length).toBeGreaterThan(0);
   fireEvent.click(screen.getAllByRole("button", { name: "검토" })[4]);
@@ -237,7 +233,7 @@ test("keeps approval actions unavailable for viewer role", async () => {
     permissions: ["ADMIN_ACCESS", "STORE_READ", "DASHBOARD_READ"],
   });
 
-  renderAt("/admin/store-approvals");
+  await renderAt("/admin/store-approvals");
 
   expect((await screen.findAllByText("오후의 식탁")).length).toBeGreaterThan(0);
   fireEvent.click(screen.getAllByRole("button", { name: "검토" })[0]);
@@ -260,7 +256,7 @@ test("provides mobile approval cards and collapsible filters", async () => {
     ],
   });
 
-  renderAt("/admin/store-approvals");
+  await renderAt("/admin/store-approvals");
 
   const filterToggle = screen.getByRole("button", {
     name: "상세 필터 열기",
@@ -319,7 +315,7 @@ test("connects the admin store menu to the admin restaurant API", async () => {
     blob: async () => new Blob(),
   });
 
-  renderAt("/admin/stores");
+  await renderAt("/admin/stores");
 
   expect(screen.getByRole("link", { name: "매장 관리" })).toHaveAttribute(
     "href",
@@ -348,7 +344,7 @@ test("edits a master food directly without importing or publishing", async () =>
     const data = options.method === "PUT" ? {...food, ...JSON.parse(options.body), version: 4} : /seasonal-foods\/99/.test(url) ? food : {content: [food], page: 0, totalPages: 1, hasNext: false};
     return {ok: true, status: 200, headers: {get: () => "application/json"}, json: async () => ({data}), text: async () => ""};
   });
-  renderAt("/admin/seasonal-foods");
+  await renderAt("/admin/seasonal-foods");
   fireEvent.click(await screen.findByRole("button", {name: /대하/}));
   await screen.findByLabelText("소개");
   fireEvent.change(screen.getByLabelText("소개"), {target: {value: "변경한 소개"}});

@@ -11,7 +11,7 @@ function Feedback() {
       <section className="support-panel">
         <div className="support-panel__header">
           <span className="support-kicker">준비 중</span>
-          <h3>여러분의 의견을 기다립니다</h3>
+          <h2>여러분의 의견을 기다립니다</h2>
         </div>
         <p className="page-layout__description">
           의견과 문의는 비공개 1:1 문의로 보내 주세요. 작성한 내용은 본인과 담당자만 확인할 수 있습니다.

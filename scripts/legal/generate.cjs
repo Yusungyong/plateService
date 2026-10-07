@@ -40,7 +40,7 @@ if (process.argv.includes("--build")) {
   }
   if (/^\\/(terms-of-service|privacy-policy|location-terms|account-deletion|child-safety)(\\/|$)/.test(uri)) {
     if (/\\/index\\.html$/.test(uri) && Object.prototype.hasOwnProperty.call(routes, uri.slice(0, -11))) return request;
-    return { statusCode: 404, statusDescription: "Not Found", headers: { "content-type": { value: "text/plain; charset=utf-8" }, "cache-control": { value: "no-store" } }, body: "아직 게시되지 않았거나 존재하지 않는 문서 버전입니다." };
+    return { statusCode: 404, statusDescription: "Not Found", headers: { "content-type": { value: "text/html; charset=utf-8" }, "cache-control": { value: "no-store" } }, body: ${JSON.stringify(htmlPage("문서를 찾을 수 없습니다", notFoundBody(), null, true))} };
   }
   return request;
 }\n`;
@@ -63,7 +63,7 @@ function handler(event) {
   for (var i = 0; i < routes.length; i++) {
     if (new RegExp(routes[i]).test(normalized)) { result.uri = '/index.html'; return result; }
   }
-  return { statusCode: 404, statusDescription: 'Not Found', headers: { 'content-type': { value: 'text/html; charset=utf-8' }, 'cache-control': { value: 'no-store' } }, body: '<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>페이지를 찾을 수 없습니다 · 접시</title><h1>페이지를 찾을 수 없습니다</h1><p>주소를 확인하거나 홈으로 이동해 주세요.</p><a href="/">접시 홈으로</a></html>' };
+  return { statusCode: 404, statusDescription: 'Not Found', headers: { 'content-type': { value: 'text/html; charset=utf-8' }, 'cache-control': { value: 'no-store' } }, body: '<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>페이지를 찾을 수 없습니다 · 접시</title><body><main><h1>페이지를 찾을 수 없습니다</h1><p>주소를 확인하거나 홈으로 이동해 주세요.</p><a href="/">접시 홈으로</a></main></body></html>' };
 }
 `;
   fs.writeFileSync(path.join(root, '.legal-preview/cloudfront-viewer-request.js'), complete);

@@ -1,3 +1,4 @@
+import useModalFocus from "../../components/useModalFocus";
 import React, { useEffect, useState } from "react";
 
 function ReasonDialog({
@@ -23,6 +24,8 @@ function ReasonDialog({
     }
   }, [defaultReasonCode, isOpen]);
 
+  const modalRef = useModalFocus(isOpen, () => {if (!isSubmitting) onCancel();});
+
   if (!isOpen) {
     return null;
   }
@@ -46,7 +49,7 @@ function ReasonDialog({
 
   return (
     <div className="admin-dialog-layer">
-      <div className="admin-dialog" role="dialog" aria-modal="true" aria-label={title}>
+      <div ref={modalRef} className="admin-dialog" role="dialog" aria-modal="true" aria-label={title}>
         <header>
           <h2>{title}</h2>
           <p>{description}</p>

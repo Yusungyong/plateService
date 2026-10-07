@@ -1,23 +1,25 @@
-import ContentVerification from "../pages/ContentVerification";
-import FAQ from "../pages/FAQ";
-import Feedback from "../pages/Feedback";
-import MemberMonitoring from "../pages/MemberMonitoring";
-import PrivacyPolicy from "../pages/PrivacyPolicy";
-import PrivateInquiry from "../pages/PrivateInquiry";
-import QnA, { QnAWrite } from "../pages/QnA";
-import RestaurantDetail from "../pages/RestaurantDetail";
-import RestaurantManagement from "../pages/RestaurantManagement";
-import TermsOfService from "../pages/TermsOfService";
-import MyInquiries from "../pages/MyInquiries";
-import Signup from "../pages/Signup";
-import BusinessDashboard from "../pages/BusinessDashboard";
-import BusinessApplicationDetail from "../pages/BusinessApplicationDetail";
-import BusinessApplications from "../pages/BusinessApplications";
-import BusinessSignup from "../pages/BusinessSignup";
-import AdminDashboard from "../admin/pages/AdminDashboard";
-import AdminPlaceholderPage from "../admin/pages/AdminPlaceholderPage";
-import AdminStoreApprovals from "../admin/pages/AdminStoreApprovals";
-import AdminSeasonalFoods from "../admin/pages/AdminSeasonalFoods";
+import {lazy} from "react";
+const ContentVerification = lazy(() => import("../pages/ContentVerification"));
+const FAQ = lazy(() => import("../pages/FAQ"));
+const Feedback = lazy(() => import("../pages/Feedback"));
+const MemberMonitoring = lazy(() => import("../pages/MemberMonitoring"));
+const PrivacyPolicy = lazy(() => import("../pages/PrivacyPolicy"));
+const PrivateInquiry = lazy(() => import("../pages/PrivateInquiry"));
+const QnA = lazy(() => import("../pages/QnA"));
+const QnAWrite = lazy(() => import("../pages/QnA").then(module => ({default: module.QnAWrite})));
+const RestaurantDetail = lazy(() => import("../pages/RestaurantDetail"));
+const RestaurantManagement = lazy(() => import("../pages/RestaurantManagement"));
+const TermsOfService = lazy(() => import("../pages/TermsOfService"));
+const MyInquiries = lazy(() => import("../pages/MyInquiries"));
+const Signup = lazy(() => import("../pages/Signup"));
+const BusinessDashboard = lazy(() => import("../pages/BusinessDashboard"));
+const BusinessApplicationDetail = lazy(() => import("../pages/BusinessApplicationDetail"));
+const BusinessApplications = lazy(() => import("../pages/BusinessApplications"));
+const BusinessSignup = lazy(() => import("../pages/BusinessSignup"));
+const AdminDashboard = lazy(() => import("../admin/pages/AdminDashboard"));
+const AdminPlaceholderPage = lazy(() => import("../admin/pages/AdminPlaceholderPage"));
+const AdminStoreApprovals = lazy(() => import("../admin/pages/AdminStoreApprovals"));
+const AdminSeasonalFoods = lazy(() => import("../admin/pages/AdminSeasonalFoods"));
 import { userHasAdminPermission, ADMIN_PERMISSIONS } from "../admin/constants/adminPermissions";
 
 export const publicNavigationItems = [
@@ -71,7 +73,7 @@ export const adminNavigationItems = [
     path: "/admin/faq",
     label: "FAQ 관리",
     icon: "support",
-    permission: ADMIN_PERMISSIONS.SUPPORT_MANAGE,
+    permission: ADMIN_PERMISSIONS.FAQ_MANAGE,
     group: "고객 지원",
   },
   {
@@ -85,7 +87,7 @@ export const adminNavigationItems = [
     path: "/admin/member-monitoring",
     label: "회원 모니터링",
     icon: "member",
-    permission: ADMIN_PERMISSIONS.SUPPORT_MANAGE,
+    permission: ADMIN_PERMISSIONS.MEMBER_MONITORING_READ,
     group: "고객 지원",
   },
 ];
@@ -196,7 +198,7 @@ export const adminRoutes = [
     props: {
       adminMode: true,
     },
-    permission: ADMIN_PERMISSIONS.SUPPORT_MANAGE,
+    permission: ADMIN_PERMISSIONS.FAQ_MANAGE,
   },
   {
     path: "/admin/qna",
@@ -209,7 +211,7 @@ export const adminRoutes = [
   {
     path: "/admin/member-monitoring",
     component: MemberMonitoring,
-    permission: ADMIN_PERMISSIONS.SUPPORT_MANAGE,
+    permission: ADMIN_PERMISSIONS.MEMBER_MONITORING_READ,
   },
 ];
 

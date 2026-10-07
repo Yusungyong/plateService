@@ -10,7 +10,7 @@ function ContentVerification() {
       <section className="support-panel">
         <div className="support-panel__header">
           <span className="support-kicker">준비 중</span>
-          <h3>콘텐츠 관련 문의</h3>
+          <h2>콘텐츠 관련 문의</h2>
         </div>
         <p className="page-layout__description">
           확인이 필요한 콘텐츠의 링크와 내용을 공식 이메일 <a href="mailto:su12ng@gmail.com">su12ng@gmail.com</a>으로 보내 주세요.

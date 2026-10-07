@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import AppErrorBoundary from "./components/AppErrorBoundary";
+import RouteNavigation from "./components/RouteNavigation";
+import React, { Suspense, useState } from "react";
 import {
   createBrowserRouter,
   RouterProvider,
@@ -38,7 +40,7 @@ import "./styles/readiness.css";
 function FaqEntryRoute({ Component }) {
   const { canAdmin } = useAuth();
 
-  if (canAdmin(ADMIN_PERMISSIONS.SUPPORT_MANAGE)) {
+  if (canAdmin(ADMIN_PERMISSIONS.FAQ_MANAGE)) {
     return <Navigate to="/admin/faq" replace />;
   }
 
@@ -88,6 +90,8 @@ function AdminPermissionRoute({ component: Component, permission, props }) {
 function RoutedApp() {
   return (
     <AuthProvider>
+      <RouteNavigation />
+      <Suspense fallback={<main className="page-loading" role="status">화면을 불러오고 있습니다…</main>}>
         <ApplicationShell>
           <Routes>
             <Route path="*" element={<NotFound />} />
@@ -154,12 +158,13 @@ function RoutedApp() {
             </Route>
           </Routes>
         </ApplicationShell>
+      </Suspense>
     </AuthProvider>
   );
 }
 
 function App() {
-  const [router] = useState(() => createBrowserRouter([{ path: "*", element: <RoutedApp /> }]));
+  const [router] = useState(() => createBrowserRouter([{ path: "*", element: <RoutedApp />, errorElement: <AppErrorBoundary failed /> }]));
   return <RouterProvider router={router} />;
 }
 

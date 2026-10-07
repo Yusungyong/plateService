@@ -110,7 +110,8 @@ export async function approveStore(storeId, command = {}) {
         command
       )
     );
-    return getStoreApprovalDetail(storeId);
+    try {return await getStoreApprovalDetail(storeId);}
+    catch (cause) {const error = new Error("처리는 완료됐지만 상세 정보를 다시 불러오지 못했습니다."); error.code = "APPROVAL_COMMITTED"; throw error;}
   }
 
   return updateStoreApproval(storeId, {
@@ -128,7 +129,8 @@ export async function holdStore(storeId, command) {
         command
       )
     );
-    return getStoreApprovalDetail(storeId);
+    try {return await getStoreApprovalDetail(storeId);}
+    catch (cause) {const error = new Error("처리는 완료됐지만 상세 정보를 다시 불러오지 못했습니다."); error.code = "APPROVAL_COMMITTED"; throw error;}
   }
 
   const reason = typeof command === "string" ? command : command?.reason;
@@ -147,7 +149,8 @@ export async function rejectStore(storeId, command) {
         command
       )
     );
-    return getStoreApprovalDetail(storeId);
+    try {return await getStoreApprovalDetail(storeId);}
+    catch (cause) {const error = new Error("처리는 완료됐지만 상세 정보를 다시 불러오지 못했습니다."); error.code = "APPROVAL_COMMITTED"; throw error;}
   }
 
   const reason = typeof command === "string" ? command : command?.reason;

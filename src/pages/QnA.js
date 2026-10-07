@@ -403,6 +403,9 @@ function QnA({ adminMode = false }) {
     return entries.find((entry) => entry.qnaId === selectedQnaId) || entries[0] || null;
   }, [entries, selectedQnaId]);
   const qnaResultCaption = getQnaFilterSummary(appliedFilters);
+  const answerDirty = adminMode && selectedEntry && (answerDraft.answer !== (selectedEntry.answer || "") || answerDraft.statusCode !== (selectedEntry.statusCode || "reviewing") || answerDraft.isPublic !== (selectedEntry.isPublic ?? true));
+  function canLeaveAnswer() {return !isSubmitting && (!answerDirty || window.confirm("작성 중인 답변을 버리고 이동할까요?"));}
+
 
   useEffect(() => {
     if (!adminMode || !selectedEntry) {
@@ -425,15 +428,18 @@ function QnA({ adminMode = false }) {
 
   function handleFilterSubmit(event) {
     event.preventDefault();
+    if (!canLeaveAnswer()) return;
     setAppliedFilters(filters);
   }
 
   function resetFilters() {
+    if (!canLeaveAnswer()) return;
     setFilters(initialQnaFilters);
     setAppliedFilters(initialQnaFilters);
   }
 
   function handleLoadMoreQna() {
+    if (!canLeaveAnswer()) return;
     loadEntries({
       page: (qnaPage.page ?? 0) + 1,
       append: true,
@@ -442,6 +448,7 @@ function QnA({ adminMode = false }) {
 
   async function handleAnswerSubmit(event) {
     event.preventDefault();
+    if (isSubmitting) return;
     setSubmitMessage("");
 
     if (!selectedEntry?.qnaId) {
@@ -478,6 +485,7 @@ function QnA({ adminMode = false }) {
         title="Q&A 관리"
         description="접수된 질문을 선택하고 답변과 상태를 관리하는 관리자 화면입니다."
       >
+        <UnsavedChangesGuard when={answerDirty} pending={isSubmitting} />
         {loadError ? (
           <div className="api-status api-status--error" role="alert">
             <span>{loadError}</span>
@@ -529,7 +537,7 @@ function QnA({ adminMode = false }) {
                   >
                     <summary
                       className="board-row__summary"
-                      onClick={() => setSelectedQnaId(entry.qnaId)}
+                      onClick={event => {event.preventDefault(); if (entry.qnaId !== selectedQnaId && canLeaveAnswer()) setSelectedQnaId(entry.qnaId);}}
                     >
                       <span className="board-badge">{getStatusLabel(entry.statusCode)}</span>
                       <span className="board-row__title">{entry.question}</span>
@@ -571,7 +579,7 @@ function QnA({ adminMode = false }) {
               </div>
 
               {selectedEntry ? (
-                <form className="admin-form" onSubmit={handleAnswerSubmit}>
+                <form className="admin-form" onSubmit={handleAnswerSubmit}><fieldset className="form-fields" disabled={isSubmitting}>
                   <div className="faq-editor-caption">
                     선택한 질문: {selectedEntry.question}
                   </div>
@@ -646,7 +654,7 @@ function QnA({ adminMode = false }) {
                       {isSubmitting ? "저장 중..." : "답변 저장"}
                     </button>
                   </div>
-                </form>
+                </fieldset></form>
               ) : (
                 <div className="board-empty">목록에서 질문을 선택해 주세요.</div>
               )}

@@ -2,6 +2,16 @@ import { useEffect, useRef, useState } from "react";
 
 function MediaUploadField({ label, accept, file, emptyText, onChange, variant = "image" }) {
   const inputRef = useRef(null);
+  const [error, setError] = useState("");
+  const maxBytes = (variant === "video" ? 50 : 10) * 1024 * 1024;
+  const types = variant === "video" ? ["video/mp4", "video/webm", "video/quicktime"] : ["image/jpeg", "image/png", "image/webp"];
+  function selectFile(event) {
+    const next = event.target.files?.[0];
+    if (next && (!types.includes(next.type) || next.size > maxBytes)) {
+      setError(`지원 형식과 ${maxBytes / 1024 / 1024}MB 제한을 확인해 주세요.`); event.target.value = ""; return;
+    }
+    setError(""); onChange(next || null);
+  }
   const [previewUrl, setPreviewUrl] = useState("");
   const typeLabel = variant === "video" ? "VIDEO" : "IMAGE";
   const hasFile = Boolean(file?.name);
@@ -34,13 +44,15 @@ function MediaUploadField({ label, accept, file, emptyText, onChange, variant = 
   return (
     <div className="media-upload">
       <span className="media-upload__label">{label}</span>
+      <small>{variant === "video" ? "MP4 · WebM · MOV, 최대 50MB" : "JPEG · PNG · WebP, 최대 10MB"}</small>
+      {error && <p role="alert">{error}</p>}
       <label className="media-upload__dropzone">
         <input
           ref={inputRef}
           className="media-upload__input"
           type="file"
-          accept={accept}
-          onChange={(event) => onChange(event.target.files?.[0] || null)}
+          accept={types.join(",")}
+          onChange={selectFile}
         />
         <span className={hasFile ? "media-upload__surface media-upload__surface--selected" : "media-upload__surface"}>
           <span className="media-upload__badge">{typeLabel}</span>
