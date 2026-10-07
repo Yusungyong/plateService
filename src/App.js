@@ -44,7 +44,7 @@ function FaqEntryRoute({ Component }) {
 function ApplicationShell({ children }) {
   const location = useLocation();
   const isLoginPage = location.pathname === "/login";
-  const isLegalPage = /^\/(terms-of-service|privacy-policy|location-terms)(\/|$)/.test(location.pathname);
+  const isLegalPage = /^\/(terms-of-service|privacy-policy|location-terms|account-deletion|child-safety)(\/|$)/.test(location.pathname);
   const isAdminArea =
     location.pathname === "/admin" || location.pathname.startsWith("/admin/");
 

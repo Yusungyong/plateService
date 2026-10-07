@@ -38,7 +38,7 @@ if (process.argv.includes("--build")) {
   if (/^\\/legal(\\/|$)/.test(uri) && !Object.prototype.hasOwnProperty.call(staticFiles, uri)) {
     return { statusCode: 404, statusDescription: "Not Found", headers: { "cache-control": { value: "no-store" } }, body: "Document not found" };
   }
-  if (/^\\/(terms-of-service|privacy-policy|location-terms)(\\/|$)/.test(uri)) {
+  if (/^\\/(terms-of-service|privacy-policy|location-terms|account-deletion|child-safety)(\\/|$)/.test(uri)) {
     if (/\\/index\\.html$/.test(uri) && Object.prototype.hasOwnProperty.call(routes, uri.slice(0, -11))) return request;
     return { statusCode: 404, statusDescription: "Not Found", headers: { "content-type": { value: "text/plain; charset=utf-8" }, "cache-control": { value: "no-store" } }, body: "아직 게시되지 않았거나 존재하지 않는 문서 버전입니다." };
   }
@@ -56,7 +56,7 @@ function handler(event) {
   var result = routeLegal(event);
   if (result.statusCode) return result;
   var uri = result.uri;
-  if (/^\\/(legal|terms-of-service|privacy-policy|location-terms)(\\/|$)/.test(uri)) return result;
+  if (/^\\/(legal|terms-of-service|privacy-policy|location-terms|account-deletion|child-safety)(\\/|$)/.test(uri)) return result;
   if (/^\\/(static|images)(\\/|$)/.test(uri) || /^\\/(index\\.html|robots\\.txt|sitemap\\.xml|favicon\\.ico|manifest\\.json|logo192\\.png|logo512\\.png)$/.test(uri)) return result;
   var routes = ${JSON.stringify(expressions)};
   var normalized = uri.replace(/\\/+$/, '') || '/';
@@ -67,7 +67,7 @@ function handler(event) {
 }
 `;
   fs.writeFileSync(path.join(root, '.legal-preview/cloudfront-viewer-request.js'), complete);
-  const sitemapRoutes = ['/', '/faq', ...manifest.documents.filter(doc => doc.currentVersion).map(doc => doc.id === 'service-terms' ? '/terms-of-service' : doc.id === 'privacy-notice' ? '/privacy-policy' : '/location-terms')];
+  const sitemapRoutes = ['/', '/faq', ...manifest.documents.filter(doc => doc.currentVersion).map(doc => '/' + doc.slug)];
   fs.writeFileSync(path.join(root, 'build/sitemap.xml'), '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + sitemapRoutes.map(uri => `<url><loc>https://plate-service.com${uri}</loc></url>`).join('\n') + '\n</urlset>\n');
 }
 console.log(`Legal: ${Object.keys(pages).length} public pages; drafts excluded.`);

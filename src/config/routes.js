@@ -28,6 +28,8 @@ export const publicNavigationItems = [
   { path: "/content-verification", label: "콘텐츠 검증", available: false },
   { path: "/terms-of-service", label: "이용약관" },
   { path: "/privacy-policy", label: "개인정보 처리방침" },
+  { path: "/account-deletion", label: "계정 삭제 요청" },
+  { path: "/child-safety", label: "아동 안전 기준" },
 ];
 
 export const adminNavigationItems = [
@@ -109,6 +111,8 @@ export const openSupportRoutes = [
 ];
 
 export const policyRoutes = [
+  { path: "/child-safety/*", component: PrivacyPolicy },
+  { path: "/account-deletion/*", component: PrivacyPolicy },
   { path: "/terms-of-service/*", component: TermsOfService },
   { path: "/privacy-policy/*", component: PrivacyPolicy },
   // Reserved; unpublished documents return a missing-document page, never a draft.

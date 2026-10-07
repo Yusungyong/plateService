@@ -8,7 +8,7 @@ test("SPA navigation shows the same public correction and version link", () => {
   render(<MemoryRouter initialEntries={["/privacy-policy"]}><LegalPage /></MemoryRouter>);
   expect(screen.getByRole("heading", { level: 1, name: "개인정보 처리방침" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "이전 버전 열람" })).toHaveAttribute("href", "/privacy-policy/versions");
-  expect(screen.queryByText(/30일/)).not.toBeInTheDocument();
+  expect(screen.getAllByText(/30일/).length).toBeGreaterThan(0);
 });
 
 test.each(["/location-terms", "/privacy-policy/versions/draft-2026-09-14"])("%s does not expose a draft", (url) => {
@@ -18,7 +18,7 @@ test.each(["/location-terms", "/privacy-policy/versions/draft-2026-09-14"])("%s 
 
 
 test.each([
-  ['/terms-of-service', '/legal/documents/service-terms/2026-09-25.md'],
+  ['/terms-of-service', '/legal/documents/service-terms/2026-10-07.md'],
   ['/terms-of-service/versions/legacy-629dc8a', '/legal/documents/service-terms/legacy-629dc8a.md'],
 ])('downloads the exact selected version without a rewritten HTTP request: %s', async (route, path) => {
   const create = URL.createObjectURL;
