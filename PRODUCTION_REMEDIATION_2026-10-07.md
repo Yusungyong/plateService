@@ -3,6 +3,8 @@
 기준 점검: [PRODUCTION_DEEP_AUDIT_2026-10-07.md](PRODUCTION_DEEP_AUDIT_2026-10-07.md).
 프론트 이슈: https://github.com/Yusungyong/plateService/issues/20
 백엔드 이슈: https://github.com/Yusungyong/plateAppServer/issues/92
+프론트 PR: https://github.com/Yusungyong/plateService/pull/21
+백엔드 PR: https://github.com/Yusungyong/plateAppServer/pull/95
 
 이 기록의 **구현**은 작업 브랜치와 로컬 검증을 의미한다. 운영 배포 완료를 뜻하지 않는다. AWS 설정과 미확정 정책은 이전 요청에 따라 실행/확정하지 않았다.
 
@@ -50,6 +52,7 @@
 - 백엔드: RestaurantAdminServiceTest 5개 + RestaurantAdminFileServiceTest 1개 통과. 실제 DB 동시 실행 검증은 미실행.
 - Vite production build 성공. CloudFront 함수 8,863 bytes로 10KB 이내.
 - 보호 화면 11개 × 모바일/데스크톱, 공개 경로 56개 조합을 로컬 빌드에서 합성 API로 점검. 데이터 쓰기는 합성 응답으로만 검증했다.
+- 최종 56개 공개 조합과 22개 보호 화면 조합에서 검사한 axe 규칙 위반, 수평 넘침, JS 실행 오류 0건. 이는 수동 접근성 인증이나 모든 사용자 환경의 무결점 보장은 아니다. 별도로 비정상 API 응답 복구도 확인했다.
 - 계정 전환, 음수 가격, 최초 조회 실패, 검색 유지, 늦은 상세 응답, Q&A/FAQ 초안 보존, 서버 로그아웃의 브라우저 회귀 시나리오 점검.
 - `verify:deployment`로 로컬 전문 HTML/Markdown/앱 JSON 해시, sitemap, 404 확인.
 - `npm audit --omit=dev`: 0. 전체 audit의 잔여 19 moderate는 미패치 sprintf-js를 포함한 테스트 도구 의존 관계 집계이며 19개 별도 운영 취약점이라는 뜻은 아니다. 현재 공개된 상위 패키지의 안전한 수정 경로가 없어 강제 다운그레이드하지 않았다.
