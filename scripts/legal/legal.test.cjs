@@ -40,7 +40,7 @@ test("new policies and draft material cannot leak into the public build or conse
   assert.equal(pages["/terms-of-service/versions/draft-2026-09-14"], undefined);
   for (const doc of manifest.documents) for (const version of doc.versions) {
     assert.equal(version.consentEligible, version.status === "published");
-    assert.equal(version.effectiveDate, version.status === "published" ? "2026-09-25" : null);
+    assert.equal(version.effectiveDate, version.status === "published" ? version.version : null);
     assert.equal(hash(files[new URL(version.htmlUrl).pathname.slice(1)]), version.sha256);
   }
 });
@@ -162,4 +162,15 @@ test("mobile Markdown keeps table columns, numbered lists and safe link targets"
   assert.equal(blocks[1].spans.find(span => span.href).href, "mailto:su12ng@gmail.com");
   assert.deepEqual(blocks[3].rows.map(row => row.map(cell => cell.map(span => span.text).join(""))), [["항목", "기간"], ["계정", "확인 중"]]);
   assert.throws(() => mobileBlocks('![unreviewed image](https://example.org/a.png)'), /Unsupported/);
+});
+
+
+test("current deletion and privacy pages explain recovery and outside-app deletion without changing historical terms", () => {
+  const {files}=loadPublic();
+  assert.match(files['terms-of-service/index.html'],/30일/);
+  assert.doesNotMatch(files['terms-of-service/index.html'],/30일.*기능은 제공되지 않습니다/);
+  assert.match(files['account-deletion/index.html'],/로그인하지 않아도/);
+  assert.match(files['account-deletion/index.html'],/mailto:su12ng@gmail.com/);
+  assert.match(files['privacy-policy/index.html'],/원본만 보관/);
+  assert.match(files['legal/documents/service-terms/2026-09-25.md'].toString(),/30일 복구 유예나 자동 복구 기능은 제공하지 않습니다/);
 });

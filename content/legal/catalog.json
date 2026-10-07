@@ -6,8 +6,20 @@
       "id": "service-terms",
       "slug": "terms-of-service",
       "title": "이용약관",
-      "currentVersion": "2026-09-25",
+      "currentVersion": "2026-10-07",
       "versions": [
+        {
+          "version": "2026-10-07",
+          "status": "published",
+          "label": "이용약관",
+          "effectiveDate": "2026-10-07",
+          "recordedOn": "2026-10-07",
+          "source": "public/2026-10-07/terms-of-service.md",
+          "sourceSha256": "767fceb9d8b197e5d66bcdb14a55c2d61272074b5a637c6094d09f20bd9faa38",
+          "changeSummary": "30일 탈퇴 복구·최종 삭제와 외부 삭제 요청 경로, 원본 보관 및 외부 서비스 안내 정정. 이전 동의는 변경하지 않음.",
+          "releaseEvidence": "releases/2026-10-07.md",
+          "htmlSha256": "3221a6880e0f243661860c361a99ec692c75e4e278fc744be4d3899f8e706365"
+        },
         {
           "version": "2026-09-25",
           "status": "published",
@@ -48,8 +60,20 @@
       "id": "privacy-notice",
       "slug": "privacy-policy",
       "title": "개인정보 처리방침",
-      "currentVersion": "2026-09-25-correction",
+      "currentVersion": "2026-10-07",
       "versions": [
+        {
+          "version": "2026-10-07",
+          "status": "published",
+          "label": "개인정보 처리방침",
+          "effectiveDate": "2026-10-07",
+          "recordedOn": "2026-10-07",
+          "source": "public/2026-10-07/privacy-policy.md",
+          "sourceSha256": "0667ca36c6385daded159352e4075d97d290ca531df7ce3a679f754c8175b084",
+          "changeSummary": "30일 탈퇴 복구·최종 삭제와 외부 삭제 요청 경로, 원본 보관 및 외부 서비스 안내 정정. 이전 동의는 변경하지 않음.",
+          "releaseEvidence": "releases/2026-10-07.md",
+          "htmlSha256": "52d0ea5e76843a4b536b11e0f0585cd2068d22ca78fae6e882deb21eaadc8fda"
+        },
         {
           "version": "2026-09-25-correction",
           "status": "correction",
@@ -91,6 +115,46 @@
       "title": "위치기반서비스 이용약관",
       "currentVersion": null,
       "versions": []
+    },
+    {
+      "id": "account-deletion",
+      "slug": "account-deletion",
+      "title": "접시 계정 및 개인정보 삭제 요청",
+      "currentVersion": "2026-10-07",
+      "versions": [
+        {
+          "version": "2026-10-07",
+          "status": "published",
+          "label": "계정 삭제 요청 안내",
+          "effectiveDate": "2026-10-07",
+          "recordedOn": "2026-10-07",
+          "source": "public/2026-10-07/account-deletion.md",
+          "sourceSha256": "cde5ab70909d0aea98eeb6d4c3289680bc9f9442506f3280ac4a4c069440e5d9",
+          "changeSummary": "앱 없이 이용 가능한 이메일 삭제 요청, 처리 절차와 보관 범위 안내.",
+          "releaseEvidence": "releases/2026-10-07.md",
+          "htmlSha256": "9ae4362c8bf39e88709f6767abf3050682fa4d8e6d8089a27ef28777edf5dcca"
+        }
+      ]
+    },
+    {
+      "id": "child-safety",
+      "slug": "child-safety",
+      "title": "접시 아동 안전 기준",
+      "currentVersion": "2026-10-07",
+      "versions": [
+        {
+          "version": "2026-10-07",
+          "status": "published",
+          "label": "아동 안전 기준",
+          "effectiveDate": "2026-10-07",
+          "recordedOn": "2026-10-07",
+          "source": "public/2026-10-07/child-safety.md",
+          "sourceSha256": "54e66ad3b84001dd81f3850d60ddfb272ded28f76971f562935343a72d01381b",
+          "changeSummary": "CSAE·CSAM 금지 범위, 신고·조치 및 담당자 안내.",
+          "releaseEvidence": "releases/2026-10-07.md",
+          "htmlSha256": "ffc87d14f752407e339af7d8cffca7dfaece1f00182f38741ca0c649dcaec88d"
+        }
+      ]
     }
   ]
 }
