@@ -60,8 +60,20 @@
       "id": "privacy-notice",
       "slug": "privacy-policy",
       "title": "개인정보 처리방침",
-      "currentVersion": "2026-10-07",
+      "currentVersion": "2026-10-08",
       "versions": [
+        {
+          "version": "2026-10-08",
+          "status": "published",
+          "label": "개인정보 처리방침",
+          "effectiveDate": "2026-10-08",
+          "recordedOn": "2026-10-08",
+          "source": "public/2026-10-08/privacy-policy.md",
+          "sourceSha256": "f3524bd96b42f6dfd8b96260bd2d1fc93e4a2d83e57f02f22fdd973211215d72",
+          "changeSummary": "친구 대화의 참여 계정·메시지·전송시각·읽음 처리, 친구 해제·차단 후 읽기와 최종 회원 삭제시 양쪽 메시지 삭제 안내 추가. 기존 문서·동의 보존.",
+          "releaseEvidence": "releases/2026-10-08-chat.md",
+          "htmlSha256": "c9c31acf9b5cfd51fdb36b9ae38dbfbc3910a47c367a247ff450feef1cfbf485"
+        },
         {
           "version": "2026-10-07",
           "status": "published",
