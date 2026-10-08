@@ -26,6 +26,8 @@ export default function AdminApiRegistry() {
     && `${row.method} ${row.path} ${row.module} ${row.capability || ""} ${row.menuLabels.join(" ")}`.toLowerCase().includes(query.toLowerCase())), [rows, module, method, surface, query]);
   const modules = useMemo(() => [...new Set(rows.map(row => row.module))].sort(), [rows]);
   const observed = rows.filter(row => row.observed).length;
+  const unclassifiedCount = (snapshot?.runtimeMetrics || []).filter(metric => metric.path === "UNMATCHED_OR_OTHER")
+    .reduce((total, metric) => total + metric.requestCount, 0);
   function download() {
     const blob = new Blob([JSON.stringify({...snapshot, clientAnalysis: consumerEvidence, effectiveRows: rows}, null, 2)], {type: "application/json"});
     const url = URL.createObjectURL(blob); const anchor = document.createElement("a");
@@ -42,8 +44,9 @@ export default function AdminApiRegistry() {
         <span>현재 활성 API <strong>{snapshot.activeRouteCount}</strong></span>
         <span>업무 영역 <strong>{modules.length}</strong></span>
         <span>호출 관측 API <strong>{observed}</strong></span>
+        <span>경로 미분류 요청 <strong>{unclassifiedCount > 0 ? unclassifiedCount.toLocaleString() : "미관측"}</strong></span>
       </section>
-      <p className="api-registry-note">호출 지표는 현재 서버 프로세스 시작 이후 집계입니다. 미관측은 미사용을 뜻하지 않습니다. 메뉴 연결은 소스 분석 기준이며 선정된 새 공통 API는 최신 앱 호출 연결을 함께 반영합니다.</p>
+      <p className="api-registry-note">호출 지표는 현재 서버 프로세스 시작 이후 집계입니다. 미관측은 미사용을 뜻하지 않습니다. 메뉴 연결은 소스 분석 기준이며 선정된 새 공통 API는 최신 앱 호출 연결을 함께 반영합니다. 일부 인증 거절과 상태 점검은 경로 미분류로 집계되어 개별 API 오류율에 포함되지 않습니다.</p>
       <section className="api-registry-filters" aria-label="API 필터">
         <label>검색<input value={query} onChange={event => setQuery(event.target.value)} placeholder="경로, 기능, 메뉴" /></label>
         <label>업무 영역<select value={module} onChange={event => setModule(event.target.value)}><option value="">전체</option>{modules.map(value => <option key={value}>{value}</option>)}</select></label>
