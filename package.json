@@ -14,7 +14,7 @@
   "scripts": {
     "prestart": "node scripts/legal/generate.cjs",
     "start": "react-scripts start",
-    "prebuild": "node scripts/legal/generate.cjs",
+    "prebuild": "node scripts/release.cjs && node scripts/legal/generate.cjs",
     "build": "react-scripts build",
     "postbuild": "node scripts/legal/generate.cjs --build",
     "pretest": "node scripts/legal/generate.cjs",
