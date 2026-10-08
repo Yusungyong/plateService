@@ -17,6 +17,8 @@ test("combines observed responses without inventing zero metrics for unobserved 
 test("filters by actual menu linkage and shows contract details", async () => {
   getApiRegistry.mockResolvedValue(snapshot);render(<AdminApiRegistry />);
   await screen.findByRole("button", {name: "POST /api/images"});
+  expect(screen.queryByText("20.0%")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", {name: "호출 지표 보기"}));
   expect(screen.getByText("20.0%")).toBeInTheDocument();
   fireEvent.change(screen.getByLabelText("검색"), {target: {value: "이미지 등록"}});
   expect(screen.getByText("1개 표시")).toBeInTheDocument();
@@ -68,6 +70,7 @@ test("relation API opens details and another source menu can be followed", async
   fireEvent.click(await screen.findByRole("button", {name: "메뉴 이미지 등록 1개 API"}));
   fireEvent.click(screen.getByRole("button", {name: "관계도 POST /api/images"}));
   expect(screen.getByRole("region", {name: "API 상세"})).toBeInTheDocument();
+  fireEvent.click(screen.getByText("소스 근거와 요청 형식 보기", {selector: "summary"}));
   expect(screen.getByText("Editor.js:12")).toBeInTheDocument();
   expect(screen.getByText("Viewer.js:24")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", {name: "이미지 보기 ↗"}));
@@ -91,6 +94,56 @@ test("structure tab is keyboard navigable and displays backend completion and pe
   fireEvent.keyDown(screen.getByRole("tab", {name: "메뉴와 API 관계"}), {key: "ArrowRight"});
   expect(screen.getByRole("tab", {name: "서비스 모듈 구조"})).toHaveAttribute("aria-selected", "true");
   expect(screen.getByRole("region", {name: "서비스 모듈 구조"})).toBeInTheDocument();
+  expect(screen.queryByLabelText("검색")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("HTTP")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByText("공통화 현황 보기", {selector: "summary"}));
   expect(screen.getByText("호환 기반 완료")).toBeInTheDocument();
   expect(screen.getByText("후속 검증 필요")).toBeInTheDocument();
+});
+
+test("starts with a connected menu and places selected API details before the list", async () => {
+  getApiRegistry.mockResolvedValue(snapshot);
+  render(<AdminApiRegistry />);
+  const menu = await screen.findByRole("button", {name: "메뉴 앱 > 이미지 등록 1개 API"});
+  expect(menu).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", {name: "관계도 POST /api/images"})).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", {name: "관계도 POST /api/images"}));
+  const detail = screen.getByRole("region", {name: "API 상세"});
+  const list = screen.getByRole("region", {name: "API 전체 목록"});
+  expect(detail.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.getByText("소스 근거와 요청 형식 보기", {selector: "summary"}).closest("details")).not.toHaveAttribute("open");
+  expect(screen.getByText("공통화 현황 보기", {selector: "summary"}).closest("details")).not.toHaveAttribute("open");
+});
+
+test("metric display can be enabled and hidden without changing graph or menu selection", async () => {
+  getApiRegistry.mockResolvedValue(snapshot);
+  render(<AdminApiRegistry />);
+  const route = await screen.findByRole("button", {name: "관계도 POST /api/images"});
+  expect(screen.queryByRole("columnheader", {name: "호출 수"})).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", {name: "호출 지표 보기"}));
+  expect(screen.getByRole("columnheader", {name: "호출 수"})).toBeInTheDocument();
+  expect(screen.getByText("20.0%")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", {name: "호출 지표 숨기기"}));
+  expect(screen.queryByRole("columnheader", {name: "호출 수"})).not.toBeInTheDocument();
+  expect(route).toBeInTheDocument();
+  expect(screen.getByRole("button", {name: "메뉴 앱 > 이미지 등록 1개 API"})).toHaveAttribute("aria-pressed", "true");
+});
+
+test("compact menu selection uses the same filters and preserves selected menus with no matching API", async () => {
+  getApiRegistry.mockResolvedValue(snapshot);
+  render(<AdminApiRegistry />);
+  const menu = await screen.findByRole("button", {name: "메뉴 앱 > 이미지 등록 1개 API"});
+  const compactSelect = screen.getByLabelText("메뉴 선택");
+  expect(compactSelect).toHaveValue("editor");
+  fireEvent.change(screen.getByLabelText("HTTP"), {target: {value: "GET"}});
+  expect(compactSelect).toHaveValue("editor");
+  expect(screen.getByText("앱 > 이미지 등록 · 연결 API 없음", {selector: "option"})).toBeInTheDocument();
+  expect(screen.getByText("0개 표시")).toBeInTheDocument();
+  fireEvent.change(compactSelect, {target: {value: ""}});
+  expect(screen.getByText("1개 표시")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", {name: "필터 초기화"}));
+  fireEvent.change(compactSelect, {target: {value: "editor"}});
+  expect(menu).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", {name: "관계도 POST /api/images"})).toBeInTheDocument();
+  expect(getApiRegistry).toHaveBeenCalledTimes(1);
 });

@@ -1,5 +1,5 @@
 import React, {useMemo} from "react";
-import {moduleDetails, relationshipGraph} from "../pages/apiRegistryModel";
+import {relationshipGraph} from "../pages/apiRegistryModel";
 
 export default function ApiRelationshipMap({rows, menu, selectedApiId, onSelectModule, onSelectApi}) {
   const graph = useMemo(() => relationshipGraph(rows), [rows]);
@@ -20,15 +20,15 @@ export default function ApiRelationshipMap({rows, menu, selectedApiId, onSelectM
       </div>
       <div className="api-map-lane api-map-lane--modules">
         {graph.modules.map((module, index) => <button type="button" className="api-map-node api-map-module" key={module.id} style={{top: `${20 + index * 80}px`}} onClick={() => onSelectModule(module.id)} aria-label={`관계도 업무 ${module.label} ${module.apiCount}개 API`}>
-          <strong>{module.label}</strong><small>{module.apiCount}개 API · 업무 필터 적용 →</small>
+          <strong>{module.label}</strong><small>{module.apiCount}개 API · 업무만 보기 →</small>
         </button>)}
       </div>
       <div className="api-map-lane api-map-lane--routes">
         {graph.routes.map((row, index) => <button type="button" className={`api-map-node api-map-api ${selectedApiId === row.id ? "is-selected" : ""}`} key={row.id} style={{top: `${20 + index * 82}px`}} onClick={() => onSelectApi(row)} aria-label={`관계도 ${row.method} ${row.path}`}>
-          <span><b className={`api-method api-method--${row.method.toLowerCase()}`}>{row.method}</b><small>{moduleDetails(row.module).label}</small></span><code>{row.path}</code>
+          <span><b className={`api-method api-method--${row.method.toLowerCase()}`}>{row.method}</b><small>상세 보기 →</small></span><code>{row.path}</code>
         </button>)}
       </div>
     </div>
-    {graph.omittedApiCount > 0 && <p className="api-map-limit">관계도에는 {graph.routes.length}개 API를 표시합니다. 나머지 {graph.omittedApiCount}개는 아래 전체 목록에서 확인하거나 업무 필터로 좁혀 보세요.</p>}
+    {graph.omittedApiCount > 0 && <p className="api-map-limit">관계도에는 {graph.routes.length}개 API를 표시합니다. 나머지 {graph.omittedApiCount}개는 목록에서 확인할 수 있습니다. <a href="#api-list-section">API 목록 보기 →</a></p>}
   </div>;
 }
