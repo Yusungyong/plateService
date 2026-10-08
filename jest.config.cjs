@@ -1,0 +1,1 @@
+module.exports = {testEnvironment:'jsdom',roots:['<rootDir>/src'],setupFilesAfterEnv:['<rootDir>/src/setupTests.js'],transform:{'^.+\\.[jt]sx?$':'babel-jest'},moduleNameMapper:{'\\.(css|less|scss)$':'identity-obj-proxy','\\.(png|jpg|jpeg|webp|gif|svg)$':'<rootDir>/scripts/test-asset.cjs'},clearMocks:true};

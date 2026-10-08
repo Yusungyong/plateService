@@ -56,20 +56,20 @@ function BusinessApplications() {
           <div className="support-panel__header restaurant-menu-header">
             <div>
               <span className="support-kicker">APPLICATIONS</span>
-              <h3>총 {applicationPage.totalElements.toLocaleString()}건</h3>
+              <h2>총 {applicationPage.totalElements.toLocaleString()}건</h2>
             </div>
             <Link className="restaurant-text-link" to="/business/signup">
               새 입점 신청
             </Link>
           </div>
 
-          <div className="business-application-table" role="table" aria-label="입점 신청 목록">
-            <div className="business-application-table__head" role="row">
-              <span role="columnheader">매장명</span>
-              <span role="columnheader">심사 상태</span>
-              <span role="columnheader">입점 심사</span>
-              <span role="columnheader">수정일</span>
-              <span role="columnheader">작업</span>
+          <div className="business-application-table" role="region" aria-label="입점 신청 목록">
+            <div className="business-application-table__head">
+              <span>매장명</span>
+              <span>심사 상태</span>
+              <span>입점 심사</span>
+              <span>수정일</span>
+              <span>작업</span>
             </div>
 
             <div className="business-application-table__body">
@@ -84,26 +84,26 @@ function BusinessApplications() {
                   <div
                     key={application.applicationId}
                     className="business-application-table__row"
-                    role="row"
+
                   >
-                    <div role="cell" data-label="매장명">
+                    <div data-label="매장명">
                       <strong>{application.storeName || "-"}</strong>
                       <p>신청 ID {application.applicationId}</p>
                     </div>
                     <span
                       className={`status-pill status-pill--${application.approvalStatus || "default"}`}
-                      role="cell"
+
                       data-label="심사 상태"
                     >
                       {toApprovalStatusLabel(application.approvalStatus)}
                     </span>
-                    <span role="cell" data-label="입점 심사">
+                    <span data-label="입점 심사">
                       {toVerificationStatusLabel(application.verificationStatus)}
                     </span>
-                    <span role="cell" data-label="수정일">
+                    <span data-label="수정일">
                       {formatDate(application.updatedAt || application.appliedAt)}
                     </span>
-                    <div className="restaurant-row-actions" role="cell" data-label="작업">
+                    <div className="restaurant-row-actions" data-label="작업">
                       <Link to={`/business/applications/${application.applicationId}`}>
                         {toApplicationActionLabel(application.approvalStatus)}
                       </Link>

@@ -1,3 +1,4 @@
+import useModalFocus from "../../components/useModalFocus";
 import { confirmFormLeave } from "../../components/formLeaveProtection";
 import React, { useMemo, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
@@ -21,6 +22,7 @@ function AdminShell({ children }) {
   const { canAdmin, logout, user } = useAuth();
   const [globalKeyword, setGlobalKeyword] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const sidebarRef = useModalFocus(isSidebarOpen, () => setIsSidebarOpen(false));
 
   const visibleNavigationItems = useMemo(
     () =>
@@ -67,6 +69,10 @@ function AdminShell({ children }) {
     <div className="admin-shell">
       <a className="plate-skip" href="#admin-main">본문 바로가기</a>
       <aside
+        ref={sidebarRef}
+        role={isSidebarOpen ? "dialog" : undefined}
+        aria-modal={isSidebarOpen ? "true" : undefined}
+        aria-label={isSidebarOpen ? "관리자 메뉴" : undefined}
         id="admin-sidebar"
         className={
           isSidebarOpen

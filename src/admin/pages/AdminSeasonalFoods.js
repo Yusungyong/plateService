@@ -1,3 +1,4 @@
+import { captureAuthSession } from "../../api";
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import AdminPageHeader from "../components/AdminPageHeader";
 import {ADMIN_PERMISSIONS, userHasAdminPermission} from "../constants/adminPermissions";
@@ -58,6 +59,7 @@ export default function AdminSeasonalFoods() {
   function change(key, value) {setForm(current => ({...current, [key]: value}));}
   async function save(event) {
     event.preventDefault();
+    const assertSession = captureAuthSession();
     if (saving || !canManage || !form) return;
     setSaving(true); setNotice(null);
     try {
@@ -76,6 +78,7 @@ export default function AdminSeasonalFoods() {
       if (creating || JSON.stringify(form.months) !== JSON.stringify(baseline.months)) command.months = form.months;
       if (!creating && form.status !== baseline.status) command.status = form.status;
       TEXT_FIELDS.forEach(([key]) => {command[key] = form[key].trim() || null;});
+      assertSession();
       const saved = normalized(await (creating ? createSeasonalFood(command) : updateSeasonalFood(form.id, command)));
       setForm(saved); setBaseline(saved); setFiles({});
       setFoods(current => creating ? [...current, saved] : current.map(food => food.id === saved.id ? saved : food));
@@ -98,7 +101,7 @@ export default function AdminSeasonalFoods() {
   const visible = foods.filter(food => (!status || food.status === status) && (!category || food.categoryCode === category) && `${food.nameKo} ${food.shortDescription || ""}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   const categories = [...new Set(foods.map(food => food.categoryCode).filter(Boolean))];
   return <div className="admin-page seasonal-foods-page">
-    <UnsavedChangesGuard when={dirty && !saving} />
+    <UnsavedChangesGuard when={dirty} pending={saving} />
     <AdminPageHeader eyebrow="SEASONAL FOOD LIBRARY" title="제철 음식 관리" description="계절마다 찾게 되는 음식, 한곳에서 정리하세요." actions={<><button className="admin-button" onClick={load} disabled={loading || saving}>목록 새로고침</button>{canManage && <button className="admin-button admin-button--primary" onClick={() => select(blankFood())} disabled={saving}>＋ 음식 등록</button>}</>} />
     <section className="food-library-intro" aria-label="음식 관리 현황"><div><span>OUR SEASONAL TABLE</span><h2>좋은 음식의 이야기를 채우는 곳</h2><p>음식을 찾아 선택하고, 사진과 소개를 함께 살펴보며 편집하세요.</p></div><div className="food-library-count"><strong>{foods.length}</strong><span>등록된 음식</span><small>공개 {foods.filter(food => food.status === "PUBLISHED").length} · 초안 {foods.filter(food => food.status === "DRAFT").length}</small></div></section>
     {notice && <div role={notice.type === "error" ? "alert" : "status"} className={`api-status api-status--${notice.type}`}>{notice.text}</div>}

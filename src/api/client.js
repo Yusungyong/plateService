@@ -45,6 +45,13 @@ function clearAuthSession() {
   refreshToken = null;
 }
 
+function captureAuthSession() {
+  const version = sessionVersion;
+  return () => {
+    if (version !== sessionVersion) throw new ApiError("로그인 계정이 변경되어 작업을 중단했습니다. 다시 확인해 주세요.", {code: "AUTH_SESSION_CHANGED"});
+  };
+}
+
 function registerAuthFailureHandler(handler) {
   authFailureHandler = typeof handler === "function" ? handler : null;
 }
@@ -248,6 +255,7 @@ async function request(path, options = {}) {
   const { response, payload } = await executeRequest(path, options);
 
   if (response.ok) {
+    if (options.withAuth !== false && hadAuthSession && version !== sessionVersion) throw new ApiError("로그인 상태가 변경되어 요청을 취소했습니다.", {code: "AUTH_SESSION_CHANGED"});
     return payload;
   }
 
@@ -310,6 +318,7 @@ const apiClient = {
 
 export {
   ApiError,
+  captureAuthSession,
   API_BASE_URL,
   buildQueryString,
   clearAuthSession,

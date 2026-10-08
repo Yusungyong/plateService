@@ -1,3 +1,4 @@
+import useModalFocus from "../components/useModalFocus";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -189,7 +190,7 @@ function RestaurantManagement({ adminMode = false }) {
           <div className="support-panel__header restaurant-menu-header">
             <div>
               <span className="support-kicker">목록</span>
-              <h3>총 {restaurantPage.totalElements.toLocaleString()}개</h3>
+              <h2>총 {restaurantPage.totalElements.toLocaleString()}개</h2>
             </div>
             {adminMode ? null : (
               <Link className="restaurant-text-link" to="/business/signup">
@@ -225,7 +226,7 @@ function RestaurantManagement({ adminMode = false }) {
                         {representativeImageUrl ? (
                           <img src={representativeImageUrl} alt={`${restaurant.title || restaurant.name || "매장"} 대표 이미지`} />
                         ) : (
-                          <span className="restaurant-list-title__empty" aria-label="대표 이미지 없음" />
+                          <span className="restaurant-list-title__empty" role="img" aria-label="대표 이미지 없음" />
                         )}
                         <div>
                           <strong>{restaurant.title || restaurant.name || "-"}</strong>
@@ -304,6 +305,7 @@ function ExposureStatusGuide() {
 }
 
 function DeleteRestaurantDialog({ restaurant, isSubmitting, onCancel, onConfirm }) {
+  const modalRef = useModalFocus(Boolean(restaurant), () => {if (!isSubmitting) onCancel();});
   if (!restaurant) {
     return null;
   }
@@ -312,9 +314,9 @@ function DeleteRestaurantDialog({ restaurant, isSubmitting, onCancel, onConfirm 
 
   return (
     <div className="restaurant-dialog-layer">
-      <div className="restaurant-dialog" role="dialog" aria-modal="true" aria-label="매장 삭제">
+      <div ref={modalRef} className="restaurant-dialog" role="dialog" aria-modal="true" aria-label="매장 삭제">
         <header>
-          <h3>매장 정보 삭제</h3>
+          <h2>매장 정보 삭제</h2>
           <p>
             {restaurantName} 정보를 삭제할까요? 등록된 메뉴와 미디어 정보도 함께 삭제됩니다.
           </p>

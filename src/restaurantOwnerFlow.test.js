@@ -46,9 +46,11 @@ function storeAuth(claims) {
   );
 }
 
-function renderAt(path) {
+async function renderAt(path) {
   window.history.pushState({}, "", path);
-  return render(<App />);
+  const view = render(<App />);
+  await screen.findByRole("heading", {level:1});
+  return view;
 }
 
 beforeEach(() => {
@@ -62,16 +64,16 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-test("redirects unauthenticated restaurant managers to login", () => {
-  renderAt("/business/stores");
+test("redirects unauthenticated restaurant managers to login", async () => {
+  await renderAt("/business/stores");
 
   expect(screen.getByRole("heading", { name: "비즈니스 로그인" })).toBeInTheDocument();
   expect(screen.getByText("BUSINESS ACCESS")).toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "매장 관리" })).not.toBeInTheDocument();
 });
 
-test.each(["/business/signup", "/business/stores/new"])("requires login before applying at %s", (path) => {
-  renderAt(path);
+test.each(["/business/signup", "/business/stores/new"])("requires login before applying at %s", async (path) => {
+  await renderAt(path);
   expect(screen.getByRole("heading", { name: "비즈니스 로그인" })).toBeInTheDocument();
   expect(screen.queryByLabelText("담당자 이름")).not.toBeInTheDocument();
   expect(global.fetch).not.toHaveBeenCalled();
@@ -89,7 +91,7 @@ test("shows the application status navigation from regular pages after login", a
     })
   );
 
-  renderAt("/faq");
+  await renderAt("/faq");
 
   expect(screen.queryByText("식당 파트너")).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: "식당 비즈니스" })).toHaveAttribute(
@@ -104,7 +106,7 @@ test("shows the application status navigation from regular pages after login", a
 
 test("searches FAQ when published entries are available", async () => {
   global.fetch.mockResolvedValue(await createJsonResponse({content:[{faqId:1,title:"도움말",answer:"안내",category:"account"}],totalElements:1,hasNext:false}));
-  renderAt("/faq");
+  await renderAt("/faq");
   await screen.findByText("도움말");
   fireEvent.change(screen.getByLabelText("분류"), {
     target: { value: "account" },
@@ -121,13 +123,13 @@ test("searches FAQ when published entries are available", async () => {
   expect(decodeURIComponent(lastRequestUrl)).toContain("keyword=비밀번호");
 });
 
-test("decodes Korean display names from JWT claims", () => {
+test("decodes Korean display names from JWT claims", async () => {
   storeAuth({
     displayName: "김사장",
     permissions: [],
   });
 
-  renderAt("/business/signup");
+  await renderAt("/business/signup");
 
   expect(screen.getByText("김사장")).toBeInTheDocument();
 });
@@ -157,7 +159,7 @@ test("shows owner shell and loads linked stores", async () => {
     })
   );
 
-  renderAt("/business/stores");
+  await renderAt("/business/stores");
 
   expect(screen.getByRole("heading", { level: 1, name: "내 매장 관리" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "내 매장 관리" })).toHaveAttribute("href", "/business/stores");
@@ -272,7 +274,7 @@ test("shows an owner dashboard with tasks and recent performance", async () => {
       })
     );
 
-  renderAt("/business/dashboard");
+  await renderAt("/business/dashboard");
 
   expect(await screen.findByRole("heading", { name: "매장 운영 현황" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "매장 운영 현황" })).toHaveAttribute("href", "/business/dashboard");
@@ -332,7 +334,7 @@ test("switches the dashboard snapshot between stores and labels partial status c
       })
     );
 
-  renderAt("/business/dashboard");
+  await renderAt("/business/dashboard");
 
   expect(await screen.findByLabelText("기준 매장")).toHaveValue("7");
   expect(screen.getAllByText("불러온 2개 매장 기준")).toHaveLength(3);
@@ -527,7 +529,7 @@ test("loads store analytics from the owner store detail", async () => {
       })
     );
 
-  renderAt("/business/stores/7");
+  await renderAt("/business/stores/7");
 
   expect(await screen.findByRole("heading", { name: "플레이팅 키친 강남점" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("tab", { name: "성과" }));
@@ -564,7 +566,7 @@ test("keeps internal operators out of owner-only business routes", async () => {
     permissions: ["ADMIN_ACCESS", "STORE_READ"],
   });
 
-  renderAt("/business/stores");
+  await renderAt("/business/stores");
 
   expect(await screen.findByRole("heading", { name: "자주 묻는 질문" })).toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "매장 관리" })).not.toBeInTheDocument();
@@ -596,7 +598,7 @@ test("allows signed-in applicants without owner permission to see application st
     })
   );
 
-  renderAt("/business/applications");
+  await renderAt("/business/applications");
 
   expect(await screen.findByText("검토 중인 식당")).toBeInTheDocument();
   expect(screen.getByText("검토 중")).toBeInTheDocument();
@@ -641,7 +643,7 @@ test("shows the rejection reason to the applicant on the application detail", as
     })
   );
 
-  renderAt("/business/applications/100");
+  await renderAt("/business/applications/100");
 
   expect(
     await screen.findByRole("heading", { name: "입점 신청이 반려되었습니다." })
@@ -656,10 +658,10 @@ test("shows the rejection reason to the applicant on the application detail", as
   );
 });
 
-test("redirects legacy new-store route to business signup", () => {
+test("redirects legacy new-store route to business signup", async () => {
   storeAuth();
 
-  renderAt("/business/stores/new");
+  await renderAt("/business/stores/new");
 
   expect(screen.getByRole("heading", { name: "식당 입점 신청" })).toBeInTheDocument();
   expect(screen.getByText("담당자 정보")).toBeInTheDocument();
@@ -720,7 +722,7 @@ test("submits an application as a logged-in member without owner permission", as
       })
     );
 
-  renderAt("/business/signup");
+  await renderAt("/business/signup");
 
   expect(screen.queryByLabelText("회원 ID")).not.toBeInTheDocument();
 
@@ -834,9 +836,10 @@ test.each([false, true])("returns to the application after authentication (new a
   global.fetch.mockResolvedValueOnce(await createJsonResponse({ data: {
     accessToken: createAccessToken({ permissions: [] }), refreshToken: "refresh-token",
   } }));
-  renderAt("/business/signup");
+  await renderAt("/business/signup");
   if (newAccount) {
     fireEvent.click(screen.getByRole("link", { name: "회원가입" }));
+    await screen.findByLabelText(/^회원 ID/);
     for (const [label, value] of [["회원 ID", "newowner"], ["닉네임", "새사장"], ["이메일", "new@example.com"], ["비밀번호", "password123"], ["비밀번호 확인", "password123"]]) {
       fireEvent.change(screen.getByLabelText(label === "회원 ID" ? /^회원 ID/ : label === "비밀번호" ? /^비밀번호\s*비밀번호는/ : label), { target: { value } });
     }
@@ -855,8 +858,8 @@ test.each([false, true])("returns to the application after authentication (new a
 });
 
 
-test("keeps the application destination when switching from signup through the header login", () => {
-  renderAt("/business/signup");
+test("keeps the application destination when switching from signup through the header login", async () => {
+  await renderAt("/business/signup");
   fireEvent.click(screen.getByRole("link", { name: "회원가입" }));
   fireEvent.click(screen.getByRole("button", { name: "로그인" }));
   expect(screen.getByRole("heading", { name: "비즈니스 로그인" })).toBeInTheDocument();
@@ -864,8 +867,8 @@ test("keeps the application destination when switching from signup through the h
 });
 
 
-test("business introduction explains login and review before collecting information", () => {
-  renderAt("/business");
+test("business introduction explains login and review before collecting information", async () => {
+  await renderAt("/business");
   expect(screen.getByRole("heading", {name: "우리 식당을 접시에 소개하세요"})).toBeInTheDocument();
   expect(screen.getByRole("link", {name: "로그인하고 입점 신청"})).toHaveAttribute("href", "/business/signup");
   expect(screen.queryByLabelText("담당자 이름")).not.toBeInTheDocument();
@@ -881,7 +884,7 @@ test("loads an on-hold application for editing and asks to re-enter masked busin
     store:{storeName:"기존 식당", address:"서울 기존 주소",regionCode:"SEOUL"},
     categories:[{categoryCode:"KOREAN"}], menus:[]
   }}));
-  renderAt("/business/applications/17/edit");
+  await renderAt("/business/applications/17/edit");
   expect(await screen.findByLabelText("담당자 이름")).toHaveValue("기존 담당자");
   fireEvent.click(screen.getByRole("button",{name:"다음"}));
   expect(screen.getByLabelText("사업자등록번호")).toHaveValue("123-**-*****");

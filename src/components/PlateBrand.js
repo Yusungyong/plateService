@@ -9,5 +9,5 @@ export default function PlateBrand({ compact = false }) {
 }
 
 export function PlateFooter() {
-  return <footer className="plate-footer"><PlateBrand compact /><nav aria-label="서비스 안내"><Link to="/faq">고객지원</Link><Link to="/terms-of-service">이용약관</Link><Link to="/privacy-policy">개인정보 처리방침</Link><a href="mailto:su12ng@gmail.com">문의하기</a></nav><small>© {new Date().getFullYear()} 접시 · 운영자 유성용</small></footer>;
+  return <footer className="plate-footer"><PlateBrand compact /><nav aria-label="서비스 안내"><Link to="/faq">고객지원</Link><Link to="/terms-of-service">이용약관</Link><Link to="/privacy-policy">개인정보 처리방침</Link><Link to="/account-deletion">계정 삭제 요청</Link><Link to="/child-safety">아동 안전 기준</Link><a href="mailto:su12ng@gmail.com">문의하기</a></nav><small>© {new Date().getFullYear()} 접시 · 운영자 유성용</small></footer>;
 }

@@ -1,9 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import App from "./App";
 
-test("renders the public support center for unauthenticated users", () => {
+test("renders the public support center for unauthenticated users", async () => {
   window.history.replaceState({}, "", "/faq");
   render(<App />);
+  await screen.findByRole("heading", {level:1});
 
   expect(screen.getByRole("heading", { level: 1, name: "자주 묻는 질문" })).toBeInTheDocument();
   expect(screen.queryByRole("heading", { name: "고객 지원 센터" })).not.toBeInTheDocument();

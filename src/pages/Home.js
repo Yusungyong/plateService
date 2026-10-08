@@ -1,12 +1,12 @@
 import React, { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { APP_DOWNLOADS } from "../config/appDownloads";
-import home400 from "../assets/home/app-home-400.webp";
-import home800 from "../assets/home/app-home-800.webp";
-import map400 from "../assets/home/app-map-400.webp";
-import map800 from "../assets/home/app-map-800.webp";
-import profile400 from "../assets/home/app-profile-400.webp";
-import profile800 from "../assets/home/app-profile-800.webp";
+import home400 from "../assets/home/app-home-400.png";
+import home800 from "../assets/home/app-home-800.png";
+import map400 from "../assets/home/app-map-400.png";
+import map800 from "../assets/home/app-map-800.png";
+import profile400 from "../assets/home/app-profile-400.png";
+import profile800 from "../assets/home/app-profile-800.png";
 import "./Home.css";
 
 const ASSETS = "/images/home";

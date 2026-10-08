@@ -1,6 +1,7 @@
 export { default as apiClient } from "./client";
 export {
   ApiError,
+  captureAuthSession,
   API_BASE_URL,
   buildQueryString,
   clearAuthSession,

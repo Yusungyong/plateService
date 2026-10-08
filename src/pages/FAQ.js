@@ -1,3 +1,4 @@
+import UnsavedChangesGuard from "../components/UnsavedChangesGuard";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {Link} from 'react-router-dom';
 import { createFaq, deleteFaq, fetchFaqDetail, fetchFaqs, updateFaq } from "../api/faqApi";
@@ -59,6 +60,9 @@ function FAQ({ adminMode = false }) {
   const [selectedFaqId, setSelectedFaqId] = useState(null);
   const [selectedFaqDetail, setSelectedFaqDetail] = useState(null);
   const [draft, setDraft] = useState(emptyDraft);
+  const [draftBaseline, setDraftBaseline] = useState(emptyDraft);
+  const [editingFaqId, setEditingFaqId] = useState(null);
+  const dirty = JSON.stringify(draft) !== JSON.stringify(draftBaseline);
   const [editorMode, setEditorMode] = useState("create");
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isListLoading, setIsListLoading] = useState(true);
@@ -177,7 +181,11 @@ function FAQ({ adminMode = false }) {
   }, [faqPosts, selectedFaqDetail, selectedFaqId]);
   const faqResultCaption = getFaqFilterSummary(appliedFilters);
 
-  function resetDraft() {
+  function canDiscard() {return !isSubmitting && (!dirty || window.confirm("작성 중인 FAQ를 버릴까요?"));}
+
+  function resetDraft(force = false) {
+    if (force !== true && !canDiscard()) return;
+    setDraftBaseline(emptyDraft); setEditingFaqId(null);
     setDraft(emptyDraft);
     setEditorMode("create");
     setIsEditorOpen(false);
@@ -186,18 +194,19 @@ function FAQ({ adminMode = false }) {
   }
 
   function fillDraftFromFaq(faq) {
-    if (!faq) {
+    if (!faq || !canDiscard()) {
       return;
     }
 
-    setDraft({
+    const nextDraft = {
       category: faq.category || "notice",
       title: faq.title || "",
       answer: faq.answer || "",
       pinned: Boolean(faq.isPinned),
       displayOrder: Number(faq.displayOrder ?? 0),
       status: faq.statusCode || "published",
-    });
+    };
+    setDraft(nextDraft); setDraftBaseline(nextDraft); setEditingFaqId(faq.faqId);
     setEditorMode("edit");
     setIsEditorOpen(true);
     setSubmitError("");
@@ -206,6 +215,7 @@ function FAQ({ adminMode = false }) {
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if (isSubmitting) return;
 
     if (!draft.title.trim() || !draft.answer.trim()) {
       setSubmitError("제목과 답변은 필수입니다.");
@@ -229,8 +239,8 @@ function FAQ({ adminMode = false }) {
     try {
       let response;
 
-      if (editorMode === "edit" && selectedFaq?.faqId) {
-        response = await updateFaq(selectedFaq.faqId, payload);
+      if (editorMode === "edit" && editingFaqId) {
+        response = await updateFaq(editingFaqId, payload);
         setSubmitMessage("FAQ를 수정했습니다.");
       } else {
         response = await createFaq(payload);
@@ -239,7 +249,7 @@ function FAQ({ adminMode = false }) {
 
       const nextFaqId = response?.faqId || selectedFaq?.faqId || null;
       await loadFaqList({ nextSelectedFaqId: nextFaqId });
-      setDraft(emptyDraft);
+      setDraft(emptyDraft); setDraftBaseline(emptyDraft);
       setEditorMode("create");
       setIsEditorOpen(false);
     } catch (error) {
@@ -250,6 +260,7 @@ function FAQ({ adminMode = false }) {
   }
 
   function requestDeleteFaq(faqId) {
+    if (!canDiscard()) return;
     setPendingDeleteFaqId(faqId);
     setSubmitError("");
     setSubmitMessage("");
@@ -264,6 +275,8 @@ function FAQ({ adminMode = false }) {
 
   function handleSearch(event) {
     event.preventDefault();
+    if (!canDiscard()) return;
+    resetDraft(true);
     setAppliedFilters({
       category: filters.category,
       keyword: filters.keyword.trim(),
@@ -271,6 +284,8 @@ function FAQ({ adminMode = false }) {
   }
 
   function resetFilters() {
+    if (!canDiscard()) return;
+    resetDraft(true);
     setFilters(initialFaqFilters);
     setAppliedFilters(initialFaqFilters);
   }
@@ -294,7 +309,7 @@ function FAQ({ adminMode = false }) {
     try {
       await deleteFaq(pendingDeleteFaqId);
       await loadFaqList();
-      resetDraft();
+      resetDraft(true);
       setSubmitMessage("FAQ를 삭제했습니다.");
       setPendingDeleteFaqId(null);
     } catch (error) {
@@ -315,10 +330,11 @@ function FAQ({ adminMode = false }) {
       }
     >
       {!adminMode && !isListLoading && !loadError && faqPage.totalElements === 0 && !appliedFilters.keyword && !appliedFilters.category && <section className="support-panel" aria-label="빠른 이용 안내">
-        <h2>빠른 이용 안내</h2>
-        <p>계정에 접근할 수 없거나 개인 정보 확인이 필요하면 <Link to="/qna/private">비공개 문의</Link>를 이용하세요. 로그인 없이도 접수할 수 있습니다.</p>
-        <p>식당 등록은 <Link to="/business">입점 안내</Link>를 확인한 뒤 로그인하고 신청해 주세요.</p>
-        <p>로그인하고 남긴 문의는 <Link to="/qna/my">내 문의</Link>에서 확인할 수 있습니다.</p>
+        <h2>기본 이용 안내</h2>
+        <details><summary>로그인 없이 문의할 수 있나요?</summary><p><Link to="/qna/private">비공개 1:1 문의</Link>에서 문의를 접수할 수 있습니다. 계정·연락처 등 개인 정보는 공개 게시판에 남기지 마세요.</p></details>
+        <details><summary>식당 입점 신청은 어떻게 하나요?</summary><p><Link to="/business">식당 비즈니스 안내</Link>를 확인하고 로그인한 뒤 신청하세요. 로그인 후 신청 현황과 보완 요청을 확인할 수 있습니다.</p></details>
+        <details><summary>접수한 문의와 답변은 어디서 보나요?</summary><p>로그인하고 남긴 문의는 <Link to="/qna/my">내 문의</Link>에서 확인합니다. 비로그인 접수는 접수 번호를 보관해 주세요.</p></details>
+        <details><summary>계정을 삭제하려면 어떻게 하나요?</summary><p><Link to="/account-deletion">계정 및 개인정보 삭제 요청 안내</Link>에서 앱 밖의 요청 경로와 처리 절차를 확인할 수 있습니다.</p></details>
       </section>}
       {(adminMode || isListLoading || loadError || faqPage.totalElements > 0 || appliedFilters.keyword || appliedFilters.category) && <>
       <div className="faq-topline">
@@ -328,6 +344,7 @@ function FAQ({ adminMode = false }) {
         <span>{faqResultCaption}</span>
       </div>
 
+      <UnsavedChangesGuard when={adminMode && dirty} pending={isSubmitting} />
       <form className="restaurant-filter-form faq-filter-form" onSubmit={handleSearch}>
         <label className="admin-field">
           <span>분류</span>
@@ -406,7 +423,7 @@ function FAQ({ adminMode = false }) {
                   >
                     <summary
                       className={adminMode ? "board-row__summary" : "faq-public-item__summary"}
-                      onClick={() => setSelectedFaqId(post.faqId)}
+                      onClick={event => {if (adminMode && post.faqId !== selectedFaqId) {event.preventDefault(); if (!canDiscard()) return; resetDraft(true);} setSelectedFaqId(post.faqId);}}
                     >
                       <span className={post.isPinned ? "board-badge board-badge--notice" : "board-badge"}>
                         {toCategoryLabel(post.category)}
@@ -476,7 +493,7 @@ function FAQ({ adminMode = false }) {
           <aside className="faq-side-card">
             <div className="faq-side-card__section">
               <div className="faq-side-card__header">
-                <h3>FAQ 작업</h3>
+                <h2>FAQ 작업</h2>
                 <button
                   type="button"
                   onClick={() => {
@@ -485,6 +502,8 @@ function FAQ({ adminMode = false }) {
                       return;
                     }
 
+                    if (!canDiscard()) return;
+                    setDraftBaseline(emptyDraft); setEditingFaqId(null);
                     setEditorMode("create");
                     setDraft(emptyDraft);
                     setSubmitError("");
@@ -500,7 +519,7 @@ function FAQ({ adminMode = false }) {
               {submitError ? <div className="api-status api-status--error">{submitError}</div> : null}
 
               {isEditorOpen ? (
-                <form className="admin-form" onSubmit={handleSubmit}>
+                <form className="admin-form" onSubmit={handleSubmit}><fieldset className="form-fields" disabled={isSubmitting}>
                   <div className="faq-editor-caption">
                     {editorMode === "edit" ? "선택한 FAQ를 수정 중입니다." : "새 FAQ를 등록합니다."}
                   </div>
@@ -594,7 +613,7 @@ function FAQ({ adminMode = false }) {
                       {isSubmitting ? "저장 중..." : editorMode === "edit" ? "수정 저장" : "등록"}
                     </button>
                   </div>
-                </form>
+                </fieldset></form>
               ) : (
                 <div className="board-empty">새 FAQ 등록 버튼을 눌러 작성창을 열어 주세요.</div>
               )}

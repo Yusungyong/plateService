@@ -15,7 +15,7 @@ class AppErrorBoundary extends React.Component {
   };
 
   render() {
-    if (!this.state.hasError) {
+    if (!this.state.hasError && !this.props.failed) {
       return this.props.children;
     }
 

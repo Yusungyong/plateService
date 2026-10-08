@@ -1,5 +1,5 @@
 import { confirmFormLeave } from "./formLeaveProtection";
-import React from "react";
+import React, {useEffect, useState} from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import PlateBrand, { PlateFooter } from "./PlateBrand";
@@ -10,6 +10,8 @@ import {
 
 function AppShell({ children }) {
   const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => setMenuOpen(false), [location.pathname]);
   const navigate = useNavigate();
   const { isAuthenticated, isBusinessUser, logout, user } = useAuth();
   const roleLabel = user?.roles?.length ? user.roles.join(", ") : user?.role;
@@ -117,7 +119,8 @@ function AppShell({ children }) {
             </div>
           </div>
 
-          <nav
+          <button type="button" className="support-menu-toggle" aria-expanded={menuOpen} aria-controls="support-navigation" onClick={() => setMenuOpen(value => !value)}>메뉴 {menuOpen ? "닫기" : "보기"}</button>
+          <nav id="support-navigation" data-open={menuOpen}
             className={isBusinessArea ? "app-nav app-nav--admin" : "app-nav"}
             aria-label={primaryNavigationLabel}
           >

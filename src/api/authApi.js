@@ -34,9 +34,22 @@ function getPlatformName() {
   return window.navigator.userAgentData?.platform || window.navigator.platform || "web";
 }
 
+let transientDeviceId;
+export function getBrowserDeviceId() {
+  const key = "plate-service.device-id";
+  try {const stored = window.localStorage.getItem(key); if (stored) return stored;} catch {}
+  transientDeviceId ||= `web-${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
+  try {window.localStorage.setItem(key, transientDeviceId);} catch {}
+  return transientDeviceId;
+}
+
+export function revokeSession(accessToken, refreshToken) {
+  return apiClient.post("/api/auth/logout", {accessToken, refreshToken}, {withAuth: false, timeoutMs: 10000});
+}
+
 function buildDeviceMetadata(overrides = {}) {
   return {
-    deviceId: "web-browser",
+    deviceId: getBrowserDeviceId(),
     deviceModel: getBrowserName(),
     os: "web",
     osVersion: getPlatformName(),

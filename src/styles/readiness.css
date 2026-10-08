@@ -73,3 +73,39 @@
 .app-shell .faq-topline > span { color:#52616d; }
 .support-page--qna-write .qna-compose-panel--page { padding:16px; }
 .support-page--qna-write .qna-scope-notice { padding:12px; margin:0 0 16px; font-size:14px; font-weight:400; text-align:left; }
+
+/* Shared public and operational surface corrections from deep audit #20. */
+.form-fields {border:0; padding:0; margin:0; min-width:0; display:contents;}
+.page-loading {padding:48px 24px; text-align:center; color:#334155;}
+.support-menu-toggle {display:none;}
+.app-shell a:not([class]), .admin-shell a:not([class]) {color:#934022; text-underline-offset:3px;}
+.support-kicker, .faq-topline > span, .qna-list-topline__copy > span,
+.admin-filter-field > span, .admin-filter-field--wide > span {color:#536171 !important;}
+.admin-mobile-menu, .admin-global-search button[type="submit"], .restaurant-menu-add {background:#a94220 !important; color:#fff !important;}
+.media-upload__action {color:#923715 !important; background:#fff1e7;}
+.admin-sidebar .admin-navigation__label, .admin-sidebar .admin-navigation__link {color:#67432f !important;}
+.food-library-intro > div > span, .food-library-intro > div > p, .food-library-count > span,
+.food-results, .food-card small, .food-card p, .food-editor label > span, .food-editor small,
+.food-library-tools label > span, .food-library-count small, .food-card-action {color:#67513f !important;}
+.food-editor button, .food-workspace button {font-weight:600;}
+.restaurant-category-grid {display:flex !important; flex-wrap:wrap; gap:8px;}
+.restaurant-category-option {flex:0 0 auto; min-width:88px; padding:10px 12px; gap:8px;}
+.restaurant-category-option span {white-space:nowrap; word-break:keep-all;}
+.restaurant-text-link {background:transparent !important; color:#923715 !important; box-shadow:none !important; width:auto !important;}
+.support-panel__header h2 {margin:0; font-size:1.15rem;}
+@media (max-width:700px) {
+  .support-menu-toggle {display:block; margin-top:12px; min-height:44px; width:100%; background:#fff; color:#713821; border:1px solid #dfc6b7; border-radius:12px;}
+  .app-nav[data-open="false"] {display:none;}
+  .app-nav[data-open="true"] {margin-top:12px;}
+  .app-header__inner {padding:12px 16px;}
+  .app-header__topline {margin-top:12px;}
+  .app-main {padding-top:12px;}
+  .page-breadcrumb {margin-bottom:16px;}
+}
+
+.food-editor > header span, .food-editor > header p, .food-editor > footer > span {color:#67513f !important;}
+.food-months label:has(input:checked) {background:#9d3e21 !important;}
+.food-months label:has(input:checked) span {color:#fff !important;}
+.stack-layout > button {color:#334155; background:#fff; border:1px solid #a0adba; border-radius:8px; min-height:44px; padding:8px 16px;}
+
+.food-months input:checked + span {background:#9d3e21 !important; color:#fff !important;}

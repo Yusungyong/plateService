@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   approveStore,
@@ -44,8 +44,12 @@ const initialPage = {
 };
 
 function AdminStoreApprovals() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryKeyword = searchParams.get("keyword") || "";
+  const queryString = searchParams.toString();
+  const listSequence = useRef(0);
+  const detailSequence = useRef(0);
+  useEffect(() => () => {listSequence.current++; detailSequence.current++;}, []);
   const [filters, setFilters] = useState(() => ({
     ...initialFilters,
     keyword: queryKeyword,
@@ -67,21 +71,21 @@ function AdminStoreApprovals() {
 
   const loadApprovals = useCallback(
     async (page = 0, nextFilters = appliedFilters) => {
+      const sequence = ++listSequence.current;
       setIsLoading(true);
       setErrorMessage("");
 
       try {
-        setApprovalPage(
-          await getStoreApprovals({
+        const result = await getStoreApprovals({
             page,
             size: approvalPage.size,
             ...nextFilters,
-          })
-        );
+          });
+        if (sequence === listSequence.current) setApprovalPage(result);
       } catch (error) {
-        setErrorMessage(error.message || "매장 승인 목록을 불러오지 못했습니다.");
+        if (sequence === listSequence.current) setErrorMessage(error.message || "매장 승인 목록을 불러오지 못했습니다.");
       } finally {
-        setIsLoading(false);
+        if (sequence === listSequence.current) setIsLoading(false);
       }
     },
     [appliedFilters, approvalPage.size]
@@ -92,17 +96,10 @@ function AdminStoreApprovals() {
   }, [appliedFilters, loadApprovals]);
 
   useEffect(() => {
-    if (queryKeyword === appliedFilters.keyword) {
-      return;
-    }
-
-    const nextFilters = {
-      ...initialFilters,
-      keyword: queryKeyword,
-    };
-    setFilters(nextFilters);
-    setAppliedFilters(nextFilters);
-  }, [appliedFilters.keyword, queryKeyword]);
+    const query = new URLSearchParams(queryString);
+    const next = Object.fromEntries(Object.keys(initialFilters).map(key => [key, query.get(key) || ""]));
+    setFilters(next); setAppliedFilters(next);
+  }, [queryString]);
 
   const activeFilterCount = useMemo(
     () => Object.values(appliedFilters).filter(Boolean).length,
@@ -118,29 +115,35 @@ function AdminStoreApprovals() {
 
   function handleSearch(event) {
     event.preventDefault();
-    setAppliedFilters(filters);
+    setSearchParams(Object.fromEntries(Object.entries(filters).filter(([, value]) => value)));
+    setAppliedFilters({...filters});
     setSuccessMessage("");
     setIsMobileFiltersOpen(false);
   }
 
   function resetFilters() {
+    setSearchParams({});
     setFilters(initialFilters);
     setAppliedFilters(initialFilters);
     setIsMobileFiltersOpen(false);
   }
 
   async function openStoreDetail(storeId) {
+    if (isSubmitting) return;
+    const sequence = ++detailSequence.current;
     setIsDetailLoading(true);
     setErrorMessage("");
     setSelectedStore({ id: storeId, name: "매장 신청 정보" });
 
     try {
-      setSelectedStore(await getStoreApprovalDetail(storeId));
+      const detail = await getStoreApprovalDetail(storeId);
+      if (sequence === detailSequence.current) setSelectedStore(detail);
     } catch (error) {
+      if (sequence !== detailSequence.current) return;
       setSelectedStore(null);
       setErrorMessage(error.message || "매장 신청 상세를 불러오지 못했습니다.");
     } finally {
-      setIsDetailLoading(false);
+      if (sequence === detailSequence.current) setIsDetailLoading(false);
     }
   }
 
@@ -156,12 +159,11 @@ function AdminStoreApprovals() {
   }
 
   async function executeAction(reason = "", reasonCode = "") {
-    if (!pendingAction) {
+    if (!pendingAction || isSubmitting) {
       return;
     }
 
     const action = pendingAction;
-    setPendingAction(null);
     setIsSubmitting(true);
     setErrorMessage("");
     setSuccessMessage("");
@@ -198,12 +200,19 @@ function AdminStoreApprovals() {
           (action.type === "reject" ? reasonCode : ""),
       };
 
+      setPendingAction(null);
       setSelectedStore(storeWithReview);
       setSuccessMessage(
         `${storeWithReview.name} 신청을 ${STORE_APPROVAL_STATUS_LABELS[storeWithReview.approvalStatus]} 처리했습니다.`
       );
       await loadApprovals(approvalPage.page, appliedFilters);
     } catch (error) {
+      if (error.code === "APPROVAL_COMMITTED") {
+        setPendingAction(null); setSelectedStore(null); detailSequence.current++;
+        await loadApprovals(approvalPage.page, appliedFilters);
+        setSuccessMessage("처리는 완료됐습니다. 상세 정보 갱신에 실패했으니 목록을 새로 확인해 주세요. 같은 처리를 반복하지 마세요.");
+        return;
+      }
       if (error.status === 409 && action.store?.id) {
         try {
           const refreshedStore = await getStoreApprovalDetail(
@@ -600,7 +609,7 @@ function AdminStoreApprovals() {
         isOpen={Boolean(selectedStore)}
         title={selectedStore?.name || "매장 신청 상세"}
         description={selectedStore ? `${selectedStore.region || ""} ${selectedStore.category || ""}`.trim() : ""}
-        onClose={() => setSelectedStore(null)}
+        onClose={() => {if (!isSubmitting) {detailSequence.current++; setSelectedStore(null); setIsDetailLoading(false);}}}
         footer={
           <PermissionGuard
             permission={ADMIN_PERMISSIONS.STORE_APPROVE}
@@ -673,7 +682,7 @@ function AdminStoreApprovals() {
         description={getApproveDialogDescription(pendingAction)}
         confirmLabel="승인하기"
         isSubmitting={isSubmitting}
-        onCancel={() => setPendingAction(null)}
+        onCancel={() => {if (!isSubmitting) setPendingAction(null);}}
         onConfirm={() => executeAction()}
       />
 
@@ -688,7 +697,7 @@ function AdminStoreApprovals() {
             : []
         }
         isSubmitting={isSubmitting}
-        onCancel={() => setPendingAction(null)}
+        onCancel={() => {if (!isSubmitting) setPendingAction(null);}}
         onConfirm={executeAction}
       />
     </div>

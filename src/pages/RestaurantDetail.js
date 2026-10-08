@@ -1,3 +1,5 @@
+import UnsavedChangesGuard from "../components/UnsavedChangesGuard";
+import { captureAuthSession } from "../api";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
@@ -45,26 +47,37 @@ function RestaurantDetail({ adminMode = false }) {
   const [fieldErrors, setFieldErrors] = useState({});
   const [activeTab, setActiveTab] = useState("details");
   const fieldRefs = useRef({});
+  const baseline = useRef(null);
+  const loadedId = useRef(null);
+  const requestSequence = useRef(0);
+  const dirty = baseline.current !== null && JSON.stringify({restaurant, menus}) !== baseline.current;
+  useEffect(() => () => {requestSequence.current++;}, []);
 
   const completedMenuCount = useMemo(() => menus.filter((menu) => menu.name.trim()).length, [menus]);
 
   const loadRestaurant = useCallback(async () => {
+    const sequence = ++requestSequence.current;
+    if (loadedId.current !== restaurantId) {baseline.current = null; setRestaurant(emptyRestaurant); setMenus([]);}
     setIsLoading(true);
     setMessage("");
 
     try {
       const fetchDetail = adminMode ? fetchAdminRestaurantDetail : fetchRestaurantDetail;
       const response = await fetchDetail(restaurantId);
+      if (sequence !== requestSequence.current) return;
       const detail = normalizeRestaurantDetail(response);
+      baseline.current = JSON.stringify(detail);
+      loadedId.current = restaurantId;
       setRestaurant(detail.restaurant);
       setMenus(detail.menus);
       setFieldErrors({});
       setFormVersion((current) => current + 1);
     } catch (error) {
+      if (sequence !== requestSequence.current) return;
       setMessageType("error");
       setMessage(error.message || "매장 상세 정보를 불러오지 못했습니다.");
     } finally {
-      setIsLoading(false);
+      if (sequence === requestSequence.current) setIsLoading(false);
     }
   }, [adminMode, restaurantId]);
 
@@ -126,8 +139,8 @@ function RestaurantDetail({ adminMode = false }) {
       )
     );
 
-    if (field === "name") {
-      clearFieldError(`menu-${index}-name`);
+    if (field === "name" || field === "price") {
+      clearFieldError(`menu-${index}-${field}`);
     }
   }
 
@@ -168,8 +181,11 @@ function RestaurantDetail({ adminMode = false }) {
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if (isSubmitting || baseline.current === null) return;
+    const assertSession = captureAuthSession();
 
     const nextFieldErrors = validateRestaurantForm(restaurant, menus);
+    menus.forEach((menu, index) => {if (Number.isNaN(parsePrice(menu.price))) nextFieldErrors[`menu-${index}-price`] = `${index + 1}번째 메뉴 가격은 0~999,999,999원의 정수로 입력해 주세요.`;});
     const firstErrorMessage = Object.values(nextFieldErrors)[0];
 
     if (firstErrorMessage) {
@@ -189,7 +205,9 @@ function RestaurantDetail({ adminMode = false }) {
       const uploadFile = adminMode ? uploadAdminRestaurantFile : uploadRestaurantFile;
       const saveRestaurant = adminMode ? updateAdminRestaurant : updateRestaurant;
       const payload = await buildUpdatePayload(restaurant, menus, uploadFile);
+      assertSession();
       await saveRestaurant(restaurantId, payload);
+      baseline.current = JSON.stringify({restaurant, menus});
       setMessageType("success");
       setMessage("매장 정보가 수정되었습니다.");
       await loadRestaurant();
@@ -209,11 +227,13 @@ function RestaurantDetail({ adminMode = false }) {
     );
   }
 
+  if (baseline.current === null) return <PageLayout title="매장 정보를 불러오지 못했습니다" description="기존 정보를 확인한 뒤 안전하게 수정할 수 있습니다."><p role="alert">{message}</p><button onClick={loadRestaurant}>다시 불러오기</button></PageLayout>;
   return (
     <PageLayout
       title="내 매장 상세 관리"
       description="고객에게 보일 매장 정보와 콘텐츠 성과를 함께 확인합니다."
     >
+      <UnsavedChangesGuard when={dirty} pending={isSubmitting} />
       <div className="stack-layout restaurant-registration">
         <div className="restaurant-detail-tabs" role="tablist" aria-label="매장 상세 보기">
           <button
@@ -237,7 +257,7 @@ function RestaurantDetail({ adminMode = false }) {
         </div>
 
         {activeTab === "details" ? (
-          <form key={formVersion} className="stack-layout" onSubmit={handleSubmit}>
+          <form key={formVersion} className="stack-layout" onSubmit={handleSubmit}><fieldset className="form-fields" disabled={isSubmitting}>
             {message ? (
               <div
                 className={messageType === "success" ? "api-status api-status--success" : "api-status api-status--error"}
@@ -252,7 +272,7 @@ function RestaurantDetail({ adminMode = false }) {
           <div className="support-panel__header restaurant-menu-header">
             <div>
               <span className="support-kicker">기본 정보</span>
-              <h3>{restaurant.title || "매장 이름 미입력"}</h3>
+              <h2>{restaurant.title || "매장 이름 미입력"}</h2>
             </div>
             <Link className="restaurant-text-link" to={adminMode ? "/admin/stores" : "/business/stores"}>
               목록으로
@@ -388,6 +408,7 @@ function RestaurantDetail({ adminMode = false }) {
             </label>
 
             <ExistingMediaGallery
+              onChange={media => updateRestaurantField("existingRepresentativeMedia", media)}
               media={restaurant.existingRepresentativeMedia}
               emptyText="등록된 대표 미디어가 없습니다."
             />
@@ -417,7 +438,7 @@ function RestaurantDetail({ adminMode = false }) {
           <div className="support-panel__header restaurant-menu-header">
             <div>
               <span className="support-kicker">메뉴</span>
-              <h3>대표 메뉴 {completedMenuCount}개</h3>
+              <h2>대표 메뉴 {completedMenuCount}개</h2>
             </div>
             <button type="button" className="restaurant-menu-add" onClick={addMenu} disabled={isSubmitting}>
               메뉴 추가
@@ -462,9 +483,13 @@ function RestaurantDetail({ adminMode = false }) {
                     <span>가격</span>
                     <input
                       type="text"
+                      ref={element => {fieldRefs.current[`menu-${index}-price`] = element;}}
+                      aria-invalid={Boolean(fieldErrors[`menu-${index}-price`])}
+                      aria-describedby={fieldErrors[`menu-${index}-price`] ? `menu-${index}-price-error` : undefined}
                       value={menu.price}
                       onChange={(event) => updateMenuField(index, "price", event.target.value)}
                     />
+                    {fieldErrors[`menu-${index}-price`] && <small id={`menu-${index}-price-error`} className="restaurant-field-error">{fieldErrors[`menu-${index}-price`]}</small>}
                   </label>
                 </div>
 
@@ -477,7 +502,7 @@ function RestaurantDetail({ adminMode = false }) {
                   />
                 </label>
 
-                <ExistingMediaGallery media={menu.existingMedia} emptyText="등록된 메뉴 미디어가 없습니다." />
+                <ExistingMediaGallery media={menu.existingMedia} onChange={media => updateMenuField(index, "existingMedia", media)} emptyText="등록된 메뉴 미디어가 없습니다." />
 
                 <div className="restaurant-media-grid">
                   <MediaUploadField
@@ -519,7 +544,7 @@ function RestaurantDetail({ adminMode = false }) {
           </dl>
 
           <div className="admin-actions restaurant-submit-actions">
-            <button type="button" onClick={loadRestaurant} disabled={isSubmitting}>
+            <button type="button" onClick={() => {if (!dirty || window.confirm("저장하지 않은 변경 내용을 버리고 다시 불러올까요?")) loadRestaurant();}} disabled={isSubmitting}>
               다시 불러오기
             </button>
             <button type="submit" className="button-primary" disabled={isSubmitting}>
@@ -527,7 +552,7 @@ function RestaurantDetail({ adminMode = false }) {
             </button>
           </div>
         </section>
-          </form>
+          </fieldset></form>
         ) : adminMode ? (
             <div className="board-empty">관리자용 매장 성과 조회는 아직 연결되지 않았습니다.</div>
           ) : (
@@ -539,9 +564,13 @@ function RestaurantDetail({ adminMode = false }) {
   );
 }
 
-function ExistingMediaGallery({ media, emptyText }) {
+function ExistingMediaGallery({ media, emptyText, onChange }) {
+  const [removed, setRemoved] = useState([]);
+  function remove(index) {setRemoved(current => [...current, media[index]]); onChange(media.filter((_, i) => i !== index));}
+  function move(index, delta) {const next = [...media]; [next[index], next[index + delta]] = [next[index + delta], next[index]]; onChange(next.map((item, order) => ({...item,displayOrder:order})));}
+  const undo = removed.length ? <button type="button" onClick={() => {onChange([...media,...removed].map((item, order) => ({...item,displayOrder:order}))); setRemoved([]);}}>미디어 삭제 취소 ({removed.length})</button> : null;
   const [failedMediaUrls, setFailedMediaUrls] = useState(() => new Set());
-  const visibleMedia = media.filter((item) => item.fileUrl);
+  const visibleMedia = media;
 
   function markMediaFailed(fileUrl) {
     setFailedMediaUrls((current) => {
@@ -558,13 +587,15 @@ function ExistingMediaGallery({ media, emptyText }) {
   if (!visibleMedia.length) {
     return (
       <div className="restaurant-existing-media restaurant-existing-media--empty">
-        <span className="restaurant-existing-media__empty">{emptyText}</span>
+        <span className="restaurant-existing-media__empty">{emptyText}</span>{undo}
       </div>
     );
   }
 
   return (
     <div className="restaurant-existing-media">
+      {undo}
+      {onChange && <p className="restaurant-field-hint">삭제와 순서 변경은 수정 저장 후 반영됩니다.</p>}
       {visibleMedia.map((item, index) => {
         const isVideo = isVideoMedia(item);
         const typeLabel = toMediaTypeLabel(isVideo ? "video" : "image");
@@ -573,6 +604,7 @@ function ExistingMediaGallery({ media, emptyText }) {
 
         return (
           <article className="restaurant-existing-media__card" key={item.id || item.fileUrl || index}>
+            {onChange && <div className="admin-actions"><button type="button" onClick={() => remove(index)}>이 {typeLabel} 삭제</button><button type="button" aria-label={`${index + 1}번째 미디어 위로`} disabled={index === 0} onClick={() => move(index,-1)}>위로</button><button type="button" aria-label={`${index + 1}번째 미디어 아래로`} disabled={index === media.length-1} onClick={() => move(index,1)}>아래로</button></div>}
             <div className="restaurant-existing-media__preview">
               {isPreviewUnavailable ? (
                 <div className="restaurant-existing-media__preview-fallback" role="status">
@@ -635,6 +667,7 @@ function normalizeRestaurantDetail(response) {
 
   return {
     restaurant: {
+      editToken: payload.editToken || null,
       title: payload.title || payload.name || "",
       address: payload.address || "",
       categories: normalizeCategories(payload.categories),
@@ -779,6 +812,7 @@ async function buildUpdatePayload(restaurant, menus, uploadFile = uploadRestaura
   );
 
   return {
+    ...(restaurant.editToken ? {expectedUpdatedAt: restaurant.editToken} : {}),
     title: restaurant.title.trim(),
     address: restaurant.address.trim(),
     phone: restaurant.phone.trim(),
@@ -829,7 +863,8 @@ function toMediaPayload(media) {
 }
 
 function parsePrice(value) {
-  const normalizedValue = String(value || "").replace(/[^\d.]/g, "");
+  const normalizedValue = String(value ?? "").trim();
+  if (normalizedValue && !/^\d{1,9}$/.test(normalizedValue)) return NaN;
 
   if (!normalizedValue) {
     return null;

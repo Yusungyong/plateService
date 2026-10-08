@@ -1,3 +1,4 @@
+import { revokeSession } from "../api/authApi";
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   clearAuthSession,
@@ -212,6 +213,8 @@ function AuthProvider({ children }) {
 
     if (storedAuthState?.accessToken) {
       setAuthSession(storedAuthState.accessToken, storedAuthState.refreshToken);
+    } else {
+      clearAuthSession();
     }
 
     return storedAuthState;
@@ -300,6 +303,11 @@ function AuthProvider({ children }) {
         return normalizedAuthState;
       },
       logout() {
+        if (authState?.accessToken && authState?.refreshToken) {
+          revokeSession(authState.accessToken, authState.refreshToken).catch(() => {
+            writeAuthNotice("이 기기에서는 로그아웃했습니다. 서버에 연결하지 못해 서버 세션 종료는 확인하지 못했습니다.");
+          });
+        }
         clearPrivateDrafts();
         clearAuthSession();
         writeStoredAuth(null);

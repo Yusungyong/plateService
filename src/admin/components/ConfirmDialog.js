@@ -1,3 +1,4 @@
+import useModalFocus from "../../components/useModalFocus";
 import React from "react";
 
 function ConfirmDialog({
@@ -9,13 +10,15 @@ function ConfirmDialog({
   onCancel,
   onConfirm,
 }) {
+  const modalRef = useModalFocus(isOpen, () => {if (!isSubmitting) onCancel();});
+
   if (!isOpen) {
     return null;
   }
 
   return (
     <div className="admin-dialog-layer">
-      <div className="admin-dialog" role="dialog" aria-modal="true" aria-label={title}>
+      <div ref={modalRef} className="admin-dialog" role="dialog" aria-modal="true" aria-label={title}>
         <header>
           <h2>{title}</h2>
           <p>{description}</p>
