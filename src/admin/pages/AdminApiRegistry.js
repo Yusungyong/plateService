@@ -1,3 +1,4 @@
+import consumerEvidence from "../api/apiRegistryConsumers.json";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
 import AdminPageHeader from "../components/AdminPageHeader";
 import {getApiRegistry, registryRows} from "../api/apiRegistryApi";
@@ -26,7 +27,7 @@ export default function AdminApiRegistry() {
   const modules = useMemo(() => [...new Set(rows.map(row => row.module))].sort(), [rows]);
   const observed = rows.filter(row => row.observed).length;
   function download() {
-    const blob = new Blob([JSON.stringify(snapshot, null, 2)], {type: "application/json"});
+    const blob = new Blob([JSON.stringify({...snapshot, clientAnalysis: consumerEvidence, effectiveRows: rows}, null, 2)], {type: "application/json"});
     const url = URL.createObjectURL(blob); const anchor = document.createElement("a");
     anchor.href = url; anchor.download = "plate-api-registry.json"; anchor.click(); URL.revokeObjectURL(url);
   }
@@ -42,7 +43,7 @@ export default function AdminApiRegistry() {
         <span>업무 영역 <strong>{modules.length}</strong></span>
         <span>호출 관측 API <strong>{observed}</strong></span>
       </section>
-      <p className="api-registry-note">호출 지표는 현재 서버 프로세스 시작 이후 집계입니다. 미관측은 미사용을 뜻하지 않습니다. 메뉴 연결은 소스 분석 기준이며 최근 추가 화면은 아직 연결 정보가 없을 수 있습니다.</p>
+      <p className="api-registry-note">호출 지표는 현재 서버 프로세스 시작 이후 집계입니다. 미관측은 미사용을 뜻하지 않습니다. 메뉴 연결은 소스 분석 기준이며 선정된 새 공통 API는 최신 앱 호출 연결을 함께 반영합니다.</p>
       <section className="api-registry-filters" aria-label="API 필터">
         <label>검색<input value={query} onChange={event => setQuery(event.target.value)} placeholder="경로, 기능, 메뉴" /></label>
         <label>업무 영역<select value={module} onChange={event => setModule(event.target.value)}><option value="">전체</option>{modules.map(value => <option key={value}>{value}</option>)}</select></label>
@@ -59,7 +60,7 @@ export default function AdminApiRegistry() {
       </tbody></table></div>
       {selected && <section className="api-registry-detail" aria-label="API 상세"><button onClick={() => setSelected(null)}>상세 닫기</button><h2>{selected.method} {selected.path}</h2>
         <p>권한: {selected.authorization || "서버 권한 정책 적용"}</p><p>기능: {selected.capability || "신규 계약"}</p>
-        <p>공통화 그룹: {selected.commonizationGroup || "없음"}</p><p>사용처: {selected.menuLabels.join(" · ") || "연결 근거 없음"}</p>
+        <p>공통화 그룹: {selected.commonizationGroup || "없음"}</p><p>사용처: {selected.menuLabels.join(" · ") || "연결 근거 없음"}</p>{selected.usageNote && <p>{selected.usageNote}</p>}
         <pre>{JSON.stringify(selected.variants || selected.variantContracts, null, 2)}</pre>
       </section>}
     </>}

@@ -1,0 +1,116 @@
+{
+  "analyzedAt": "2026-10-08",
+  "sourceEvidence": "selected new contract consumers; overrides pre-refactor source linkage only",
+  "appSourceHashes": {
+    "src/api/contentLikesApi.ts": "f49f02235b7e54978c271853baad9183eb1a34513ead2d1082e5235d889c8506",
+    "src/api/imageFeedSocialApi.ts": "6af22af856854463eb4ea78ceda7d1ee378f38ea460c1a75559033342e555cdf",
+    "src/screens/home/HomeScreen.tsx": "b52509a0f11f5930a9e749a313f87a8f5fc0a088fca3ac21bc8d4ebeddf792ea",
+    "src/screens/ImageFeed/ImageFeedViewerScreen.tsx": "5d9f82ff6e527a8421142396de1fc549eac38c299abf7b5efd383be80f534b28"
+  },
+  "menus": [
+    {
+      "id": "admin:/admin/api-registry",
+      "label": "운영 > API 관리"
+    }
+  ],
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/api/v3/contents/{kind}/{contentId}/likes",
+      "module": "engagement",
+      "capability": "content-likes",
+      "commonizationGroup": "likes",
+      "authorization": "회원 토큰",
+      "surfaces": [],
+      "menuIds": [],
+      "usageStatus": "client_wrapper_only",
+      "usageNote": "앱 화면 연결 근거 없음"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/contents/{kind}/{contentId}/likes/me",
+      "module": "engagement",
+      "capability": "content-likes",
+      "commonizationGroup": "likes",
+      "authorization": "회원 토큰",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ContentAnalytics",
+        "app:FullScreenMap",
+        "app:Home",
+        "app:Home.Nearby",
+        "app:ImageFeedViewer",
+        "app:MyFriends",
+        "app:MyLikes",
+        "app:MyPage",
+        "app:MyPosts",
+        "app:ProfileContentGrid",
+        "app:Search"
+      ],
+      "usageStatus": "connected_in_source",
+      "usageNote": "앱의 사진 좋아요에서 사용합니다."
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/contents/{kind}/{contentId}/likes/me",
+      "module": "engagement",
+      "capability": "content-likes",
+      "commonizationGroup": "likes",
+      "authorization": "회원 토큰",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ContentAnalytics",
+        "app:FullScreenMap",
+        "app:Home",
+        "app:Home.Nearby",
+        "app:ImageFeedViewer",
+        "app:MyFriends",
+        "app:MyLikes",
+        "app:MyPage",
+        "app:MyPosts",
+        "app:ProfileContentGrid",
+        "app:Search"
+      ],
+      "usageStatus": "connected_in_source",
+      "usageNote": "앱의 사진 좋아요에서 사용합니다."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/contents/{kind}/{contentId}/likes/users",
+      "module": "engagement",
+      "capability": "content-likes",
+      "commonizationGroup": "likes",
+      "authorization": "회원 토큰",
+      "surfaces": [],
+      "menuIds": [],
+      "usageStatus": "no_frontend_reference",
+      "usageNote": "앱 화면 연결 근거 없음"
+    },
+    {
+      "method": "POST",
+      "path": "/api/image-feeds/{imageFeedId}/likes/toggle",
+      "surfaces": [],
+      "menuIds": [],
+      "usageStatus": "client_wrapper_only",
+      "usageNote": "현재 앱 화면은 명시 상태 API를 사용합니다. 구형 설치본을 위한 계약은 유지합니다."
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/api-registry",
+      "module": "platform",
+      "capability": "api-registry",
+      "authorization": "DASHBOARD_READ 운영 권한",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/api-registry"
+      ],
+      "usageStatus": "connected_in_source"
+    }
+  ]
+}

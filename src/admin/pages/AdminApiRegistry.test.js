@@ -40,3 +40,10 @@ test("owner accounts cannot enter the admin registry route or load its API", asy
   expect(getApiRegistry).not.toHaveBeenCalled();
   localStorage.clear();
 });
+
+test("current image set-state menu links replace the legacy toggle UI connection", () => {
+  const current = registryRows({declaredBaseline: {routes: [{method: 'POST', path: '/api/image-feeds/{imageFeedId}/likes/toggle', module: 'engagement', surfaces: ['app'], menuIds: ['app:Home']}], menus: [{id: 'app:Home', label: '홈'}]}, activeRoutes: [{method: 'PUT', path: '/api/v3/contents/{kind}/{contentId}/likes/me', module: 'engagement'}]});
+  expect(current.find(row => row.method === 'PUT')).toMatchObject({surfaces: ['app'], usageStatus: 'connected_in_source'});
+  expect(current.find(row => row.method === 'PUT').menuLabels).toContain('홈');
+  expect(current.find(row => row.method === 'POST')).toMatchObject({menuLabels: [], surfaces: [], usageStatus: 'client_wrapper_only'});
+});
