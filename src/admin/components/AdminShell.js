@@ -3,7 +3,7 @@ import React, { useMemo, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { adminNavigationItems } from "../../config/routes";
-import { getPrimaryAdminRole } from "../constants/adminPermissions";
+import { getPrimaryAdminRole, userCanViewApiRegistry } from "../constants/adminPermissions";
 import "../styles/admin.css";
 import PlateBrand from "../../components/PlateBrand";
 
@@ -26,8 +26,9 @@ function AdminShell({ children }) {
     () =>
       adminNavigationItems.filter(
         (item) => item.available !== false && canAdmin(item.permission)
+          && (!item.operatorOnly || userCanViewApiRegistry(user))
       ),
-    [canAdmin]
+    [canAdmin, user]
   );
   const navigationGroups = useMemo(
     () =>

@@ -10,7 +10,7 @@ import {
 } from "react-router-dom";
 import AppShell from "./components/AppShell";
 import AdminShell from "./admin/components/AdminShell";
-import { ADMIN_PERMISSIONS } from "./admin/constants/adminPermissions";
+import { ADMIN_PERMISSIONS, userCanViewApiRegistry } from "./admin/constants/adminPermissions";
 import { AuthProvider } from "./auth/AuthContext";
 import { useAuth } from "./auth/AuthContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
@@ -75,10 +75,10 @@ function AdminEntryRoute() {
   return <Navigate to={getAdminEntryPath(user)} replace />;
 }
 
-function AdminPermissionRoute({ component: Component, permission, props }) {
+function AdminPermissionRoute({ component: Component, permission, operatorOnly = false, props }) {
   const { canAdmin, user } = useAuth();
 
-  if (!canAdmin(permission)) {
+  if (!canAdmin(permission) || (operatorOnly && !userCanViewApiRegistry(user))) {
     return <Navigate to={getAdminEntryPath(user)} replace />;
   }
 
@@ -138,7 +138,7 @@ function RoutedApp() {
             </Route>
             <Route element={<ProtectedRoute requireAdmin />}>
               <Route path="/admin" element={<AdminEntryRoute />} />
-              {adminRoutes.map(({ path, component, permission, props }) => (
+              {adminRoutes.map(({ path, component, permission, operatorOnly, props }) => (
                 <Route
                   key={path}
                   path={path}
@@ -146,6 +146,7 @@ function RoutedApp() {
                     <AdminPermissionRoute
                       component={component}
                       permission={permission}
+                      operatorOnly={operatorOnly}
                       props={props}
                     />
                   }

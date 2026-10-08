@@ -124,6 +124,13 @@ export function getPrimaryAdminRole(user) {
   return roles.find((role) => Object.prototype.hasOwnProperty.call(ROLE_PERMISSIONS, role)) || "";
 }
 
+// Presentation gate only: the server independently validates the JWT principal.
+// Display names, email addresses and the SUPER_ADMIN role cannot select this account.
+export function userCanViewApiRegistry(user) {
+  return user?.accountSubject === "su12ng"
+    && userHasAdminPermission(user, ADMIN_PERMISSIONS.DASHBOARD_READ);
+}
+
 function getEffectivePermissions(roles, permissions, hasExplicitPermissions) {
   if (hasExplicitPermissions) {
     return permissions;

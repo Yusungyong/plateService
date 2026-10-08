@@ -108,7 +108,7 @@
       "path": "/api/admin/api-registry",
       "module": "platform",
       "capability": "api-registry",
-      "authorization": "DASHBOARD_READ 운영 권한",
+      "authorization": "su12ng 운영자 및 DASHBOARD_READ 운영 권한",
       "surfaces": [
         "admin"
       ],

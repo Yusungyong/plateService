@@ -140,6 +140,9 @@ function buildUserFromClaims(claims) {
 
   return {
     username: username || displayName || "",
+    // The API registry uses the same subject as the backend's validated JWT.
+    // Presentation aliases must never grant its account-specific UI access.
+    accountSubject: typeof claims.sub === "string" ? claims.sub : null,
     email: claims.email || "",
     displayName: displayName || username || "",
     role,
@@ -178,6 +181,7 @@ function normalizeStoredUser(user) {
 
   return {
     ...user,
+    accountSubject: null,
     role: user.role || roles[0] || null,
     roles,
     permissions,
