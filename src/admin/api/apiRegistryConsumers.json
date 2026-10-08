@@ -24,7 +24,8 @@
       "surfaces": [],
       "menuIds": [],
       "usageStatus": "client_wrapper_only",
-      "usageNote": "앱 화면 연결 근거 없음"
+      "usageNote": "앱 화면 연결 근거 없음",
+      "id": "api_98d81feea3a05d45"
     },
     {
       "method": "PUT",
@@ -50,7 +51,8 @@
         "app:Search"
       ],
       "usageStatus": "connected_in_source",
-      "usageNote": "앱의 사진 좋아요에서 사용합니다."
+      "usageNote": "앱의 사진 좋아요에서 사용합니다.",
+      "id": "api_cef5dca4260c28e3"
     },
     {
       "method": "DELETE",
@@ -76,7 +78,8 @@
         "app:Search"
       ],
       "usageStatus": "connected_in_source",
-      "usageNote": "앱의 사진 좋아요에서 사용합니다."
+      "usageNote": "앱의 사진 좋아요에서 사용합니다.",
+      "id": "api_f316e846917f6421"
     },
     {
       "method": "GET",
@@ -88,7 +91,8 @@
       "surfaces": [],
       "menuIds": [],
       "usageStatus": "no_frontend_reference",
-      "usageNote": "앱 화면 연결 근거 없음"
+      "usageNote": "앱 화면 연결 근거 없음",
+      "id": "api_260511e6d1d01d05"
     },
     {
       "method": "POST",
@@ -96,7 +100,8 @@
       "surfaces": [],
       "menuIds": [],
       "usageStatus": "client_wrapper_only",
-      "usageNote": "현재 앱 화면은 명시 상태 API를 사용합니다. 구형 설치본을 위한 계약은 유지합니다."
+      "usageNote": "현재 앱 화면은 명시 상태 API를 사용합니다. 구형 설치본을 위한 계약은 유지합니다.",
+      "id": "api_b8f4471635da55a3"
     },
     {
       "method": "GET",
@@ -110,7 +115,8 @@
       "menuIds": [
         "admin:/admin/api-registry"
       ],
-      "usageStatus": "connected_in_source"
+      "usageStatus": "connected_in_source",
+      "id": "api_3cc8bbf4f361602d"
     }
   ]
 }
