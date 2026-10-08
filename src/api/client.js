@@ -1,3 +1,5 @@
+import {reportClientError, wakeClientErrorReporting} from "./clientErrorReporter";
+
 const DEFAULT_HEADERS = {
   Accept: "application/json",
 };
@@ -167,7 +169,14 @@ async function executeRequest(path, options = {}) {
     signal: controller.signal,
   });
 
-  const payload = await parseResponse(response);
+  let payload;
+  try {payload = await parseResponse(response);}
+  catch (parseError) {
+    if (!(parseError instanceof SyntaxError)) throw parseError;
+    // A received HTTP failure keeps its status even if its JSON body is malformed.
+    if (!response.ok) return {response, payload: null};
+    throw new ApiError("서버 응답을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.", {code: "RESPONSE_PARSE_FAILED", status: response.status});
+  }
 
   return {
     response,
@@ -195,14 +204,21 @@ async function refreshAuthSession() {
   if (!refreshPromise) {
     const version = sessionVersion;
     const pendingRefresh = (async () => {
-      const { response, payload } = await executeRequest("/api/auth/refresh", {
+      let result;
+      try {result = await executeRequest("/api/auth/refresh", {
         method: "POST",
         body: { refreshToken },
         withAuth: false,
-      });
+      });} catch (error) {
+        if (version === sessionVersion) reportClientError({method: "POST", path: "/api/auth/refresh", error});
+        throw error;
+      }
+      const {response, payload} = result;
 
       if (!response.ok) {
-        throw createApiError(response, payload);
+        const error = createApiError(response, payload);
+        if (version === sessionVersion) reportClientError({method: "POST", path: "/api/auth/refresh", error});
+        throw error;
       }
 
       const nextAccessToken = payload?.data?.accessToken || "";
@@ -245,9 +261,16 @@ async function refreshAuthSession() {
 async function request(path, options = {}) {
   const version = sessionVersion;
   const hadAuthSession = Boolean(authToken || refreshToken);
-  const { response, payload } = await executeRequest(path, options);
+  let result;
+  try {result = await executeRequest(path, options);}
+  catch (error) {
+    if (version === sessionVersion) reportClientError({method: options.method || "GET", path, error, cancelled: options.signal?.aborted});
+    throw error;
+  }
+  const {response, payload} = result;
 
   if (response.ok) {
+    if (version === sessionVersion) wakeClientErrorReporting();
     return payload;
   }
 
@@ -278,6 +301,7 @@ async function request(path, options = {}) {
     }
   }
 
+  reportClientError({method: options.method || "GET", path, error, cancelled: options.signal?.aborted});
   if (response.status === 401 && options.withAuth !== false && hadAuthSession) {
     clearAuthSession();
 

@@ -14,7 +14,9 @@ beforeEach(() => {
   global.fetch = jest.fn();
 });
 
-afterEach(() => {
+afterEach(async () => {
+  const {stopClientErrorReporting} = await import("./clientErrorReporter");
+  stopClientErrorReporting();
   delete global.fetch;
 });
 

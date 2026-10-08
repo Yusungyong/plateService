@@ -1,0 +1,1242 @@
+[
+  {
+    "method": "DELETE",
+    "path": "/api/admin/restaurants/{restaurantId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/admin/seasonal-curations/{id}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/admin/seasonal-foods/{id}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/blocks/{blockedUsername}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/comments/{commentId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/faqs/{faqId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/friends/manage/requests/{requestId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/friends/manage/{userId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/friends/visits/{id}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/friends/{id}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/friends/{id}/request"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/image-feeds/comments/{commentId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/image-feeds/replies/{replyId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/image-feeds/{feedId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/image-feeds/{feedId}/images/{imageId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/likes/{videoStoreId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/notifications/all"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/notifications/{notificationId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/post-editor/drafts/{kind}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/replies/{replyId}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/users/me"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/users/me/profile-image"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/users/me/social"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v3/contents/{kind}/{contentId}/likes/me"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/videos/{storeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/activities"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/api-registry"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/content-verifications"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/content-verifications/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/content-verifications/{id}/history"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/dashboard/activity-trends"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/dashboard/region-distribution"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/dashboard/summary"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/feedback"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/feedback/summary"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/feeds"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/feeds/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/feeds/{id}/reports"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/member-monitoring/login-risks"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/member-monitoring/profile-changes"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/member-monitoring/risk-users"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/member-monitoring/summary"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/qna"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/qna/{qnaId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/restaurants"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/restaurants/{restaurantId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/seasonal-curations"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/seasonal-curations/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/seasonal-foods"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/seasonal-foods/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/store-approvals"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/store-approvals/{applicationId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/store-approvals/{applicationId}/history"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/stores"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/stores/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/stores/{id}/history"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/videos/thumbnails/audit"
+  },
+  {
+    "method": "GET",
+    "path": "/api/blocks"
+  },
+  {
+    "method": "GET",
+    "path": "/api/business/applications/{applicationId}/history"
+  },
+  {
+    "method": "GET",
+    "path": "/api/comments/{commentId}/replies"
+  },
+  {
+    "method": "GET",
+    "path": "/api/common/codes"
+  },
+  {
+    "method": "GET",
+    "path": "/api/faqs"
+  },
+  {
+    "method": "GET",
+    "path": "/api/faqs/{faqId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/friends"
+  },
+  {
+    "method": "GET",
+    "path": "/api/friends/manage"
+  },
+  {
+    "method": "GET",
+    "path": "/api/friends/manage/requests/received"
+  },
+  {
+    "method": "GET",
+    "path": "/api/friends/manage/requests/sent"
+  },
+  {
+    "method": "GET",
+    "path": "/api/friends/manage/search"
+  },
+  {
+    "method": "GET",
+    "path": "/api/friends/search"
+  },
+  {
+    "method": "GET",
+    "path": "/api/friends/stores/{storeId}/friend-visits"
+  },
+  {
+    "method": "GET",
+    "path": "/api/friends/suggest"
+  },
+  {
+    "method": "GET",
+    "path": "/api/friends/{username}/recent-stores"
+  },
+  {
+    "method": "GET",
+    "path": "/api/friends/{username}/scheduled-visits"
+  },
+  {
+    "method": "GET",
+    "path": "/api/friends/{username}/stores/{storeId}/visits"
+  },
+  {
+    "method": "GET",
+    "path": "/api/friends/{username}/visits"
+  },
+  {
+    "method": "GET",
+    "path": "/api/friends/{username}/{friendName}/visits"
+  },
+  {
+    "method": "GET",
+    "path": "/api/health"
+  },
+  {
+    "method": "GET",
+    "path": "/api/home/content-feed"
+  },
+  {
+    "method": "GET",
+    "path": "/api/home/feed"
+  },
+  {
+    "method": "GET",
+    "path": "/api/home/image-thumbnails"
+  },
+  {
+    "method": "GET",
+    "path": "/api/home/random-candidates/nearby"
+  },
+  {
+    "method": "GET",
+    "path": "/api/home/random-candidates/recent"
+  },
+  {
+    "method": "GET",
+    "path": "/api/home/search/content"
+  },
+  {
+    "method": "GET",
+    "path": "/api/home/seasonal"
+  },
+  {
+    "method": "GET",
+    "path": "/api/home/seasonal/foods"
+  },
+  {
+    "method": "GET",
+    "path": "/api/home/seasonal/foods/{seasonalFoodId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/home/seasonal/{seasonalFoodId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/home/video-thumbnails"
+  },
+  {
+    "method": "GET",
+    "path": "/api/image-feeds/comments/{commentId}/replies"
+  },
+  {
+    "method": "GET",
+    "path": "/api/image-feeds/context"
+  },
+  {
+    "method": "GET",
+    "path": "/api/image-feeds/groups"
+  },
+  {
+    "method": "GET",
+    "path": "/api/image-feeds/groups/{groupId}/images"
+  },
+  {
+    "method": "GET",
+    "path": "/api/image-feeds/{feedId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/image-feeds/{feedId}/comments"
+  },
+  {
+    "method": "GET",
+    "path": "/api/image-feeds/{feedId}/likes/users"
+  },
+  {
+    "method": "GET",
+    "path": "/api/image-feeds/{id}/visibility"
+  },
+  {
+    "method": "GET",
+    "path": "/api/legal/consent-catalog"
+  },
+  {
+    "method": "GET",
+    "path": "/api/legal/member-consent-catalog"
+  },
+  {
+    "method": "GET",
+    "path": "/api/likes/me"
+  },
+  {
+    "method": "GET",
+    "path": "/api/likes/{storeId}/count"
+  },
+  {
+    "method": "GET",
+    "path": "/api/likes/{storeId}/me"
+  },
+  {
+    "method": "GET",
+    "path": "/api/likes/{storeId}/users"
+  },
+  {
+    "method": "GET",
+    "path": "/api/map/stores/nearby"
+  },
+  {
+    "method": "GET",
+    "path": "/api/map/stores/search"
+  },
+  {
+    "method": "GET",
+    "path": "/api/map/stores/suggest"
+  },
+  {
+    "method": "GET",
+    "path": "/api/me"
+  },
+  {
+    "method": "GET",
+    "path": "/api/me/legal-consents"
+  },
+  {
+    "method": "GET",
+    "path": "/api/me/legal-consents/{submissionId}/documents/{documentId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/menu"
+  },
+  {
+    "method": "GET",
+    "path": "/api/my/activity-summary"
+  },
+  {
+    "method": "GET",
+    "path": "/api/my/content-analytics/contents"
+  },
+  {
+    "method": "GET",
+    "path": "/api/my/content-analytics/summary"
+  },
+  {
+    "method": "GET",
+    "path": "/api/my/content-analytics/trends"
+  },
+  {
+    "method": "GET",
+    "path": "/api/my/hub"
+  },
+  {
+    "method": "GET",
+    "path": "/api/my/images"
+  },
+  {
+    "method": "GET",
+    "path": "/api/my/likes/images"
+  },
+  {
+    "method": "GET",
+    "path": "/api/my/likes/places/map"
+  },
+  {
+    "method": "GET",
+    "path": "/api/my/likes/videos"
+  },
+  {
+    "method": "GET",
+    "path": "/api/my/profile-detail"
+  },
+  {
+    "method": "GET",
+    "path": "/api/my/videos"
+  },
+  {
+    "method": "GET",
+    "path": "/api/notifications"
+  },
+  {
+    "method": "GET",
+    "path": "/api/notifications/unread-count"
+  },
+  {
+    "method": "GET",
+    "path": "/api/owner/store-applications"
+  },
+  {
+    "method": "GET",
+    "path": "/api/owner/store-applications/{applicationId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/owner/store-applications/{applicationId}/history"
+  },
+  {
+    "method": "GET",
+    "path": "/api/owner/stores"
+  },
+  {
+    "method": "GET",
+    "path": "/api/owner/stores/{storeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/owner/stores/{storeId}/analytics/contents"
+  },
+  {
+    "method": "GET",
+    "path": "/api/owner/stores/{storeId}/analytics/summary"
+  },
+  {
+    "method": "GET",
+    "path": "/api/owner/stores/{storeId}/analytics/trends"
+  },
+  {
+    "method": "GET",
+    "path": "/api/post-editor/capabilities"
+  },
+  {
+    "method": "GET",
+    "path": "/api/post-editor/drafts/{kind}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/post-editor/drafts/{kind}/media/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/post-editor/meals/{kind}/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/post-editor/operations/{kind}/{key}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/qna"
+  },
+  {
+    "method": "GET",
+    "path": "/api/qna/my"
+  },
+  {
+    "method": "GET",
+    "path": "/api/qna/my/{qnaId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/qna/{qnaId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/recipe-builder/dishes"
+  },
+  {
+    "method": "GET",
+    "path": "/api/recipe-builder/dishes/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/recipe-builder/variants/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/recipes"
+  },
+  {
+    "method": "GET",
+    "path": "/api/recipes/categories"
+  },
+  {
+    "method": "GET",
+    "path": "/api/recipes/search"
+  },
+  {
+    "method": "GET",
+    "path": "/api/recipes/{recipeId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/recipes/{recipeId}/likes"
+  },
+  {
+    "method": "GET",
+    "path": "/api/recommendations"
+  },
+  {
+    "method": "GET",
+    "path": "/api/reports"
+  },
+  {
+    "method": "GET",
+    "path": "/api/search"
+  },
+  {
+    "method": "GET",
+    "path": "/api/search/suggest"
+  },
+  {
+    "method": "GET",
+    "path": "/api/stores/{storeId}/friend-visits"
+  },
+  {
+    "method": "GET",
+    "path": "/api/stores/{storeId}/likes/status"
+  },
+  {
+    "method": "GET",
+    "path": "/api/stores/{storeId}/likes/users"
+  },
+  {
+    "method": "GET",
+    "path": "/api/stores/{videoStoreId}/comments"
+  },
+  {
+    "method": "GET",
+    "path": "/api/support/policies"
+  },
+  {
+    "method": "GET",
+    "path": "/api/users/detail/{username}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/users/detail/{username}/public-profile"
+  },
+  {
+    "method": "GET",
+    "path": "/api/users/me"
+  },
+  {
+    "method": "GET",
+    "path": "/api/users/me/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/users/{username}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/users/{username}/activity-summary"
+  },
+  {
+    "method": "GET",
+    "path": "/api/users/{username}/images"
+  },
+  {
+    "method": "GET",
+    "path": "/api/users/{username}/likes/images"
+  },
+  {
+    "method": "GET",
+    "path": "/api/users/{username}/likes/videos"
+  },
+  {
+    "method": "GET",
+    "path": "/api/users/{username}/profile-detail"
+  },
+  {
+    "method": "GET",
+    "path": "/api/users/{username}/stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/users/{username}/videos"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v2/account-deletions/capabilities"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v2/account-deletions/status"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v2/account-recovery/status"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v2/home/content-feed"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v2/home/search/content"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v3/contents/{kind}/{contentId}/likes"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v3/contents/{kind}/{contentId}/likes/users"
+  },
+  {
+    "method": "GET",
+    "path": "/api/videos/{id}/visibility"
+  },
+  {
+    "method": "GET",
+    "path": "/api/videos/{storeId}/watch-info"
+  },
+  {
+    "method": "GET",
+    "path": "/api/videos/{storeId}/watch-stats"
+  },
+  {
+    "method": "GET",
+    "path": "/api/videos/{videoStoreId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/watch-history"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/admin/content-verifications/{id}/assignee"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/admin/feedback/{id}"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/admin/feeds/{id}/recommendation"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/admin/qna/{qnaId}"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/admin/seasonal-curations/order"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/admin/stores/{id}/operation-status"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/admin/stores/{id}/visibility"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/faqs/{faqId}"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/friends/visits/{id}"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/friends/{id}/status"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/image-feeds/{feedId}"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/image-feeds/{feedId}/images/order"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/image-feeds/{id}/visibility"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/qna/{qnaId}"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/users/detail/{username}/active-region"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/users/detail/{username}/code"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/users/detail/{username}/email"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/users/detail/{username}/fcm-token"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/users/detail/{username}/nickname"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/users/detail/{username}/phone"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/users/detail/{username}/privacy"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/users/detail/{username}/profile-image"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/users/detail/{username}/role"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/videos/{id}/visibility"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/videos/{storeId}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/content-verifications/{id}/approve"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/content-verifications/{id}/reject"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/content-verifications/{id}/request-changes"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/feeds/{id}/hide"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/feeds/{id}/restore"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/files"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/restaurants"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/seasonal-curations"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/seasonal-curations/files"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/seasonal-curations/import-foods"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/seasonal-curations/{id}/publish"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/seasonal-curations/{id}/unpublish"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/seasonal-foods"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/store-approvals/{applicationId}/approve"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/store-approvals/{applicationId}/documents/{documentId}/access-url"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/store-approvals/{applicationId}/hold"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/store-approvals/{applicationId}/reject"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/store-approvals/{applicationId}/request-changes"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/videos/thumbnails/backfill"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/login"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/logout"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/refresh"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/reset-password"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/signup"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/signup/with-consent"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/social/apple"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/social/google"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/social/kakao"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/social/signup/complete"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/social/signup/complete-with-consent"
+  },
+  {
+    "method": "POST",
+    "path": "/api/blocks"
+  },
+  {
+    "method": "POST",
+    "path": "/api/business/applications/{applicationId}/resubmit"
+  },
+  {
+    "method": "POST",
+    "path": "/api/comments/{commentId}/replies"
+  },
+  {
+    "method": "POST",
+    "path": "/api/email/find-id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/email/send-verification"
+  },
+  {
+    "method": "POST",
+    "path": "/api/email/verify"
+  },
+  {
+    "method": "POST",
+    "path": "/api/faqs"
+  },
+  {
+    "method": "POST",
+    "path": "/api/feedback"
+  },
+  {
+    "method": "POST",
+    "path": "/api/friends"
+  },
+  {
+    "method": "POST",
+    "path": "/api/friends/manage/requests"
+  },
+  {
+    "method": "POST",
+    "path": "/api/friends/visits"
+  },
+  {
+    "method": "POST",
+    "path": "/api/home/impressions"
+  },
+  {
+    "method": "POST",
+    "path": "/api/home/video-events"
+  },
+  {
+    "method": "POST",
+    "path": "/api/home/video-watch-history"
+  },
+  {
+    "method": "POST",
+    "path": "/api/image-feeds"
+  },
+  {
+    "method": "POST",
+    "path": "/api/image-feeds/comments/{commentId}/replies"
+  },
+  {
+    "method": "POST",
+    "path": "/api/image-feeds/{feedId}/comments"
+  },
+  {
+    "method": "POST",
+    "path": "/api/image-feeds/{feedId}/images"
+  },
+  {
+    "method": "POST",
+    "path": "/api/image-feeds/{imageFeedId}/likes/toggle"
+  },
+  {
+    "method": "POST",
+    "path": "/api/likes/{videoStoreId}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/me/legal-consents"
+  },
+  {
+    "method": "POST",
+    "path": "/api/monitoring/client-errors"
+  },
+  {
+    "method": "POST",
+    "path": "/api/my/profile"
+  },
+  {
+    "method": "POST",
+    "path": "/api/owner/business-verifications"
+  },
+  {
+    "method": "POST",
+    "path": "/api/owner/files"
+  },
+  {
+    "method": "POST",
+    "path": "/api/owner/signup-account-validations"
+  },
+  {
+    "method": "POST",
+    "path": "/api/owner/signup-applications"
+  },
+  {
+    "method": "POST",
+    "path": "/api/owner/store-applications"
+  },
+  {
+    "method": "POST",
+    "path": "/api/owner/store-applications/{applicationId}/documents"
+  },
+  {
+    "method": "POST",
+    "path": "/api/owner/store-applications/{applicationId}/resubmit"
+  },
+  {
+    "method": "POST",
+    "path": "/api/owner/store-applications/{applicationId}/submit"
+  },
+  {
+    "method": "POST",
+    "path": "/api/places"
+  },
+  {
+    "method": "POST",
+    "path": "/api/post-editor/drafts/{kind}/media"
+  },
+  {
+    "method": "POST",
+    "path": "/api/post-editor/images"
+  },
+  {
+    "method": "POST",
+    "path": "/api/post-editor/videos"
+  },
+  {
+    "method": "POST",
+    "path": "/api/qna"
+  },
+  {
+    "method": "POST",
+    "path": "/api/recipes"
+  },
+  {
+    "method": "POST",
+    "path": "/api/reports"
+  },
+  {
+    "method": "POST",
+    "path": "/api/restaurants/{restaurantId}/events"
+  },
+  {
+    "method": "POST",
+    "path": "/api/stores/{storeId}/likes/toggle"
+  },
+  {
+    "method": "POST",
+    "path": "/api/stores/{videoStoreId}/comments"
+  },
+  {
+    "method": "POST",
+    "path": "/api/users/me/profile-image"
+  },
+  {
+    "method": "POST",
+    "path": "/api/users/me/push-token"
+  },
+  {
+    "method": "POST",
+    "path": "/api/users/{username}/profile-history"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v2/account-recovery/cancellations"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v2/account-recovery/login"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v2/account-recovery/receipts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v2/auth/account-recovery-sessions"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v2/home/impressions"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v2/me/deletion-intents"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v2/me/deletion-requests"
+  },
+  {
+    "method": "POST",
+    "path": "/api/videos"
+  },
+  {
+    "method": "POST",
+    "path": "/api/videos/{storeId}/watch/complete"
+  },
+  {
+    "method": "POST",
+    "path": "/api/videos/{storeId}/watch/start"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/admin/restaurants/{restaurantId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/admin/seasonal-curations/{id}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/admin/seasonal-foods/{id}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/comments/{commentId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/friends/manage/requests/{requestId}/accept"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/friends/manage/requests/{requestId}/reject"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/image-feeds/comments/{commentId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/image-feeds/replies/{replyId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/image-feeds/{feedId}/images/{imageId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/notifications/read-all"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/notifications/{notificationId}/read"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/owner/store-applications/{applicationId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/owner/stores/{storeId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/post-editor/drafts/{kind}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/recipes/{recipeId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/recipes/{recipeId}/likes"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/replies/{replyId}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/users/me"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/users/me/password"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v3/contents/{kind}/{contentId}/likes/me"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/videos/{storeId}/watch/progress"
+  }
+]

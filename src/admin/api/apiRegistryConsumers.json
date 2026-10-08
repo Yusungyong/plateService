@@ -1,16 +1,38 @@
 {
   "analyzedAt": "2026-10-08",
-  "sourceEvidence": "selected new contract consumers; overrides pre-refactor source linkage only",
+  "sourceEvidence": "selected current contract consumers, reviewed shared error-collector linkage; overrides baseline source linkage only",
   "appSourceHashes": {
     "src/api/contentLikesApi.ts": "f49f02235b7e54978c271853baad9183eb1a34513ead2d1082e5235d889c8506",
     "src/api/imageFeedSocialApi.ts": "6af22af856854463eb4ea78ceda7d1ee378f38ea460c1a75559033342e555cdf",
     "src/screens/home/HomeScreen.tsx": "b52509a0f11f5930a9e749a313f87a8f5fc0a088fca3ac21bc8d4ebeddf792ea",
-    "src/screens/ImageFeed/ImageFeedViewerScreen.tsx": "5d9f82ff6e527a8421142396de1fc549eac38c299abf7b5efd383be80f534b28"
+    "src/screens/ImageFeed/ImageFeedViewerScreen.tsx": "5d9f82ff6e527a8421142396de1fc549eac38c299abf7b5efd383be80f534b28",
+    "src/api/axiosInstance.ts": "50b12e1988bf878b330ee0fdb785999b75b2e53e05711e4cf79d0989021af9c6",
+    "src/api/apiErrorReporter.ts": "57ddc4f9a72b735afae755be236dfe44ff9f8fc59d92653c2d9ffba7006d3996",
+    "src/api/generated/apiErrorRoutes.json": "77bddbbb042da87e1b9977b6c11832a2a02329cd7e7cfbb49a28e9e5f4e7bb86",
+    "src/features/accountDeletion/transport.ts": "8ecc7d3beed0c1c1a5b8e798db0b83e99fbf9e80a1833b0528ba9225677f17d8"
   },
   "menus": [
     {
       "id": "admin:/admin/api-registry",
       "label": "운영 > API 관리"
+    },
+    {
+      "id": "app:client-api-errors",
+      "label": "앱 공통 > API 오류 수집",
+      "surface": "app",
+      "isGrouping": true,
+      "source": "src/api/axiosInstance.ts",
+      "sourceLine": 11,
+      "notes": "공통·회원 탈퇴 API의 최종 실패를 익명으로 보고하는 코드 분류입니다. 설치본 업데이트 후 수집됩니다."
+    },
+    {
+      "id": "web_common:client-api-errors",
+      "label": "웹 공통 > API 오류 수집",
+      "surface": "web_common",
+      "isGrouping": true,
+      "source": "src/api/client.js",
+      "sourceLine": 1,
+      "notes": "공통 웹 API 전송의 최종 실패를 익명으로 보고하는 코드 분류입니다."
     }
   ],
   "routes": [
@@ -117,6 +139,24 @@
       ],
       "usageStatus": "connected_in_source",
       "id": "api_3cc8bbf4f361602d"
+    },
+    {
+      "method": "POST",
+      "path": "/api/monitoring/client-errors",
+      "module": "platform",
+      "capability": "client-api-errors",
+      "authorization": "공개 익명 오류 수집 (엄격한 입력 및 수집 한도)",
+      "surfaces": [
+        "app",
+        "web_common"
+      ],
+      "menuIds": [
+        "app:client-api-errors",
+        "web_common:client-api-errors"
+      ],
+      "usageStatus": "connected_in_source",
+      "usageNote": "공통 전송 계층이 최종 API 실패를 보고합니다. 앱은 이 코드가 포함된 설치본부터 수집됩니다. 수집 API 자체의 오류는 재보고하지 않습니다.",
+      "id": "api_45e8e53acc85dfa6"
     }
   ]
 }

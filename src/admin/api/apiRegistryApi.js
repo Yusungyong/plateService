@@ -1,9 +1,10 @@
 import consumerEvidence from "./apiRegistryConsumers.json";
 import {apiClient} from "../../api";
 import {unwrapAdminResponse} from "./adminApiUtils";
+import {clientErrorProperties, clientErrorState, compareClientErrors} from "../pages/apiClientErrors";
 
-export async function getApiRegistry() {
-  return unwrapAdminResponse(await apiClient.get("/api/admin/api-registry"));
+export async function getApiRegistry(options = {}) {
+  return unwrapAdminResponse(await apiClient.get("/api/admin/api-registry", options));
 }
 
 export function registryRows(snapshot) {
@@ -12,6 +13,7 @@ export function registryRows(snapshot) {
   const menus = new Map([...(snapshot.declaredBaseline?.menus || []), ...consumerEvidence.menus].map(menu => [menu.id, menu]));
   const usageOverrides = new Map(consumerEvidence.routes.map(row => [`${row.method} ${row.path}`, row]));
   const rows = new Map(baseline.map(row => [`${row.method} ${row.path}`, {...row, active: false}]));
+  const clientErrors = clientErrorState(snapshot);
   active.forEach((row, key) => rows.set(key, {...rows.get(key), ...row, active: true}));
   return [...rows.values()].map(original => {
     const row = {...original, ...usageOverrides.get(`${original.method} ${original.path}`)};
@@ -20,10 +22,11 @@ export function registryRows(snapshot) {
     const errorCount = samples.filter(metric => Number(metric.status) >= 400).reduce((total, metric) => total + metric.requestCount, 0);
     const menuIds = [...new Set(row.menuIds || [])];
     return {...row, id: row.id || `${row.method} ${row.path}`, menuIds,
+      ...clientErrorProperties(clientErrors, row.method, row.path),
       surfaces: [...new Set(row.surfaces || [])],
       menuLabels: menuIds.map(id => menus.get(id)?.label || id),
       observed: count > 0, requestCount: count || null,
       errorRate: count > 0 ? errorCount / count : null,
       averageMs: count > 0 ? samples.reduce((total, metric) => total + metric.totalTimeMs, 0) / count : null};
-  }).sort((a, b) => `${a.module} ${a.path} ${a.method}`.localeCompare(`${b.module} ${b.path} ${b.method}`));
+  }).sort((a, b) => compareClientErrors(a, b) || `${a.module} ${a.path} ${a.method}`.localeCompare(`${b.module} ${b.path} ${b.method}`));
 }

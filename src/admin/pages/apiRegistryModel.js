@@ -1,3 +1,5 @@
+import {compareClientErrors, summarizeClientErrors} from "./apiClientErrors";
+
 export const MODULE_DETAILS = {
   account: {label: "계정·인증", description: "로그인, 회원 정보와 계정 수명 주기", symbol: "01"},
   social: {label: "친구·관계", description: "친구 요청, 관계와 공개 범위", symbol: "02"},
@@ -49,9 +51,10 @@ export function buildMenuRelations(rows, menuRecords = []) {
     }
   }
   return [...menus.values()].map(menu => ({...menu, surface: menu.surface || inferredSurface(menu.id),
+    ...summarizeClientErrors(menu.rows),
     apiCount: menu.rows.length, moduleIds: [...new Set(menu.rows.map(row => row.module || "unclassified"))],
     activeApiCount: menu.rows.filter(row => row.active).length,
-  })).sort((a, b) => b.apiCount - a.apiCount || a.label.localeCompare(b.label, "ko"));
+  })).sort((a, b) => compareClientErrors(a, b) || b.apiCount - a.apiCount || a.label.localeCompare(b.label, "ko"));
 }
 
 export function summarizeModules(rows) {
@@ -62,15 +65,17 @@ export function summarizeModules(rows) {
     groups.get(id).push(row);
   }
   return [...groups.entries()].map(([id, routes]) => ({id, ...moduleDetails(id), rows: routes,
+    ...summarizeClientErrors(routes),
     apiCount: routes.length, activeApiCount: routes.filter(row => row.active).length,
     observedApiCount: routes.filter(row => row.observed).length,
     menuCount: new Set(routes.flatMap(row => row.menuIds || [])).size,
   })).sort((a, b) => Object.keys(MODULE_DETAILS).indexOf(a.id) - Object.keys(MODULE_DETAILS).indexOf(b.id));
 }
 
-export function filterRegistryRows(rows, {query = "", module = "", method = "", surface = "", menuId = "", group = ""} = {}) {
+export function filterRegistryRows(rows, {query = "", module = "", method = "", surface = "", menuId = "", group = "", errorsOnly = false} = {}) {
   const needle = query.trim().toLowerCase();
   return rows.filter(row => (!module || row.module === module) && (!method || row.method === method)
+    && (!errorsOnly || row.clientErrorAvailable !== true || row.clientErrorCount > 0)
     && (!surface || (row.surfaces || []).includes(surface))
     && (!group || row.commonizationGroup === group)
     && (!menuId || (menuId === UNLINKED_MENU ? !(row.menuIds || []).length : (row.menuIds || []).includes(menuId)))
@@ -78,17 +83,15 @@ export function filterRegistryRows(rows, {query = "", module = "", method = "", 
 }
 
 export function relationshipGraph(rows, limit = 8) {
-  const routes = uniqueApiRows(rows);
+  const routes = uniqueApiRows(rows).sort(compareClientErrors);
   const modules = summarizeModules(routes);
   // Round-robin sampling keeps each module represented in the first diagram page.
-  const displayed = [];
+  const displayed = routes.filter(row => row.clientErrorCount > 0).slice(0, limit);
   let position = 0;
-  while (displayed.length < Math.min(limit, routes.length)) {
-    let added = false;
+  while (displayed.length < Math.min(limit, routes.length) && position < routes.length) {
     for (const module of modules) {
-      if (module.rows[position] && displayed.length < limit) {displayed.push(module.rows[position]); added = true;}
+      if (module.rows[position] && displayed.length < limit && !displayed.includes(module.rows[position])) displayed.push(module.rows[position]);
     }
-    if (!added) break;
     position += 1;
   }
   return {modules, routes: displayed, totalApiCount: routes.length, omittedApiCount: routes.length - displayed.length};
