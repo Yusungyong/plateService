@@ -1,3 +1,4 @@
+import AdminApiRegistry from "../admin/pages/AdminApiRegistry";
 import ContentVerification from "../pages/ContentVerification";
 import FAQ from "../pages/FAQ";
 import Feedback from "../pages/Feedback";
@@ -41,6 +42,7 @@ export const adminNavigationItems = [
     permission: ADMIN_PERMISSIONS.DASHBOARD_READ,
     group: "운영",
   },
+  {path: "/admin/api-registry", label: "API 관리", icon: "dashboard", permission: ADMIN_PERMISSIONS.DASHBOARD_READ, group: "운영"},
   {
     path: "/admin/store-approvals",
     label: "입점 신청 심사",
@@ -155,6 +157,7 @@ export const businessOwnerRoutes = [
 ];
 
 export const adminRoutes = [
+  {path: "/admin/api-registry", component: AdminApiRegistry, permission: ADMIN_PERMISSIONS.DASHBOARD_READ},
   {
     path: "/admin/dashboard",
     component: AdminDashboard,

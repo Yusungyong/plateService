@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   deleteAdminRestaurant,
-  deleteRestaurant,
   fetchAdminRestaurants,
   fetchRestaurants,
 } from "../api/restaurantApi";
@@ -93,6 +92,7 @@ function RestaurantManagement({ adminMode = false }) {
   }
 
   async function confirmDelete() {
+    if (!adminMode) return;
     const restaurantId = pendingDeleteRestaurant?.id || pendingDeleteRestaurant?.restaurantId;
 
     if (!restaurantId) {
@@ -103,8 +103,7 @@ function RestaurantManagement({ adminMode = false }) {
     setMessage("");
 
     try {
-      const removeRestaurant = adminMode ? deleteAdminRestaurant : deleteRestaurant;
-      await removeRestaurant(restaurantId);
+      await deleteAdminRestaurant(restaurantId);
       setMessageType("success");
       setMessage("매장 정보가 삭제되었습니다.");
       await loadRestaurants(restaurantPage.page, appliedFilters);
@@ -244,13 +243,13 @@ function RestaurantManagement({ adminMode = false }) {
                       <span role="cell" data-label="수정일">{formatDate(restaurant.updatedAt || restaurant.updated_at)}</span>
                       <div className="restaurant-row-actions" role="cell" data-label="작업">
                         <Link to={`${adminMode ? "/admin/stores" : "/business/stores"}/${restaurantId}`}>상세</Link>
-                        <button
+                        {adminMode && <button
                           type="button"
                           onClick={() => requestDelete(restaurant)}
                           disabled={deletingRestaurantId !== null}
                         >
                           {isDeletingThisRow ? "삭제 중" : "삭제"}
-                        </button>
+                        </button>}
                       </div>
                     </div>
                   );

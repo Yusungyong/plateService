@@ -91,7 +91,7 @@ function buildUrl(path, query) {
 async function parseResponse(response) {
   const contentType = response.headers.get("content-type") || "";
 
-  if (contentType.includes("application/json")) {
+  if (contentType.includes("application/json") || contentType.includes("+json")) {
     return response.json();
   }
 
@@ -108,8 +108,8 @@ async function parseResponse(response) {
 
 function createApiError(response, payload) {
   const message =
-    typeof payload === "object" && payload && payload.message
-      ? payload.message
+    typeof payload === "object" && payload && (payload.message || payload.detail)
+      ? payload.message || payload.detail
       : response.status === 401 ? "로그인이 필요합니다. 다시 로그인해 주세요."
         : response.status === 403 ? "이 작업을 수행할 권한이 없습니다."
         : response.status === 409 ? "정보가 변경됐거나 이미 처리된 요청입니다. 최신 내용을 확인해 주세요."

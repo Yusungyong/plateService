@@ -163,6 +163,7 @@ test("shows owner shell and loads linked stores", async () => {
   expect(screen.getByRole("link", { name: "내 매장 관리" })).toHaveAttribute("href", "/business/stores");
   expect(screen.getByRole("link", { name: "새 입점 신청" })).toHaveAttribute("href", "/business/signup");
   expect(await screen.findByText("플레이팅 키친 강남점")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "삭제" })).not.toBeInTheDocument();
   expect(screen.getAllByText("즉시 노출").length).toBeGreaterThan(0);
   expect(global.fetch).toHaveBeenCalledWith(
     expect.stringContaining("/api/owner/stores?page=0&size=20"),

@@ -27,16 +27,8 @@ export async function fetchRestaurantDetail(restaurantId) {
   return apiClient.get(`/api/owner/stores/${restaurantId}`);
 }
 
-export async function createRestaurant(payload) {
-  return unwrapData(await apiClient.post("/api/owner/stores", payload));
-}
-
 export async function updateRestaurant(restaurantId, payload) {
   return unwrapData(await apiClient.put(`/api/owner/stores/${restaurantId}`, payload));
-}
-
-export async function deleteRestaurant(restaurantId) {
-  return unwrapData(await apiClient.delete(`/api/owner/stores/${restaurantId}`));
 }
 
 export async function uploadAdminRestaurantFile(file) {
