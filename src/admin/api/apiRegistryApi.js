@@ -18,8 +18,10 @@ export function registryRows(snapshot) {
     const samples = (snapshot.runtimeMetrics || []).filter(metric => metric.method === row.method && metric.path === row.path);
     const count = samples.reduce((total, metric) => total + metric.requestCount, 0);
     const errorCount = samples.filter(metric => Number(metric.status) >= 400).reduce((total, metric) => total + metric.requestCount, 0);
-    return {...row, id: row.id || `${row.method} ${row.path}`,
-      menuLabels: (row.menuIds || []).map(id => menus.get(id)?.label || id),
+    const menuIds = [...new Set(row.menuIds || [])];
+    return {...row, id: row.id || `${row.method} ${row.path}`, menuIds,
+      surfaces: [...new Set(row.surfaces || [])],
+      menuLabels: menuIds.map(id => menus.get(id)?.label || id),
       observed: count > 0, requestCount: count || null,
       errorRate: count > 0 ? errorCount / count : null,
       averageMs: count > 0 ? samples.reduce((total, metric) => total + metric.totalTimeMs, 0) / count : null};

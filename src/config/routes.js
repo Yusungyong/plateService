@@ -19,7 +19,7 @@ import AdminDashboard from "../admin/pages/AdminDashboard";
 import AdminPlaceholderPage from "../admin/pages/AdminPlaceholderPage";
 import AdminStoreApprovals from "../admin/pages/AdminStoreApprovals";
 import AdminSeasonalFoods from "../admin/pages/AdminSeasonalFoods";
-import { userHasAdminPermission, ADMIN_PERMISSIONS } from "../admin/constants/adminPermissions";
+import { userHasAdminPermission, userCanViewApiRegistry, ADMIN_PERMISSIONS } from "../admin/constants/adminPermissions";
 
 export const publicNavigationItems = [
   { path: "/", label: "접시 홈" },
@@ -42,7 +42,7 @@ export const adminNavigationItems = [
     permission: ADMIN_PERMISSIONS.DASHBOARD_READ,
     group: "운영",
   },
-  {path: "/admin/api-registry", label: "API 관리", icon: "dashboard", permission: ADMIN_PERMISSIONS.DASHBOARD_READ, group: "운영"},
+  {path: "/admin/api-registry", label: "API 구조 관리", icon: "dashboard", permission: ADMIN_PERMISSIONS.DASHBOARD_READ, operatorOnly: true, group: "운영"},
   {
     path: "/admin/store-approvals",
     label: "입점 신청 심사",
@@ -157,7 +157,7 @@ export const businessOwnerRoutes = [
 ];
 
 export const adminRoutes = [
-  {path: "/admin/api-registry", component: AdminApiRegistry, permission: ADMIN_PERMISSIONS.DASHBOARD_READ},
+  {path: "/admin/api-registry", component: AdminApiRegistry, permission: ADMIN_PERMISSIONS.DASHBOARD_READ, operatorOnly: true},
   {
     path: "/admin/dashboard",
     component: AdminDashboard,
@@ -234,6 +234,7 @@ export const legacyBusinessRedirects = [
 export function getAdminEntryPath(user) {
   return adminNavigationItems.find((item) =>
     item.available !== false && userHasAdminPermission(user, item.permission)
+      && (!item.operatorOnly || userCanViewApiRegistry(user))
   )?.path || "/faq";
 }
 
