@@ -119,12 +119,12 @@ test("metric display can be enabled and hidden without changing graph or menu se
   getApiRegistry.mockResolvedValue(snapshot);
   render(<AdminApiRegistry />);
   const route = await screen.findByRole("button", {name: "관계도 POST /api/images"});
-  expect(screen.queryByRole("columnheader", {name: "호출 수"})).not.toBeInTheDocument();
+  expect(screen.queryByRole("columnheader", {name: "서버 호출 수"})).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", {name: "호출 지표 보기"}));
-  expect(screen.getByRole("columnheader", {name: "호출 수"})).toBeInTheDocument();
+  expect(screen.getByRole("columnheader", {name: "서버 호출 수"})).toBeInTheDocument();
   expect(screen.getByText("20.0%")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", {name: "호출 지표 숨기기"}));
-  expect(screen.queryByRole("columnheader", {name: "호출 수"})).not.toBeInTheDocument();
+  expect(screen.queryByRole("columnheader", {name: "서버 호출 수"})).not.toBeInTheDocument();
   expect(route).toBeInTheDocument();
   expect(screen.getByRole("button", {name: "메뉴 앱 > 이미지 등록 1개 API"})).toHaveAttribute("aria-pressed", "true");
 });

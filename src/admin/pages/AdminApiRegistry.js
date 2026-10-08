@@ -3,6 +3,10 @@ import React, {useCallback, useEffect, useId, useMemo, useRef, useState} from "r
 import AdminPageHeader from "../components/AdminPageHeader";
 import ApiRelationshipMap from "../components/ApiRelationshipMap";
 import ApiModuleStructure from "../components/ApiModuleStructure";
+import ApiClientErrorBadge from "../components/ApiClientErrorBadge";
+import ApiClientErrorDetails from "../components/ApiClientErrorDetails";
+import ApiClientErrorSummary from "../components/ApiClientErrorSummary";
+import {clientErrorState} from "./apiClientErrors";
 import {getApiRegistry, registryRows} from "../api/apiRegistryApi";
 import {buildMenuRelations, filterRegistryRows, moduleDetails, sourceEvidence, summarizeModules, SURFACE_LABELS, UNLINKED_MENU, uniqueApiRows} from "./apiRegistryModel";
 import "./ApiRegistry.css";
@@ -34,25 +38,46 @@ export default function AdminApiRegistry() {
   const [view, setView] = useState("menus");
   const [selectedId, setSelectedId] = useState("");
   const [showMetrics, setShowMetrics] = useState(false);
+  const [errorsOnly, setErrorsOnly] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [checkedAt, setCheckedAt] = useState(null);
   const requestVersion = useRef(0);
+  const inFlight = useRef(null);
+  const snapshotRef = useRef(null);
   const initialMenuChosen = useRef(false);
   const detailRef = useRef(null);
-  const load = useCallback(async () => {
+  const load = useCallback(async ({background = false} = {}) => {
+    if (inFlight.current) return;
     const version = ++requestVersion.current;
-    setLoading(true); setError("");
-    try {const result = await getApiRegistry(); if (version === requestVersion.current) setSnapshot(result);}
-    catch (failure) {if (version === requestVersion.current) {setSnapshot(null); setSelectedId(""); setError(failure.message || "API 목록을 불러오지 못했습니다.");}}
-    finally {if (version === requestVersion.current) setLoading(false);}
+    const controller = new AbortController();
+    inFlight.current = controller;
+    if (!background || !snapshotRef.current) setLoading(true);
+    setRefreshing(true); setError("");
+    try {const result = await getApiRegistry({signal: controller.signal}); if (version === requestVersion.current) {snapshotRef.current = result; setSnapshot(result);}}
+    catch (failure) {if (version === requestVersion.current && !controller.signal.aborted) {snapshotRef.current = null; setSnapshot(null); setSelectedId(""); setError(failure.message || "API 목록을 불러오지 못했습니다.");}}
+    finally {if (inFlight.current === controller) inFlight.current = null; if (version === requestVersion.current) {setLoading(false); setRefreshing(false); setCheckedAt(new Date().toISOString());}}
   }, []);
-  useEffect(() => {load(); return () => {requestVersion.current += 1;};}, [load]);
+  useEffect(() => {load(); return () => {requestVersion.current += 1; inFlight.current?.abort(); inFlight.current = null;};}, [load]);
+  useEffect(() => {
+    if (!autoRefresh) return;
+    let timer = null, disposed = false;
+    const schedule = () => {if (timer !== null) window.clearTimeout(timer); timer = null; if (!disposed && document.visibilityState !== "hidden") timer = window.setTimeout(tick, 30000);};
+    const tick = async () => {timer = null; if (disposed || document.visibilityState === "hidden") return; await load({background: true}); schedule();};
+    const visibility = () => {if (timer !== null) window.clearTimeout(timer); timer = null; if (document.visibilityState !== "hidden") void tick();};
+    schedule(); document.addEventListener("visibilitychange", visibility);
+    return () => {disposed = true; if (timer !== null) window.clearTimeout(timer); document.removeEventListener("visibilitychange", visibility);};
+  }, [autoRefresh, load]);
+  const clientErrors = useMemo(() => clientErrorState(snapshot), [snapshot]);
   const rows = useMemo(() => snapshot ? uniqueApiRows(registryRows(snapshot)) : [], [snapshot]);
   const menus = useMemo(() => [...(snapshot?.declaredBaseline?.menus || []), ...consumerEvidence.menus], [snapshot]);
   const menuRelations = useMemo(() => buildMenuRelations(rows, menus), [rows, menus]);
   const modules = useMemo(() => summarizeModules(rows), [rows]);
-  const availableRows = useMemo(() => filterRegistryRows(rows, {query, module, method, surface, group}), [rows, query, module, method, surface, group]);
+  const availableRows = useMemo(() => filterRegistryRows(rows, {query, module, method, surface, group, errorsOnly}), [rows, query, module, method, surface, group, errorsOnly]);
   const filtered = useMemo(() => filterRegistryRows(availableRows, {menuId}), [availableRows, menuId]);
   const availableMenus = useMemo(() => buildMenuRelations(availableRows, menus).filter(menu => menu.apiCount > 0), [availableRows, menus]);
-  const selectedMenu = menuId === UNLINKED_MENU ? {id: UNLINKED_MENU, label: "메뉴 연결 근거 없음", isGrouping: true} : menuRelations.find(menu => menu.id === menuId);
+  const selectedMenu = menuId === UNLINKED_MENU ? {id: UNLINKED_MENU, label: "메뉴 연결 근거 없음", isGrouping: true} : menuRelations.find(menu => menu.id === menuId)
+    || (errorsOnly && clientErrors.available ? {id: "__errors_only__", label: "오류가 보고된 API", isGrouping: true} : null);
   const selected = rows.find(row => row.id === selectedId);
   const linkedMenus = menuRelations.filter(menu => menu.apiCount > 0);
   const unlinked = availableRows.filter(row => !(row.menuIds || []).length).length;
@@ -63,7 +88,7 @@ export default function AdminApiRegistry() {
   const commonLikeRows = likeRows.filter(row => row.path.startsWith("/api/v3/contents/"));
   const commonLikeMenuCount = new Set(commonLikeRows.flatMap(row => row.menuIds || [])).size;
   const architecture = snapshot?.architecture;
-  const hasFilters = query || module || method || surface || menuId || group;
+  const hasFilters = query || module || method || surface || menuId || group || errorsOnly;
 
   useEffect(() => {
     if (!snapshot) return;
@@ -74,7 +99,8 @@ export default function AdminApiRegistry() {
     } else if (menuId && menuId !== UNLINKED_MENU && !menuRelations.some(menu => menu.id === menuId)) setMenuId("");
   }, [snapshot, menuRelations, menuId]);
 
-  function resetFilters() {setQuery(""); setModule(""); setMethod(""); setSurface(""); setMenuId(""); setGroup("");}
+  function resetFilters() {setQuery(""); setModule(""); setMethod(""); setSurface(""); setMenuId(""); setGroup(""); setErrorsOnly(false);}
+  function toggleErrorsOnly(value) {resetFilters(); setErrorsOnly(value); setSelectedId(""); setView("menus");}
   function selectApi(row) {setSelectedId(row.id); window.setTimeout(() => detailRef.current?.scrollIntoView?.({behavior: "smooth", block: "start"}), 0);}
   function selectMenu(id) {setMenuId(id); setSelectedId("");}
   function showLikes() {
@@ -93,6 +119,7 @@ export default function AdminApiRegistry() {
       actions={<><span className="api-info-text">su12ng 전용</span><button className="admin-button" onClick={load} disabled={loading}>{loading ? "확인 중…" : "새로고침"}</button></>} />
     {error && <section className="admin-error-panel" role="alert"><p>{error}</p><button onClick={load}>다시 시도</button></section>}
     {loading && <p role="status">API 목록을 불러오는 중입니다.</p>}
+    {(!loading || snapshot) && <ApiClientErrorSummary state={clientErrors} errorsOnly={errorsOnly} onErrorsOnly={toggleErrorsOnly} autoRefresh={autoRefresh} onAutoRefresh={setAutoRefresh} refreshing={refreshing} checkedAt={checkedAt} />}
     {snapshot && <>
       <dl className="api-summary" aria-label="API 집계"><div><dt>활성 API</dt><dd>{activeCount.toLocaleString()}</dd></div><div><dt>연결 메뉴</dt><dd>{linkedMenus.length.toLocaleString()}</dd></div><div><dt>업무 모듈</dt><dd>{modules.filter(item => item.id !== "platform").length}<small> + 공통 {modules.some(item => item.id === "platform") ? 1 : 0}</small></dd></div></dl>
       <section className="api-workspace" aria-label="API 관계 탐색">
@@ -111,10 +138,10 @@ export default function AdminApiRegistry() {
           {hasFilters && <div className="api-active-filters"><span>{selectedMenu ? `선택 메뉴: ${selectedMenu.label}` : "전체 메뉴"}{module && ` · 업무: ${moduleDetails(module).label}`}{method && ` · ${method}`}{group && " · 좋아요 그룹"}</span><button type="button" className="api-text-button" onClick={resetFilters}>필터 초기화</button></div>}
           <div className="api-menu-workspace">
             <aside className="api-menu-browser" aria-label="메뉴별 API 선택">
-              <div className="api-mobile-menu"><label htmlFor={`${filtersId}-menu`}>메뉴 선택</label><select id={`${filtersId}-menu`} value={menuId} onChange={event => selectMenu(event.target.value)}><option value="">전체 API · {availableRows.length}개</option>{menuId && menuId !== UNLINKED_MENU && selectedMenu && !availableMenus.some(menu => menu.id === menuId) && <option value={menuId}>{selectedMenu.label} · 연결 API 없음</option>}{availableMenus.map(menu => <option value={menu.id} key={menu.id}>{menu.label} · {menu.apiCount}개 API</option>)}<option value={UNLINKED_MENU}>메뉴 연결 근거 없음 · {unlinked}개</option></select></div>
+              <div className="api-mobile-menu"><label htmlFor={`${filtersId}-menu`}>메뉴 선택</label><select id={`${filtersId}-menu`} value={menuId} onChange={event => selectMenu(event.target.value)}><option value="">전체 API · {availableRows.length}개</option>{menuId && menuId !== UNLINKED_MENU && selectedMenu && !availableMenus.some(menu => menu.id === menuId) && <option value={menuId}>{selectedMenu.label} · 연결 API 없음</option>}{availableMenus.map(menu => <option value={menu.id} key={menu.id}>{menu.label} · {menu.apiCount}개 API{menu.clientErrorCount > 0 ? ` · 오류 ${menu.clientErrorCount}건` : ""}</option>)}<option value={UNLINKED_MENU}>메뉴 연결 근거 없음 · {unlinked}개</option></select></div>
               <div className="api-menu-desktop"><div className="api-menu-heading"><h3>메뉴 선택</h3><span>{availableMenus.length}개</span></div>
               <button type="button" className={!menuId ? "is-selected" : ""} aria-pressed={!menuId} onClick={() => selectMenu("")}><strong>전체 API</strong><b>{availableRows.length}</b><span aria-hidden="true">→</span></button>
-              <div className="api-menu-list">{availableMenus.map(menu => <button type="button" key={menu.id} className={menuId === menu.id ? "is-selected" : ""} aria-pressed={menuId === menu.id} aria-label={`메뉴 ${menu.label} ${menu.apiCount}개 API`} onClick={() => selectMenu(menu.id)}><span><small>{SURFACE_LABELS[menu.surface] || "메뉴"}</small><strong>{menu.label}</strong></span><b>{menu.apiCount}</b><span aria-hidden="true">→</span></button>)}</div>
+              <div className="api-menu-list">{availableMenus.map(menu => <button type="button" key={menu.id} className={`${menuId === menu.id ? "is-selected" : ""} api-menu-error--${menu.clientErrorSeverity}`} data-error-severity={menu.clientErrorSeverity} aria-pressed={menuId === menu.id} aria-label={`메뉴 ${menu.label} ${menu.apiCount}개 API${menu.clientErrorCount > 0 ? ` 오류 보고 ${menu.clientErrorCount}건` : ""}`} onClick={() => selectMenu(menu.id)}><span><small>{SURFACE_LABELS[menu.surface] || "메뉴"}</small><strong>{menu.label}</strong><ApiClientErrorBadge row={menu} compact /></span><b>{menu.apiCount}</b><span aria-hidden="true">→</span></button>)}</div>
               <button type="button" className={`api-menu-unlinked ${menuId === UNLINKED_MENU ? "is-selected" : ""}`} aria-pressed={menuId === UNLINKED_MENU} onClick={() => selectMenu(UNLINKED_MENU)}><strong>메뉴 연결 근거 없음</strong><b>{unlinked}</b><span aria-hidden="true">→</span></button></div>
             </aside>
             <div className="api-relationship-panel"><div className="api-section-heading"><h2>{selectedMenu ? selectedMenu.label : "전체 연결 구조"}</h2><span className="api-info-text">소스 연결 기준</span></div>
@@ -124,19 +151,20 @@ export default function AdminApiRegistry() {
           </div>
           {selected && <section className="api-registry-detail" aria-label="API 상세" ref={detailRef}><div className="api-section-heading"><h2><b className={`api-method api-method--${selected.method.toLowerCase()}`}>{selected.method}</b> {selected.path}</h2><button className="api-text-button" onClick={() => setSelectedId("")}>상세 닫기</button></div>
             <dl className="api-detail-properties"><div><dt>업무</dt><dd>{moduleDetails(selected.module).label}</dd></div><div><dt>기능</dt><dd>{selected.capability || "신규 계약"}</dd></div><div><dt>권한</dt><dd>{selected.authorization || "서버 권한 정책 적용"}</dd></div><div><dt>공통화 그룹</dt><dd>{selected.commonizationGroup || "없음"}</dd></div></dl>
+            <ApiClientErrorDetails row={selected} />
             <div className="api-detail-linked-menus"><h3>함께 사용하는 메뉴</h3>{(selected.menuIds || []).length ? [...new Set(selected.menuIds)].map(id => {const menu = menuRelations.find(item => item.id === id); return <button type="button" className="api-text-button" key={id} onClick={() => {setMenuId(id); setQuery(""); setSurface(""); setMethod(""); setModule(""); setGroup("");}}>{menu?.label || id} ↗</button>;}) : <p>연결 근거 없음</p>}</div>
             <details className="api-disclosure"><summary>소스 근거와 요청 형식 보기</summary><SourceLinks row={selected} menus={menus} /><details className="api-detail-contract"><summary>서버 매핑과 요청·응답 형식 조건</summary><pre>{JSON.stringify(selected.variants || selected.variantContracts || [], null, 2)}</pre></details></details>
           </section>}
           <section id="api-list-section" className="api-registry-list" aria-label="API 전체 목록"><div className="api-section-heading"><div><h2>API 목록</h2><p role="status">{filtered.length}개 표시</p></div><div className="api-list-actions"><button type="button" className="api-text-button" aria-pressed={showMetrics} onClick={() => setShowMetrics(value => !value)}>{showMetrics ? "호출 지표 숨기기" : "호출 지표 보기"}</button><button className="api-text-button" onClick={download}>JSON 저장</button></div></div>
             {showMetrics && <div className="api-metrics-scope"><p>현재 서버 프로세스 누적 · 호출 관측 API {observed}개. 미관측은 미사용을 뜻하지 않습니다. 경로 미분류 요청 {unclassifiedCount > 0 ? `${unclassifiedCount.toLocaleString()}건` : "미관측"}; 일부 인증 거절과 상태 점검은 개별 API 지표에 포함되지 않습니다.</p></div>}
-            <div className="api-registry-table"><table><caption className="api-visually-hidden">현재 필터에 맞는 API{showMetrics ? "와 서버 호출 지표" : "와 사용 메뉴"}</caption><thead><tr><th scope="col">업무</th><th scope="col">API · 눌러서 상세 보기</th><th scope="col">사용 메뉴</th>{showMetrics && <><th scope="col">호출 수</th><th scope="col">오류율</th><th scope="col">평균 응답</th><th scope="col">상태</th></>}</tr></thead><tbody>
-              {filtered.map(row => <tr key={row.id} className={selectedId === row.id ? "is-selected" : ""}><td>{moduleDetails(row.module).label}</td><td><button className="api-registry-route" onClick={() => selectApi(row)}><b className={`api-method api-method--${row.method.toLowerCase()}`}>{row.method}</b> {row.path}</button></td><td><span className="api-table-menus">{row.menuLabels.length ? row.menuLabels.join(" · ") : "연결 근거 없음"}</span></td>
+            <div className="api-registry-table"><table><caption className="api-visually-hidden">현재 필터에 맞는 API{showMetrics ? "와 서버 호출 지표" : "와 사용 메뉴"}</caption><thead><tr><th scope="col">업무</th><th scope="col">API · 눌러서 상세 보기</th><th scope="col">사용 메뉴</th>{showMetrics && <><th scope="col">서버 호출 수</th><th scope="col">서버 오류율</th><th scope="col">서버 평균 응답</th><th scope="col">상태</th></>}</tr></thead><tbody>
+              {filtered.map(row => <tr key={row.id} className={`${selectedId === row.id ? "is-selected" : ""} api-row-error--${row.clientErrorSeverity}`} data-error-severity={row.clientErrorSeverity}><td>{moduleDetails(row.module).label}</td><td><button className="api-registry-route" onClick={() => selectApi(row)}><b className={`api-method api-method--${row.method.toLowerCase()}`}>{row.method}</b> {row.path}</button><ApiClientErrorBadge row={row} compact /></td><td><span className="api-table-menus">{row.menuLabels.length ? row.menuLabels.join(" · ") : "연결 근거 없음"}</span></td>
                 {showMetrics && <><td>{row.observed ? row.requestCount.toLocaleString() : <span className="api-unobserved">미관측</span>}</td><td className={row.observed && row.errorRate > 0 ? "api-error-value" : ""}>{row.observed ? `${(row.errorRate * 100).toFixed(1)}%` : "—"}</td><td>{row.observed ? `${row.averageMs.toFixed(1)}ms` : "—"}</td><td><span className={`api-status ${row.active ? "api-status--active" : ""}`}>{row.active ? "활성" : "현재 비활성"}</span></td></>}
               </tr>)}
               {!filtered.length && <tr><td colSpan={showMetrics ? 7 : 3} className="api-empty-table">조건에 맞는 API가 없습니다. 필터를 변경해 보세요.</td></tr>}
             </tbody></table></div>
           </section>
-        </div> : <div id="api-structure-panel" role="tabpanel" aria-labelledby="api-view-structure"><ApiModuleStructure architecture={architecture} /></div>}
+        </div> : <div id="api-structure-panel" role="tabpanel" aria-labelledby="api-view-structure"><ApiModuleStructure architecture={architecture} moduleSummaries={modules} /></div>}
       </section>
       <details className="api-additional"><summary>공통화 현황 보기</summary><div className="api-additional-content">
         <section className="api-reuse-section" aria-label="공통 API 재사용"><div className="api-section-heading"><div><h2>공통 좋아요 API</h2><p>공통 API {commonLikeRows.length}개 · 연결 메뉴 {commonLikeMenuCount}개 · 기존 API {likeRows.length - commonLikeRows.length}개</p></div><button type="button" className="api-text-button" onClick={showLikes}>좋아요 API 보기 →</button></div><code>/api/v3/contents/{"{kind}"}/{"{contentId}"}/likes</code><p className="api-registry-note">메뉴 수는 소스의 사용처 기준입니다. 기존 API는 이전 앱의 호환을 위해 함께 유지합니다.</p></section>
