@@ -14,12 +14,12 @@ const architecture = {
 test("renders actual backend integer role counts and constructor dependency evidence", () => {
   render(<ApiModuleStructure architecture={architecture} />);
   expect(screen.getByText("명령 2 · 조회 3", {selector: "small"})).toBeInTheDocument();
-  const evidence = screen.getByText("연결 근거 보기", {exact: false, selector: "summary"}).closest("details");
-  const interfaces = screen.getByText("서비스 인터페이스 보기", {exact: false, selector: "summary"}).closest("details");
+  const evidence = screen.getByRole("group", {name: "연결 근거"});
+  const interfaces = screen.getByRole("group", {name: "서비스 인터페이스"});
   expect(evidence).not.toHaveAttribute("open");
   expect(interfaces).not.toHaveAttribute("open");
-  fireEvent.click(evidence.querySelector("summary"));
-  fireEvent.click(interfaces.querySelector("summary"));
+  fireEvent.click(screen.getByText("연결 근거 보기", {exact: false, selector: "summary"}));
+  fireEvent.click(screen.getByText("서비스 인터페이스 보기", {exact: false, selector: "summary"}));
   expect(evidence).toHaveAttribute("open");
   expect(interfaces).toHaveAttribute("open");
   expect(screen.getByText("LikeCommands")).toBeInTheDocument();

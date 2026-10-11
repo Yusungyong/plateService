@@ -38,12 +38,12 @@ test.each([200, 401])("late refresh response (%s) cannot restore logout or clear
     });
   setAuthSession("old-access", "old-refresh");
   const pending = apiClient.get("/api/admin/dashboard");
-  const rejected = expect(pending).rejects.toBeDefined();
+  const outcome = pending.then(() => ({rejected: false}), () => ({rejected: true}));
   await started;
   clearAuthSession();
   if (status === 401) setAuthSession("new-login-access", "new-login-refresh");
   finishRefresh(jsonResponse(status, { data: { accessToken: "late-access", refreshToken: "late-refresh" } }));
-  await rejected;
+  expect(await outcome).toEqual({rejected: true});
   expect(refreshed).not.toHaveBeenCalled();
   expect(failure).not.toHaveBeenCalled();
   global.fetch.mockResolvedValueOnce(jsonResponse(200, {}));

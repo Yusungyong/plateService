@@ -7,7 +7,7 @@ const response = (data,status=200) => ({ok:status<400,status,headers:{get:()=>"a
 const detail = {applicationId:17,approvalStatus:"on_hold",version:3,ownerProfile:{ownerName:"OWNER A",ownerPhone:"01012345678"},business:{businessNumber:"123-**-*****"},store:{storeName:"STORE A",address:"ADDRESS A"},categories:[],menus:[],documents:[]};
 function open(path, account) {
   if(account)localStorage.setItem("plate-service.auth",JSON.stringify(auth(account)));
-  history.replaceState({},"",path);return render(<App/>);
+  window.history.replaceState({},"",path);return render(<App/>);
 }
 beforeEach(()=>{localStorage.clear();sessionStorage.clear();global.fetch=jest.fn();});
 afterEach(()=>jest.restoreAllMocks());
@@ -45,7 +45,7 @@ test.each([3,2])("restores an editing draft only for the same server version (%s
   expect(await screen.findByLabelText("담당자 이름")).toHaveValue(version===3?"RESTORED OWNER":"OWNER A");
 });
 function fillSignup(){
-  for(const [id,value] of Object.entries({username:"testuser",nickname:"tester",email:"test@example.com",password:"password123",passwordConfirm:"password123"}))fireEvent.change(document.getElementById("signup-"+id),{target:{value}});
+  for(const [id,value] of Object.entries({username:"testuser",nickname:"tester",email:"test@example.com",password:"password123",passwordConfirm:"password123"}))fireEvent.change(screen.getByLabelText({username:/^회원 ID/,nickname:"닉네임",email:"이메일",password:/^비밀번호\s*비밀번호는/,passwordConfirm:"비밀번호 확인"}[id]),{target:{value}});
   fireEvent.click(screen.getByRole("checkbox",{name:"이용약관에 동의합니다."}));
   fireEvent.click(screen.getByRole("checkbox",{name:"개인정보 처리방침에 동의합니다."}));
 }
@@ -53,7 +53,7 @@ test.each(["fields","fieldErrors"])("maps backend %s to the invalid signup field
   global.fetch.mockResolvedValue(response({message:"검증 실패",data:{[key]:{nickname:"닉네임 검증 오류"}}},400));
   open("/signup");fillSignup();fireEvent.click(screen.getByRole("button",{name:"가입하기"}));
   await screen.findByText("닉네임 검증 오류");
-  expect(document.getElementById("signup-nickname")).toHaveAttribute("aria-invalid","true");
+  expect(screen.getByRole("textbox", {name: /^닉네임/})).toHaveAttribute("aria-invalid","true");
 });
 test("blocks navigation during signup but allows the successful result to navigate", async()=>{
   const alert=jest.spyOn(window,"alert").mockImplementation(()=>{});let finish;
@@ -62,9 +62,9 @@ test("blocks navigation during signup but allows the successful result to naviga
   await waitFor(()=>expect(global.fetch).toHaveBeenCalledTimes(1));
   fireEvent.click(screen.getAllByRole("link",{name:"접시 홈으로 이동"})[0]);
   await waitFor(()=>expect(alert).toHaveBeenCalledTimes(1));
-  expect(location.pathname).toBe("/signup");
+  expect(window.location.pathname).toBe("/signup");
   await act(async()=>finish(response({data:{username:"testuser"}})));
-  await waitFor(()=>expect(location.pathname).toBe("/login"));
+  await waitFor(()=>expect(window.location.pathname).toBe("/login"));
   expect(alert).toHaveBeenCalledTimes(1);
 });
 
@@ -72,7 +72,7 @@ test("a late signup response cannot navigate after the form has unmounted", asyn
   let finish;global.fetch.mockImplementation(()=>new Promise(resolve=>{finish=resolve;}));
   const view=open("/signup");fillSignup();fireEvent.click(screen.getByRole("button",{name:"가입하기"}));
   await waitFor(()=>expect(global.fetch).toHaveBeenCalledTimes(1));
-  view.unmount();history.replaceState({},"","/");
+  view.unmount();window.history.replaceState({},"","/");
   await act(async()=>finish(response({data:{username:"testuser"}})));
-  expect(location.pathname).toBe("/");
+  expect(window.location.pathname).toBe("/");
 });

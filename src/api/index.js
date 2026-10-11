@@ -4,10 +4,8 @@ export {
   API_BASE_URL,
   buildQueryString,
   clearAuthSession,
-  clearAuthToken,
   registerAuthFailureHandler,
   registerAuthSessionRefreshHandler,
   request,
   setAuthSession,
-  setAuthToken,
 } from "./client";

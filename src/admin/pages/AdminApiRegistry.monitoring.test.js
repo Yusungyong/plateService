@@ -21,14 +21,14 @@ test("global error action reaches failures outside the default Home menu, highli
   expect(within(monitor).getByText("4")).toBeInTheDocument();
   await waitFor(() => expect(screen.queryByRole("button", {name: "POST /api/test/social"})).not.toBeInTheDocument());
   expect(screen.getByText("최근 24시간 구간 · 서버 수신 시각 기준")).toBeInTheDocument();
-  expect(monitor.querySelector('time[datetime="2026-10-07T07:00:00Z"]')).toBeInTheDocument();
+  expect(within(monitor).getByText((_, element) => element.tagName === "TIME" && element.getAttribute("datetime") === "2026-10-07T07:00:00Z")).toBeInTheDocument();
   fireEvent.change(screen.getByLabelText("검색"), {target: {value: "home"}});
   fireEvent.click(screen.getByRole("checkbox", {name: "오류가 보고된 API만"}));
   expect(screen.getByLabelText("검색")).toHaveValue("");
   expect(screen.getByLabelText("메뉴 선택")).toHaveValue("");
   expect(screen.getByText("1개 표시")).toBeInTheDocument();
   const route = screen.getByRole("button", {name: "POST /api/test/social"});
-  expect(route.closest("tr")).toHaveAttribute("data-error-severity", "critical");
+  expect(screen.getByRole("row", {name: /POST \/api\/test\/social/})).toHaveAttribute("data-error-severity", "critical");
   expect(screen.getByRole("button", {name: "관계도 POST /api/test/social 오류 보고 4건"})).toHaveAttribute("data-error-severity", "critical");
   expect(screen.getByRole("button", {name: "메뉴 친구 요청 테스트 1개 API 오류 보고 4건"})).toHaveAttribute("data-error-severity", "critical");
   expect(screen.getAllByRole("columnheader")).toHaveLength(3);
@@ -53,7 +53,7 @@ test("HTTP 4xx reports have an accessible request-error label and amber severity
   render(<AdminApiRegistry />);
   await screen.findByRole("checkbox", {name: "오류가 보고된 API만"});
   fireEvent.click(screen.getByRole("checkbox", {name: "오류가 보고된 API만"}));
-  expect(screen.getByRole("button", {name: "POST /api/test/social"}).closest("tr")).toHaveAttribute("data-error-severity", "warning");
+  expect(screen.getByRole("row", {name: /POST \/api\/test\/social/})).toHaveAttribute("data-error-severity", "warning");
   expect(screen.getAllByText("요청 오류 1건").length).toBeGreaterThan(0);
 });
 test("automatic refresh only runs while visible, respects off, and cleans up on unmount", async () => {
@@ -66,7 +66,8 @@ test("automatic refresh only runs while visible, respects off, and cleans up on 
   await act(async () => {jest.advanceTimersByTime(60000);});
   expect(getApiRegistry).toHaveBeenCalledTimes(1);
   visibility.mockReturnValue("visible");
-  await act(async () => {fireEvent(document, new Event("visibilitychange"));});
+  fireEvent(document, new Event("visibilitychange"));
+  await waitFor(() => expect(getApiRegistry).toHaveBeenCalledTimes(2));
   expect(getApiRegistry).toHaveBeenCalledTimes(2);
   fireEvent.click(screen.getByRole("checkbox", {name: "30초 자동 새로고침"}));
   await act(async () => {jest.advanceTimersByTime(60000);});

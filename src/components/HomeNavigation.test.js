@@ -1,6 +1,8 @@
 import { render, screen, cleanup, within } from "@testing-library/react";
 import App from "../App";
 
+jest.mock("../admin/api/adminDashboardApi", () => ({getDashboardSummary: jest.fn().mockResolvedValue(null)}));
+
 afterEach(() => { cleanup(); localStorage.clear(); });
 
 test.each([["/signup", "회원가입"], ["/qna", "공개 질문·답변"], ["/qna/private", "비공개 1:1 문의"], ["/login", "로그인"], ["/admin/dashboard", "운영자 로그인"], ["/business/applications", "비즈니스 로그인"]])("%s has one clear primary page heading", (path, title) => {
@@ -21,6 +23,6 @@ test("admin topbar provides a home link independently of the mobile sidebar", ()
   const token = `${btoa('{}')}.${btoa(JSON.stringify({sub:"test",roles:["ADMIN"],permissions:["ADMIN_ACCESS","DASHBOARD_READ"]}))}.test`;
   localStorage.setItem("plate-service.auth", JSON.stringify({accessToken:token}));
   window.history.replaceState({}, "", "/admin/dashboard");
-  const { container } = render(<App />);
-  expect(within(container.querySelector(".admin-topbar")).getByRole("link", {name:"접시 홈으로 이동"})).toHaveAttribute("href", "/");
+  render(<App />);
+  expect(within(screen.getByRole("banner", {name: "운영자 메뉴"})).getByRole("link", {name:"접시 홈으로 이동"})).toHaveAttribute("href", "/");
 });
