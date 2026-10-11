@@ -72,8 +72,20 @@
       "id": "privacy-notice",
       "slug": "privacy-policy",
       "title": "개인정보 처리방침",
-      "currentVersion": "2026-10-11",
+      "currentVersion": "2026-10-11-r2",
       "versions": [
+        {
+          "version": "2026-10-11-r2",
+          "status": "published",
+          "label": "개인정보 처리방침",
+          "effectiveDate": "2026-10-11",
+          "recordedOn": "2026-10-11",
+          "source": "public/2026-10-11-r2/privacy-policy.md",
+          "sourceSha256": "4e3b075941acde4e73ff19a6e19ebd95c86bbdeb7cbb28fb389aaec3e96f48b0",
+          "changeSummary": "AWS 공급자 Amazon Web Services Korea LLC 확인, 실제 처리 항목·법령 안내 보완 및 Firebase·SendGrid 보관 설명 정정. 기존 동의 변경 없음.",
+          "releaseEvidence": "releases/2026-10-11-r2.md",
+          "htmlSha256": "5195030544da14764c000b3b46861bbfd79a36dfb41c5999728556df544882b5"
+        },
         {
           "version": "2026-10-11",
           "status": "published",
