@@ -18,6 +18,8 @@ test.each(["/location-terms", "/privacy-policy/versions/draft-2026-09-14"])("%s 
 
 
 test.each([
+  ['/privacy-policy', '/legal/documents/privacy-notice/2026-10-11-r2.md'],
+  ['/privacy-policy/versions/2026-10-11', '/legal/documents/privacy-notice/2026-10-11.md'],
   ['/terms-of-service', '/legal/documents/service-terms/2026-10-11.md'],
   ['/terms-of-service/versions/2026-10-07', '/legal/documents/service-terms/2026-10-07.md'],
   ['/terms-of-service/versions/legacy-629dc8a', '/legal/documents/service-terms/legacy-629dc8a.md'],

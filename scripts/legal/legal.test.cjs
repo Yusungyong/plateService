@@ -40,7 +40,12 @@ test("new policies and draft material cannot leak into the public build or conse
   assert.equal(pages["/terms-of-service/versions/draft-2026-09-14"], undefined);
   for (const doc of manifest.documents) for (const version of doc.versions) {
     assert.equal(version.consentEligible, version.status === "published");
-    assert.equal(version.effectiveDate, version.status === "published" ? version.version : null);
+    if (version.status === "published") {
+      assert.match(version.effectiveDate, /^\d{4}-\d{2}-\d{2}$/);
+      assert.ok(version.version.startsWith(version.effectiveDate));
+    } else {
+      assert.equal(version.effectiveDate, null);
+    }
     assert.equal(hash(files[new URL(version.htmlUrl).pathname.slice(1)]), version.sha256);
   }
 });
@@ -179,11 +184,11 @@ test("chat terms revision aligns current web and mobile text while preserving ol
   const {files, manifest} = loadPublic();
   for (const id of ['service-terms', 'privacy-notice']) {
     const doc = manifest.documents.find(entry => entry.id === id);
-    assert.equal(doc.currentVersion, '2026-10-11');
+    assert.equal(doc.currentVersion, id === 'privacy-notice' ? '2026-10-11-r2' : '2026-10-11');
     const version = doc.versions.find(entry => entry.version === doc.currentVersion);
     assert.equal(version.effectiveDate, '2026-10-11');
     assert.equal(version.recordedOn, '2026-10-11');
-    const source = files[`legal/documents/${id}/2026-10-11.md`].toString();
+    const source = files[`legal/documents/${id}/${doc.currentVersion}.md`].toString();
     const mobile = JSON.parse(files[new URL(version.mobileUrl).pathname.slice(1)]);
     assert.equal(mobile.sourceSha256, hash(source));
     assert.ok(source.includes('2026-10-11'));
@@ -197,4 +202,22 @@ test("chat terms revision aligns current web and mobile text while preserving ol
   assert.ok(source.includes('실제 대화가 삭제되는 것은 아닙니다'));
   assert.ok(source.includes('양쪽 참여자의 메시지'));
   assert.equal(hash(files['legal/documents/service-terms/2026-10-07.md']), '767fceb9d8b197e5d66bcdb14a55c2d61272074b5a637c6094d09f20bd9faa38');
+});
+
+test('privacy correction publishes the verified provider and retention trigger while preserving prior originals', () => {
+  const {files, manifest} = loadPublic();
+  const doc = manifest.documents.find(entry => entry.id === 'privacy-notice');
+  const version = doc.versions.find(entry => entry.version === doc.currentVersion);
+  const source = files[`legal/documents/privacy-notice/${doc.currentVersion}.md`].toString();
+  const packet = JSON.parse(files[new URL(version.mobileUrl).pathname.slice(1)]);
+  assert.match(source, /Amazon Web Services Korea LLC/);
+  assert.match(source, /고객의 삭제 API 호출까지 보관/);
+  assert.match(source, /호출 후 운영·백업 시스템에서 제거하는 데 최대 180일/);
+  assert.match(source, /제15조제1항제4호/);
+  assert.match(source, /개인 운영자 유성용/);
+  assert.doesNotMatch(source, /비활성 설치 식별자를 180일|최대 37일|게시 전 확인|확인 필요/);
+  assert.equal(packet.sourceMarkdown, source);
+  assert.equal(packet.effectiveDate, '2026-10-11');
+  assert.equal(hash(files['legal/documents/privacy-notice/2026-10-11.md']), 'ccd4fc098238a83e374d1ee7e0eaa2dc38fa8a98ad726a786ca8b987d88e9ef1');
+  assert.equal(hash(files['legal/documents/service-terms/2026-10-11.md']), '869a2d6666d4929a5b43d5de35f7a08b8451cfa15f140aeb4dc1ef52dc0be72a');
 });
