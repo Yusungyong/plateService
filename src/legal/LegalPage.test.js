@@ -18,7 +18,8 @@ test.each(["/location-terms", "/privacy-policy/versions/draft-2026-09-14"])("%s 
 
 
 test.each([
-  ['/terms-of-service', '/legal/documents/service-terms/2026-10-07.md'],
+  ['/terms-of-service', '/legal/documents/service-terms/2026-10-11.md'],
+  ['/terms-of-service/versions/2026-10-07', '/legal/documents/service-terms/2026-10-07.md'],
   ['/terms-of-service/versions/legacy-629dc8a', '/legal/documents/service-terms/legacy-629dc8a.md'],
 ])('downloads the exact selected version without a rewritten HTTP request: %s', async (route, path) => {
   const create = URL.createObjectURL;

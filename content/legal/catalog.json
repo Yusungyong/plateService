@@ -6,8 +6,20 @@
       "id": "service-terms",
       "slug": "terms-of-service",
       "title": "이용약관",
-      "currentVersion": "2026-10-07",
+      "currentVersion": "2026-10-11",
       "versions": [
+        {
+          "version": "2026-10-11",
+          "status": "published",
+          "label": "서비스 이용약관",
+          "effectiveDate": "2026-10-11",
+          "recordedOn": "2026-10-11",
+          "source": "public/2026-10-11/terms-of-service.md",
+          "sourceSha256": "869a2d6666d4929a5b43d5de35f7a08b8451cfa15f140aeb4dc1ef52dc0be72a",
+          "changeSummary": "친구 대화·콘텐츠/장소 공유·약속·언급·알림의 이용 조건과 차단·삭제 범위 안내. 기존 원문·동의 기록 보존, 새 버전은 명시적 동의 시 적용.",
+          "releaseEvidence": "releases/2026-10-11.md",
+          "htmlSha256": "e0c4c1e02f643c213768b1d3e4de2cfd6819a03a9dc233684a75f760051a119f"
+        },
         {
           "version": "2026-10-07",
           "status": "published",
@@ -60,8 +72,20 @@
       "id": "privacy-notice",
       "slug": "privacy-policy",
       "title": "개인정보 처리방침",
-      "currentVersion": "2026-10-08",
+      "currentVersion": "2026-10-11",
       "versions": [
+        {
+          "version": "2026-10-11",
+          "status": "published",
+          "label": "개인정보 처리방침",
+          "effectiveDate": "2026-10-11",
+          "recordedOn": "2026-10-11",
+          "source": "public/2026-10-11/privacy-policy.md",
+          "sourceSha256": "ccd4fc098238a83e374d1ee7e0eaa2dc38fa8a98ad726a786ca8b987d88e9ef1",
+          "changeSummary": "친구 대화의 공유 참조·약속 상태·설정과 댓글 언급·읽음 알림의 처리 범위 보완. 기존 동의 변경 없음.",
+          "releaseEvidence": "releases/2026-10-11.md",
+          "htmlSha256": "c3418fa4bd6a9625ea1191ef685d943e0e21e7f968cbbd6024f30f17dff70ece"
+        },
         {
           "version": "2026-10-08",
           "status": "published",

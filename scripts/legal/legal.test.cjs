@@ -174,3 +174,27 @@ test("current deletion and privacy pages explain recovery and outside-app deleti
   assert.match(files['privacy-policy/index.html'],/원본만 보관/);
   assert.match(files['legal/documents/service-terms/2026-09-25.md'].toString(),/30일 복구 유예나 자동 복구 기능은 제공하지 않습니다/);
 });
+
+test("chat terms revision aligns current web and mobile text while preserving old originals", () => {
+  const {files, manifest} = loadPublic();
+  for (const id of ['service-terms', 'privacy-notice']) {
+    const doc = manifest.documents.find(entry => entry.id === id);
+    assert.equal(doc.currentVersion, '2026-10-11');
+    const version = doc.versions.find(entry => entry.version === doc.currentVersion);
+    assert.equal(version.effectiveDate, '2026-10-11');
+    assert.equal(version.recordedOn, '2026-10-11');
+    const source = files[`legal/documents/${id}/2026-10-11.md`].toString();
+    const mobile = JSON.parse(files[new URL(version.mobileUrl).pathname.slice(1)]);
+    assert.equal(mobile.sourceSha256, hash(source));
+    assert.ok(source.includes('2026-10-11'));
+    assert.ok(source.includes('약속'));
+    assert.ok(source.includes('언급'));
+    assert.ok(doc.versions.some(entry => entry.version === (id === 'service-terms' ? '2026-10-07' : '2026-10-08')));
+  }
+  const source = files['legal/documents/service-terms/2026-10-11.md'].toString();
+  assert.ok(source.includes('명시적으로 동의한 시점부터 적용'));
+  assert.ok(source.includes('기존 대화는 읽기만'));
+  assert.ok(source.includes('실제 대화가 삭제되는 것은 아닙니다'));
+  assert.ok(source.includes('양쪽 참여자의 메시지'));
+  assert.equal(hash(files['legal/documents/service-terms/2026-10-07.md']), '767fceb9d8b197e5d66bcdb14a55c2d61272074b5a637c6094d09f20bd9faa38');
+});
