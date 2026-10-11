@@ -78,17 +78,3 @@ export async function loginWithPassword({ username, password, ...metadata } = {}
 
   return unwrapTokenResponse(response);
 }
-
-export async function refreshAccessToken(refreshToken) {
-  const response = await apiClient.post(
-    "/api/auth/refresh",
-    {
-      refreshToken,
-    },
-    {
-      withAuth: false,
-    }
-  );
-
-  return unwrapTokenResponse(response);
-}

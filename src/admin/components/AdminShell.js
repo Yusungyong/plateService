@@ -120,7 +120,7 @@ function AdminShell({ children }) {
       ) : null}
 
       <div className="admin-workspace">
-        <header className="admin-topbar">
+        <header className="admin-topbar" aria-label="운영자 메뉴">
           <div className="admin-topbar__leading">
             <PlateBrand compact />
             <button

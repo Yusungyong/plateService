@@ -776,6 +776,8 @@ test("submits an application as a logged-in member without owner permission", as
         body: expect.stringContaining('"representativeName":"김대표"'),
       })
     );
+  });
+  await waitFor(() => {
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/owner/store-applications"),
       expect.objectContaining({
@@ -783,6 +785,8 @@ test("submits an application as a logged-in member without owner permission", as
         body: expect.stringContaining('"storeName":"새로운 식당"'),
       })
     );
+  });
+  await waitFor(() => {
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/owner/store-applications"),
       expect.objectContaining({
@@ -790,6 +794,8 @@ test("submits an application as a logged-in member without owner permission", as
         body: expect.stringContaining('"ownerPhone":"010-1234-5678"'),
       })
     );
+  });
+  await waitFor(() => {
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/owner/store-applications"),
       expect.objectContaining({
@@ -797,6 +803,8 @@ test("submits an application as a logged-in member without owner permission", as
         body: expect.stringContaining('"businessNumber":"123-45-67890"'),
       })
     );
+  });
+  await waitFor(() => {
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/owner/store-applications"),
       expect.objectContaining({
@@ -804,6 +812,8 @@ test("submits an application as a logged-in member without owner permission", as
         body: expect.stringContaining('"openingDate":"2024-01-15"'),
       })
     );
+  });
+  await waitFor(() => {
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/owner/store-applications"),
       expect.objectContaining({
@@ -844,7 +854,7 @@ test.each([false, true])("returns to the application after authentication (new a
     fireEvent.click(screen.getByLabelText("이용약관에 동의합니다."));
     fireEvent.click(screen.getByLabelText("개인정보 처리방침에 동의합니다."));
     fireEvent.click(screen.getByRole("button", { name: "가입하기" }));
-    expect(await screen.findByRole("heading", { name: "비즈니스 로그인" })).toBeInTheDocument();
+    await screen.findByRole("heading", { name: "비즈니스 로그인" });
   }
   fireEvent.change(screen.getByLabelText("아이디"), { target: { value: "newowner" } });
   fireEvent.change(screen.getByLabelText("비밀번호"), { target: { value: "password123" } });

@@ -3,13 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "cra-template": "1.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^6.28.1",
-    "react-scripts": "5.0.1",
-    "rimraf": "^6.0.1",
-    "web-vitals": "^4.2.4"
+    "react-scripts": "5.0.1"
   },
   "scripts": {
     "prestart": "node scripts/legal/generate.cjs",
@@ -29,6 +26,16 @@
     "extends": [
       "react-app",
       "react-app/jest"
+    ],
+    "overrides": [
+      {
+        "files": [
+          "**/*.test.js"
+        ],
+        "env": {
+          "es2021": true
+        }
+      }
     ]
   },
   "browserslist": {

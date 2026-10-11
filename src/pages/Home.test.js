@@ -49,6 +49,7 @@ test("home exposes existing service destinations and real section anchors", () =
   expect(screen.getByRole("link", { name: "식당 비즈니스 시작하기" })).toHaveAttribute("href", "/business");
   for (const name of ["앱 소개", "주요 기능"]) {
     const target = screen.getByRole("link", { name }).getAttribute("href");
-    expect(document.querySelector(target)).toHaveAttribute("tabindex", "-1");
+    const section = screen.getAllByRole("region").find(region => `#${region.id}` === target);
+    expect(section).toHaveAttribute("tabindex", "-1");
   }
 });

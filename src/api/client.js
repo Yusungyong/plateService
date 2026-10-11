@@ -32,14 +32,6 @@ function setAuthSession(nextAccessToken, nextRefreshToken) {
   refreshToken = nextRefreshToken || null;
 }
 
-function setAuthToken(token) {
-  authToken = token || null;
-}
-
-function clearAuthToken() {
-  authToken = null;
-}
-
 function clearAuthSession() {
   sessionVersion += 1;
   refreshPromise = null;
@@ -337,11 +329,9 @@ export {
   API_BASE_URL,
   buildQueryString,
   clearAuthSession,
-  clearAuthToken,
   registerAuthFailureHandler,
   registerAuthSessionRefreshHandler,
   request,
   setAuthSession,
-  setAuthToken,
 };
 export default apiClient;

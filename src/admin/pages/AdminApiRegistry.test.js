@@ -111,8 +111,8 @@ test("starts with a connected menu and places selected API details before the li
   const detail = screen.getByRole("region", {name: "API 상세"});
   const list = screen.getByRole("region", {name: "API 전체 목록"});
   expect(detail.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  expect(screen.getByText("소스 근거와 요청 형식 보기", {selector: "summary"}).closest("details")).not.toHaveAttribute("open");
-  expect(screen.getByText("공통화 현황 보기", {selector: "summary"}).closest("details")).not.toHaveAttribute("open");
+  expect(screen.getByRole("group", {name: "소스 근거와 요청 형식"})).not.toHaveAttribute("open");
+  expect(screen.getByRole("group", {name: "공통화 현황"})).not.toHaveAttribute("open");
 });
 
 test("metric display can be enabled and hidden without changing graph or menu selection", async () => {
