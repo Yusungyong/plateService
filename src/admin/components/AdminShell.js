@@ -42,7 +42,7 @@ function AdminShell({ children }) {
     [visibleNavigationItems]
   );
   const activeItem = visibleNavigationItems.find(({ path }) =>
-    location.pathname.startsWith(path)
+    location.pathname === path || (path !== "/admin/operations" && location.pathname.startsWith(path))
   );
   const primaryRole = getPrimaryAdminRole(user);
   const roleLabel = ROLE_LABELS[primaryRole] || primaryRole || "운영자";
@@ -65,7 +65,7 @@ function AdminShell({ children }) {
   }
 
   return (
-    <div className="admin-shell">
+    <div className={location.pathname.startsWith("/admin/operations")?"admin-shell admin-shell--operations":"admin-shell"}>
       <a className="plate-skip" href="#admin-main">본문 바로가기</a>
       <aside
         id="admin-sidebar"
@@ -85,6 +85,7 @@ function AdminShell({ children }) {
                 <NavLink
                   key={item.path}
                   to={item.path}
+                  end={item.path === "/admin/operations"}
                   onClick={() => setIsSidebarOpen(false)}
                   className={({ isActive }) => {
                     const classes = ["admin-navigation__link"];

@@ -1,10 +1,10 @@
 {
   "analyzedAt": "2026-10-12",
-  "sourceEvidence": "Reviewed app source and server PR #149 (44bf85701ec16e8fbb299269a30cc2330c97cf62). Additive consumer links; explicit replace only for retired UI consumers. Runtime registration remains authoritative.",
+  "sourceEvidence": "Reviewed app source and server PR #149 (44bf85701ec16e8fbb299269a30cc2330c97cf62). Additive consumer links; explicit replace only for retired UI consumers. Runtime registration remains authoritative. Operations console contracts are reviewed against server Issue #152 and this web/app source; deployment is pending.",
   "appSourceHashes": {
     "docs/code-optimization-2026-10-11.md": "fcc8f29ba122b98c85004691ba22b1e95314a5848c4309ea42e7b6c43509f44c",
     "output/db-performance-implementation-2026-10-10/README.txt": "dc63c206cd37fa413c45e8137742a3c30d8c75e6fc86816ba45873eb882c10ea",
-    "src/api/apiErrorReporter.ts": "57ddc4f9a72b735afae755be236dfe44ff9f8fc59d92653c2d9ffba7006d3996",
+    "src/api/apiErrorReporter.ts": "ad2f00645b1fb50f8c8a6e813c85290dff4260805c56318ca2b3898282a59660",
     "src/api/axiosInstance.ts": "2c5cee2c10d535a8c4a69951daa0392cdf6ae84fe07f73e6ffc86a1320e6fa85",
     "src/api/chatApi.ts": "dd2044a323430b894f89baa9aff9d47f5cedb30254be0d0f2bdca8aab7740b50",
     "src/api/chatGroupApi.ts": "ffed198a222e7ffc663a3c67977244fdbc01bd1263937e7f67534403228c7df3",
@@ -41,7 +41,9 @@
     "src/screens/home/HomeScreen.tsx": "368126023ac998742fc586b9e09955edcb1737643b27de532bea77702daa937f",
     "src/screens/home/components/HomeChatCompanion.tsx": "9fd01b1d69ac382e578ef309aabcf77e71ff0cf883c082a231e9b7b0e08476ab",
     "src/screens/home/components/NearbyHomeExperience.tsx": "c7f3c1a58a788867d137d80eec37e758ac3292eedccbb123c6589bddd12ddb43",
-    "src/screens/shared/useCommentMentionComposer.ts": "cabf9ee337249fd90ac0a4b20c25a3d877fe43457fddc6db0b68a6b26de39ae2"
+    "src/screens/shared/useCommentMentionComposer.ts": "cabf9ee337249fd90ac0a4b20c25a3d877fe43457fddc6db0b68a6b26de39ae2",
+    "src/notifications/pushReceipts.ts": "c8f535538d4c7dd28440301aadcac1659169cb71b66bb3135a3f4f76bbf6d728",
+    "src/notifications/fcm.ts": "4bd75864e0e0b88bcf07b208116f6b04266c36b2b50fd6487cf6e639aedf12c2"
   },
   "menus": [
     {
@@ -324,6 +326,65 @@
       "label": "운영 > 대시보드",
       "source": "src/config/routes.js",
       "sourceLine": 158
+    },
+    {
+      "id": "admin:/admin/operations",
+      "surface": "admin",
+      "route": "/admin/operations",
+      "label": "서비스 운영 > 운영 홈",
+      "source": "src/admin/pages/AdminOperationsHome.js",
+      "sourceLine": 1,
+      "notes": "su12ng 전용",
+      "apiIds": [
+        "api_1feef140f5eedc1c"
+      ],
+      "missingCalls": [],
+      "apiCount": 1
+    },
+    {
+      "id": "admin:/admin/operations/incidents",
+      "surface": "admin",
+      "route": "/admin/operations/incidents",
+      "label": "서비스 운영 > 장애·알림 진단",
+      "source": "src/admin/pages/AdminOperationsIncidents.js",
+      "sourceLine": 1,
+      "notes": "su12ng 전용",
+      "apiIds": [
+        "api_1feef140f5eedc1c",
+        "api_4c896d73d9449141"
+      ],
+      "missingCalls": [],
+      "apiCount": 2
+    },
+    {
+      "id": "admin:/admin/operations/releases",
+      "surface": "admin",
+      "route": "/admin/operations/releases",
+      "label": "서비스 운영 > 배포·품질",
+      "source": "src/admin/pages/AdminOperationsReleases.js",
+      "sourceLine": 1,
+      "notes": "su12ng 전용",
+      "apiIds": [
+        "api_1feef140f5eedc1c",
+        "api_878202461851b9ac",
+        "api_35a413f30d5ec951"
+      ],
+      "missingCalls": [],
+      "apiCount": 3
+    },
+    {
+      "id": "app:PushReceipt",
+      "surface": "app",
+      "route": "PushReceipt",
+      "label": "알림 > 수신·열기 확인",
+      "source": "src/notifications/pushReceipts.ts",
+      "sourceLine": 1,
+      "notes": "신규 nonce가 포함된 푸시만, 본인 계정 확인",
+      "apiIds": [
+        "api_f664dbdb427f588d"
+      ],
+      "missingCalls": [],
+      "apiCount": 1
     }
   ],
   "routes": [
@@ -1855,6 +1916,149 @@
       ],
       "usageStatus": "connected_in_source",
       "implementationStage": "backend_pending"
+    },
+    {
+      "id": "api_1feef140f5eedc1c",
+      "method": "GET",
+      "path": "/api/admin/operations/snapshot",
+      "module": "platform",
+      "capability": "operations-monitoring",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/operations",
+        "admin:/admin/operations/incidents",
+        "admin:/admin/operations/releases"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "새 운영 관리 구현. 운영 반영·수집 설정 상태는 별도 확인."
+    },
+    {
+      "id": "api_4c896d73d9449141",
+      "method": "GET",
+      "path": "/api/admin/operations/push-attempts/{deliveryId}",
+      "module": "platform",
+      "capability": "operations-monitoring",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/operations/incidents"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "새 운영 관리 구현. 운영 반영·수집 설정 상태는 별도 확인."
+    },
+    {
+      "id": "api_878202461851b9ac",
+      "method": "POST",
+      "path": "/api/admin/operations/releases",
+      "module": "platform",
+      "capability": "operations-monitoring",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/operations/releases"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "새 운영 관리 구현. 운영 반영·수집 설정 상태는 별도 확인."
+    },
+    {
+      "id": "api_35a413f30d5ec951",
+      "method": "POST",
+      "path": "/api/admin/operations/releases/{releaseId}/checks",
+      "module": "platform",
+      "capability": "operations-monitoring",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/operations/releases"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "새 운영 관리 구현. 운영 반영·수집 설정 상태는 별도 확인."
+    },
+    {
+      "id": "api_f664dbdb427f588d",
+      "method": "POST",
+      "path": "/api/monitoring/push-receipts",
+      "module": "platform",
+      "capability": "operations-monitoring",
+      "commonizationGroup": null,
+      "authorization": "회원 본인 수신 기록",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:PushReceipt"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "새 운영 관리 구현. 운영 반영·수집 설정 상태는 별도 확인."
     }
   ]
 }

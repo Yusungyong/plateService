@@ -1,3 +1,6 @@
+import AdminOperationsHome from "../admin/pages/AdminOperationsHome";
+import AdminOperationsIncidents from "../admin/pages/AdminOperationsIncidents";
+import AdminOperationsReleases from "../admin/pages/AdminOperationsReleases";
 import AdminApiRegistry from "../admin/pages/AdminApiRegistry";
 import ContentVerification from "../pages/ContentVerification";
 import FAQ from "../pages/FAQ";
@@ -35,6 +38,9 @@ export const publicNavigationItems = [
 ];
 
 export const adminNavigationItems = [
+  {path: "/admin/operations", label: "운영 홈", icon: "dashboard", permission: ADMIN_PERMISSIONS.DASHBOARD_READ, operatorOnly: true, group: "서비스 운영"},
+  {path: "/admin/operations/incidents", label: "장애·알림 진단", icon: "support", permission: ADMIN_PERMISSIONS.DASHBOARD_READ, operatorOnly: true, group: "서비스 운영"},
+  {path: "/admin/operations/releases", label: "배포·품질", icon: "approval", permission: ADMIN_PERMISSIONS.DASHBOARD_READ, operatorOnly: true, group: "서비스 운영"},
   {
     path: "/admin/dashboard",
     label: "대시보드",
@@ -157,6 +163,9 @@ export const businessOwnerRoutes = [
 ];
 
 export const adminRoutes = [
+  {path:"/admin/operations",component:AdminOperationsHome,permission:ADMIN_PERMISSIONS.DASHBOARD_READ,operatorOnly:true},
+  {path:"/admin/operations/incidents",component:AdminOperationsIncidents,permission:ADMIN_PERMISSIONS.DASHBOARD_READ,operatorOnly:true},
+  {path:"/admin/operations/releases",component:AdminOperationsReleases,permission:ADMIN_PERMISSIONS.DASHBOARD_READ,operatorOnly:true},
   {path: "/admin/api-registry", component: AdminApiRegistry, permission: ADMIN_PERMISSIONS.DASHBOARD_READ, operatorOnly: true},
   {
     path: "/admin/dashboard",
@@ -233,7 +242,7 @@ export const legacyBusinessRedirects = [
 
 export function getAdminEntryPath(user) {
   return adminNavigationItems.find((item) =>
-    item.available !== false && userHasAdminPermission(user, item.permission)
+    item.available !== false && !item.path.startsWith("/admin/operations") && userHasAdminPermission(user, item.permission)
       && (!item.operatorOnly || userCanViewApiRegistry(user))
   )?.path || "/faq";
 }

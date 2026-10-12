@@ -31,7 +31,7 @@ export default function AdminApiRegistry() {
   const [snapshot, setSnapshot] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get("api")?.replace(/^(GET|POST|PUT|PATCH|DELETE) /, "") || "");
   const [module, setModule] = useState("");
   const [method, setMethod] = useState("");
   const [surface, setSurface] = useState("");
@@ -48,7 +48,7 @@ export default function AdminApiRegistry() {
   const requestVersion = useRef(0);
   const inFlight = useRef(null);
   const snapshotRef = useRef(null);
-  const initialMenuChosen = useRef(false);
+  const initialMenuChosen = useRef(Boolean(new URLSearchParams(window.location.search).get("api")));
   const detailRef = useRef(null);
   const load = useCallback(async ({background = false} = {}) => {
     if (inFlight.current) return;
