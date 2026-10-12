@@ -169,6 +169,14 @@
   },
   {
     "method": "GET",
+    "path": "/api/admin/operations/push-attempts/{deliveryId}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/operations/snapshot"
+  },
+  {
+    "method": "GET",
     "path": "/api/admin/qna"
   },
   {
@@ -842,6 +850,14 @@
   {
     "method": "POST",
     "path": "/api/admin/files"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/operations/releases"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/operations/releases/{releaseId}/checks"
   },
   {
     "method": "POST",

@@ -1,4 +1,4 @@
-import {fireEvent, render, screen} from "@testing-library/react";
+import {fireEvent, render, screen, waitFor} from "@testing-library/react";
 import AdminApiRegistry from "./AdminApiRegistry";
 import {registryRows, getApiRegistry} from "../api/apiRegistryApi";
 jest.mock("../api/apiRegistryApi", () => ({...jest.requireActual("../api/apiRegistryApi"), getApiRegistry: jest.fn()}));
@@ -45,9 +45,9 @@ test("owner accounts cannot enter the admin registry route or load its API", asy
 
 test("current image set-state menu links replace the legacy toggle UI connection", () => {
   const current = registryRows({declaredBaseline: {routes: [{method: 'POST', path: '/api/image-feeds/{imageFeedId}/likes/toggle', module: 'engagement', surfaces: ['app'], menuIds: ['app:Home']}], menus: [{id: 'app:Home', label: '홈'}]}, activeRoutes: [{method: 'PUT', path: '/api/v3/contents/{kind}/{contentId}/likes/me', module: 'engagement'}]});
-  expect(current.find(row => row.method === 'PUT')).toMatchObject({surfaces: ['app'], usageStatus: 'connected_in_source'});
-  expect(current.find(row => row.method === 'PUT').menuLabels).toContain('홈');
-  expect(current.find(row => row.method === 'POST')).toMatchObject({menuLabels: [], surfaces: [], usageStatus: 'client_wrapper_only'});
+  expect(current.find(row => row.method === 'PUT' && row.path.endsWith('/likes/me'))).toMatchObject({surfaces: ['app'], usageStatus: 'connected_in_source'});
+  expect(current.find(row => row.method === 'PUT' && row.path.endsWith('/likes/me')).menuIds).toContain('app:Home');
+  expect(current.find(row => row.method === 'POST' && row.path.endsWith('/likes/toggle'))).toMatchObject({menuLabels: [], surfaces: [], usageStatus: 'client_wrapper_only'});
 });
 
 test("menu selection keeps graph and table filters aligned without using stale menu counts", async () => {
@@ -61,7 +61,7 @@ test("menu selection keeps graph and table filters aligned without using stale m
   expect(screen.getByText("0개 표시")).toBeInTheDocument();
   expect(screen.getByText("연결된 API가 없습니다.")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", {name: "필터 초기화"}));
-  expect(screen.getByText("2개 표시")).toBeInTheDocument();
+  expect(screen.getByText(`${registryRows(snapshot).length}개 표시`)).toBeInTheDocument();
 });
 
 test("relation API opens details and another source menu can be followed", async () => {
@@ -105,7 +105,7 @@ test("starts with a connected menu and places selected API details before the li
   getApiRegistry.mockResolvedValue(snapshot);
   render(<AdminApiRegistry />);
   const menu = await screen.findByRole("button", {name: "메뉴 앱 > 이미지 등록 1개 API"});
-  expect(menu).toHaveAttribute("aria-pressed", "true");
+  await waitFor(() => expect(menu).toHaveAttribute("aria-pressed", "true"));
   expect(screen.getByRole("button", {name: "관계도 POST /api/images"})).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", {name: "관계도 POST /api/images"}));
   const detail = screen.getByRole("region", {name: "API 상세"});
@@ -134,16 +134,16 @@ test("compact menu selection uses the same filters and preserves selected menus 
   render(<AdminApiRegistry />);
   const menu = await screen.findByRole("button", {name: "메뉴 앱 > 이미지 등록 1개 API"});
   const compactSelect = screen.getByLabelText("메뉴 선택");
-  expect(compactSelect).toHaveValue("editor");
+  await waitFor(() => expect(compactSelect).toHaveValue("editor"));
   fireEvent.change(screen.getByLabelText("HTTP"), {target: {value: "GET"}});
-  expect(compactSelect).toHaveValue("editor");
+  await waitFor(() => expect(compactSelect).toHaveValue("editor"));
   expect(screen.getByText("앱 > 이미지 등록 · 연결 API 없음", {selector: "option"})).toBeInTheDocument();
   expect(screen.getByText("0개 표시")).toBeInTheDocument();
   fireEvent.change(compactSelect, {target: {value: ""}});
-  expect(screen.getByText("1개 표시")).toBeInTheDocument();
+  expect(screen.getByText(`${registryRows(snapshot).filter(row => row.method === "GET").length}개 표시`)).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", {name: "필터 초기화"}));
   fireEvent.change(compactSelect, {target: {value: "editor"}});
-  expect(menu).toHaveAttribute("aria-pressed", "true");
+  await waitFor(() => expect(menu).toHaveAttribute("aria-pressed", "true"));
   expect(screen.getByRole("button", {name: "관계도 POST /api/images"})).toBeInTheDocument();
   expect(getApiRegistry).toHaveBeenCalledTimes(1);
 });

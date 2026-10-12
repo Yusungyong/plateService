@@ -253,3 +253,15 @@ test("a malformed intermediate401 still recovers through refresh without creatin
   expect(reportCalls()).toHaveLength(0);
   expect(global.fetch).toHaveBeenCalledTimes(3);
 });
+
+
+test("new operations failures use the owned route template without release IDs",async()=>{
+ const {default:api,setAuthSession}=await setup(async(url,init)=>pathOf(url)===COLLECTOR?accepted(init):jsonResponse(503,{message:"private"}));
+ setAuthSession("access",null);
+ await expect(api.post("/api/admin/operations/releases/private-release-id/checks",{eventId:"PRIVATE_EVENT",check:"CHAT",result:"PASS"})).rejects.toMatchObject({status:503});
+ await advance(250);
+ expect(reportCalls()).toHaveLength(1);
+ expect(JSON.parse(reportCalls()[0][1].body).events[0]).toMatchObject({method:"POST",path:"/api/admin/operations/releases/{releaseId}/checks",status:503});
+ expect(reportCalls()[0][1].body).not.toContain("private-release-id");
+ expect(reportCalls()[0][1].body).not.toContain("PRIVATE_EVENT");
+});

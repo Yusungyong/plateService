@@ -1,15 +1,49 @@
 {
-  "analyzedAt": "2026-10-08",
-  "sourceEvidence": "selected current contract consumers, reviewed shared error-collector linkage; overrides baseline source linkage only",
+  "analyzedAt": "2026-10-12",
+  "sourceEvidence": "Reviewed app source and server PR #149 (44bf85701ec16e8fbb299269a30cc2330c97cf62). Additive consumer links; explicit replace only for retired UI consumers. Runtime registration remains authoritative. Operations console contracts are reviewed against server Issue #152 and this web/app source; deployment is pending.",
   "appSourceHashes": {
+    "docs/code-optimization-2026-10-11.md": "fcc8f29ba122b98c85004691ba22b1e95314a5848c4309ea42e7b6c43509f44c",
+    "output/db-performance-implementation-2026-10-10/README.txt": "dc63c206cd37fa413c45e8137742a3c30d8c75e6fc86816ba45873eb882c10ea",
+    "src/api/apiErrorReporter.ts": "ad2f00645b1fb50f8c8a6e813c85290dff4260805c56318ca2b3898282a59660",
+    "src/api/axiosInstance.ts": "2c5cee2c10d535a8c4a69951daa0392cdf6ae84fe07f73e6ffc86a1320e6fa85",
+    "src/api/chatApi.ts": "dd2044a323430b894f89baa9aff9d47f5cedb30254be0d0f2bdca8aab7740b50",
+    "src/api/chatGroupApi.ts": "ffed198a222e7ffc663a3c67977244fdbc01bd1263937e7f67534403228c7df3",
+    "src/api/chatHomeApi.ts": "48f7e4fe35de80dceb665d17d9f7c26531ba766b9d84342af05adb72206f4968",
+    "src/api/chatLiveApi.ts": "3ea98f4de5aaa48b085a6eb8d3a5a7a7ceec9301c6e84c5e4ca7bef9e9b0da8b",
+    "src/api/chatMediaApi.ts": "e012c15c17a141be6765a5ecba4e71481142230b480908e2d631ea3af5ca832c",
+    "src/api/chatSmartApi.ts": "a87527b40c4adb65453cc1d63250bd665beb96430458d82ed73cbb91c8abffc0",
     "src/api/contentLikesApi.ts": "f49f02235b7e54978c271853baad9183eb1a34513ead2d1082e5235d889c8506",
+    "src/api/generated/apiErrorRoutes.json": "853fd8e695d49141e52b51c8276e85e513e76957b240b1fc073630cd28e99669",
     "src/api/imageFeedSocialApi.ts": "6af22af856854463eb4ea78ceda7d1ee378f38ea460c1a75559033342e555cdf",
-    "src/screens/home/HomeScreen.tsx": "b52509a0f11f5930a9e749a313f87a8f5fc0a088fca3ac21bc8d4ebeddf792ea",
-    "src/screens/ImageFeed/ImageFeedViewerScreen.tsx": "5d9f82ff6e527a8421142396de1fc549eac38c299abf7b5efd383be80f534b28",
-    "src/api/axiosInstance.ts": "50b12e1988bf878b330ee0fdb785999b75b2e53e05711e4cf79d0989021af9c6",
-    "src/api/apiErrorReporter.ts": "57ddc4f9a72b735afae755be236dfe44ff9f8fc59d92653c2d9ffba7006d3996",
-    "src/api/generated/apiErrorRoutes.json": "77bddbbb042da87e1b9977b6c11832a2a02329cd7e7cfbb49a28e9e5f4e7bb86",
-    "src/features/accountDeletion/transport.ts": "8ecc7d3beed0c1c1a5b8e798db0b83e99fbf9e80a1833b0528ba9225677f17d8"
+    "src/components/ContentCommentModal.tsx": "32bff6a7a1c7cf966e4b81583d1c5e67b022b9b87fa7091000b314ac8d6f20b6",
+    "src/features/accountDeletion/transport.ts": "8ecc7d3beed0c1c1a5b8e798db0b83e99fbf9e80a1833b0528ba9225677f17d8",
+    "src/features/chat/chatPeerPhoto.ts": "76cc93a949d8832af16e5fc0ddd8b8b3df2222f20add5c2a993161bf1002d75e",
+    "src/features/chat/chatPrivateMediaSource.ts": "99a9b1fe55219374d9ab99e7d5b9102cbb18872dda0571a98c30c38216155f8e",
+    "src/features/chat/chatResourceCache.ts": "6a5c4d635e85d9e441bcacb4e8124a608e7ac78097e6f14f271f720cff40ca93",
+    "src/features/chat/useChatReadReceipts.ts": "6e2aa2622e5fd0c989ec98707e512fe43f8e559ecc79ed204e0ab8b45b12f2c9",
+    "src/navigation/MainNavigation.tsx": "2bc2044dea659b5c3d081846e9260d641d073aaf39f15f14aedf5115cd687aeb",
+    "src/navigation/MainTabNavigator.tsx": "ca0ce6d126154ee982127670c5c9af85b5f10ced3505c1a88fe2e616e0b5d85a",
+    "src/screens/ImageFeed/ImageFeedViewerScreen.tsx": "816a8c35fa90391cbcf3b419f31703e90ac6466cf8b82e6529b09bc9f16f7fb4",
+    "src/screens/chat/ChatBoardScreen.tsx": "76158485c120de1ef90dc6831027d15697f938205511db8558510793d2853666",
+    "src/screens/chat/ChatContentPickerScreen.tsx": "c6e8cb6cac318742abd654bede2c04a6f456e4cd08fbed242b8c90e19738d845",
+    "src/screens/chat/ChatGroupCreateScreen.tsx": "cd197d7f98f87510bd6fbecb3c6ff2e4e98fda988fe071058b037993ed1c3fe7",
+    "src/screens/chat/ChatGroupRoomScreen.tsx": "305ced2439050beb056714d93d40e2dc15aa4c5f2e079129ca6d8ad81d84314f",
+    "src/screens/chat/ChatGroupsScreen.tsx": "52c520583d4349d875ad021cc78bf8e66b6ceb292f80b34b6523cfc453c82b2f",
+    "src/screens/chat/ChatInboxScreen.tsx": "f429c4d7ea8b7599c71710293b0a3ea01c1102f483699bfdfd000bb0d0221abf",
+    "src/screens/chat/ChatMediaComposeScreen.tsx": "a4eaa97a6d5be9130ee52724e071940c1864a5de15246f25313425f703d882f2",
+    "src/screens/chat/ChatRoomScreen.tsx": "cebcd5ccfb3ff2066f56d16a4bf52491f88b6188fe93949da13fee87306247f7",
+    "src/screens/chat/ChatSearchScreen.tsx": "4b34b54783ab248fbb0d784685fc003a5eb309dc522c794d273f732f043d109f",
+    "src/screens/chat/ChatShareScreen.tsx": "88304ceee0aeac3585e2484f0ce6b2a32f68dd3fcef70ae34dc9bc950ca5e8f3",
+    "src/screens/chat/ChatSharedScreen.tsx": "277de82c42d3633890d531c3b3f4f79fe0aec84264909fb9693ef9f3ba80038e",
+    "src/screens/chat/ChatWatchScreen.tsx": "8fa8fbf5a2e275f14485cbaf5600409eb6c98ff87be18b8263acca38dd8b629d",
+    "src/screens/chat/HomeChatMapScreen.tsx": "3c35bd88937527146a465191a79691c6f7bd2f78581a51cf9c93c22468291fb5",
+    "src/screens/chat/HomeChatShareScreen.tsx": "3f118bf7b52d8e562e2d37acbd0a8af8faff890ec362778b9554f682a37b37c6",
+    "src/screens/home/HomeScreen.tsx": "368126023ac998742fc586b9e09955edcb1737643b27de532bea77702daa937f",
+    "src/screens/home/components/HomeChatCompanion.tsx": "9fd01b1d69ac382e578ef309aabcf77e71ff0cf883c082a231e9b7b0e08476ab",
+    "src/screens/home/components/NearbyHomeExperience.tsx": "c7f3c1a58a788867d137d80eec37e758ac3292eedccbb123c6589bddd12ddb43",
+    "src/screens/shared/useCommentMentionComposer.ts": "cabf9ee337249fd90ac0a4b20c25a3d877fe43457fddc6db0b68a6b26de39ae2",
+    "src/notifications/pushReceipts.ts": "c8f535538d4c7dd28440301aadcac1659169cb71b66bb3135a3f4f76bbf6d728",
+    "src/notifications/fcm.ts": "4bd75864e0e0b88bcf07b208116f6b04266c36b2b50fd6487cf6e639aedf12c2"
   },
   "menus": [
     {
@@ -33,6 +67,324 @@
       "source": "src/api/client.js",
       "sourceLine": 1,
       "notes": "공통 웹 API 전송의 최종 실패를 익명으로 보고하는 코드 분류입니다."
+    },
+    {
+      "id": "app:Home",
+      "surface": "app",
+      "route": "Home",
+      "label": "홈 > 콘텐츠·내 주변·제철음식",
+      "source": "src/navigation/MainTabNavigator.tsx",
+      "sourceLine": 105
+    },
+    {
+      "id": "app:ProfileEdit",
+      "surface": "app",
+      "route": "ProfileEdit",
+      "label": "프로필 > 내·다른 사용자 프로필 상세",
+      "source": "src/navigation/MainNavigation.tsx",
+      "sourceLine": 195
+    },
+    {
+      "id": "app:MyFriends",
+      "surface": "app",
+      "route": "MyFriends",
+      "label": "프로필 > 친구 > 찾기·요청·친구·활동",
+      "source": "src/navigation/MainNavigation.tsx",
+      "sourceLine": 200
+    },
+    {
+      "id": "app:Notification",
+      "surface": "app",
+      "route": "Notification",
+      "label": "공통 > 알림함",
+      "source": "src/navigation/MainNavigation.tsx",
+      "sourceLine": 217
+    },
+    {
+      "id": "app:Home.Nearby",
+      "surface": "app",
+      "route": "Home.Nearby",
+      "label": "홈 > 내 주변",
+      "source": "src/screens/home/components/NearbyHomeExperience.tsx",
+      "sourceLine": 1
+    },
+    {
+      "id": "app:ChatInbox",
+      "surface": "app",
+      "route": "ChatInbox",
+      "label": "홈 > 친구 대화",
+      "source": "src/screens/chat/ChatInboxScreen.tsx",
+      "sourceLine": 1
+    },
+    {
+      "id": "app:ChatRoom",
+      "surface": "app",
+      "route": "ChatRoom",
+      "label": "친구 대화 > 대화방",
+      "source": "src/screens/chat/ChatRoomScreen.tsx",
+      "sourceLine": 1
+    },
+    {
+      "id": "app:ChatSearch",
+      "surface": "app",
+      "route": "ChatSearch",
+      "label": "대화방 > 메뉴 > 검색·날짜 이동",
+      "source": "src/screens/chat/ChatSearchScreen.tsx",
+      "sourceLine": 1
+    },
+    {
+      "id": "app:ChatShared",
+      "surface": "app",
+      "route": "ChatShared",
+      "label": "대화방 > 공유함",
+      "source": "src/screens/chat/ChatSharedScreen.tsx",
+      "sourceLine": 1
+    },
+    {
+      "id": "app:ChatShare",
+      "surface": "app",
+      "route": "ChatShare",
+      "label": "친구 대화 > 새 대화 / 콘텐츠 공유 > 친구 선택",
+      "source": "src/screens/chat/ChatShareScreen.tsx",
+      "sourceLine": 1
+    },
+    {
+      "id": "app:HomeChatShare",
+      "surface": "app",
+      "route": "HomeChatShare",
+      "label": "홈 > 친구에게 공유·식당 후보 보내기",
+      "source": "src/screens/chat/HomeChatShareScreen.tsx",
+      "sourceLine": 1
+    },
+    {
+      "id": "app:ChatWatch",
+      "surface": "app",
+      "route": "ChatWatch",
+      "label": "채팅 > 함께 보기",
+      "source": "src/screens/chat/ChatWatchScreen.tsx",
+      "sourceLine": 1
+    },
+    {
+      "id": "app:HomeChatMap",
+      "surface": "app",
+      "route": "HomeChatMap",
+      "label": "홈 > 친구와 갈 곳 지도",
+      "source": "src/screens/chat/HomeChatMapScreen.tsx",
+      "sourceLine": 1
+    },
+    {
+      "id": "app:ChatBoard",
+      "surface": "app",
+      "route": "ChatBoard",
+      "label": "채팅 > 친구와 식당 비교",
+      "source": "src/screens/chat/ChatBoardScreen.tsx",
+      "sourceLine": 1
+    },
+    {
+      "id": "app:ChatGroups",
+      "surface": "app",
+      "label": "채팅 > 그룹 목록·초대",
+      "source": "src/screens/chat/ChatGroupsScreen.tsx",
+      "sourceLine": 1
+    },
+    {
+      "id": "app:ChatGroupCreate",
+      "surface": "app",
+      "label": "채팅 > 그룹 만들기",
+      "source": "src/screens/chat/ChatGroupCreateScreen.tsx",
+      "sourceLine": 1
+    },
+    {
+      "id": "app:ChatGroupRoom",
+      "surface": "app",
+      "label": "채팅 > 그룹 대화방",
+      "source": "src/screens/chat/ChatGroupRoomScreen.tsx",
+      "sourceLine": 1
+    },
+    {
+      "id": "app:ChatMediaCompose",
+      "surface": "app",
+      "label": "대화방 > 사진·음성 보내기",
+      "source": "src/screens/chat/ChatMediaComposeScreen.tsx",
+      "sourceLine": 1
+    },
+    {
+      "id": "app:ChatContentPicker",
+      "surface": "app",
+      "label": "대화방 > 콘텐츠 고르기",
+      "source": "src/screens/chat/ChatContentPickerScreen.tsx",
+      "sourceLine": 1
+    },
+    {
+      "id": "app:CommentComposer",
+      "surface": "app",
+      "isGrouping": true,
+      "label": "콘텐츠 공통 > 댓글·사용자 언급",
+      "source": "src/components/ContentCommentModal.tsx",
+      "sourceLine": 1
+    },
+    {
+      "id": "app:Search",
+      "surface": "app",
+      "route": "Search",
+      "label": "검색 > 피드 검색",
+      "source": "src/navigation/MainTabNavigator.tsx",
+      "sourceLine": 106
+    },
+    {
+      "id": "app:Recipe",
+      "surface": "app",
+      "route": "Recipe",
+      "label": "레시피 > 목록·검색",
+      "source": "src/navigation/MainTabNavigator.tsx",
+      "sourceLine": 123
+    },
+    {
+      "id": "app:MyPage",
+      "surface": "app",
+      "route": "MyPage",
+      "label": "프로필 > 내 프로필",
+      "source": "src/navigation/MainTabNavigator.tsx",
+      "sourceLine": 124
+    },
+    {
+      "id": "app:FullScreenMap",
+      "surface": "app",
+      "route": "FullScreenMap",
+      "label": "홈 > 내 주변 > 전체 지도·장소 게시물",
+      "source": "src/navigation/MainNavigation.tsx",
+      "sourceLine": 188
+    },
+    {
+      "id": "app:VideoFeedScreen",
+      "surface": "app",
+      "route": "VideoFeedScreen",
+      "label": "콘텐츠 > 영상 뷰어·댓글·좋아요",
+      "source": "src/navigation/MainNavigation.tsx",
+      "sourceLine": 189
+    },
+    {
+      "id": "app:ImageFeedViewer",
+      "surface": "app",
+      "route": "ImageFeedViewer",
+      "label": "콘텐츠 > 사진 뷰어·댓글·좋아요",
+      "source": "src/navigation/MainNavigation.tsx",
+      "sourceLine": 190
+    },
+    {
+      "id": "app:MyLikes",
+      "surface": "app",
+      "route": "MyLikes",
+      "label": "프로필 > 좋아요 목록",
+      "source": "src/navigation/MainNavigation.tsx",
+      "sourceLine": 196
+    },
+    {
+      "id": "app:MyPosts",
+      "surface": "app",
+      "route": "MyPosts",
+      "label": "프로필 > 내 게시물",
+      "source": "src/navigation/MainNavigation.tsx",
+      "sourceLine": 197
+    },
+    {
+      "id": "app:ProfileContentGrid",
+      "surface": "app",
+      "route": "ProfileContentGrid",
+      "label": "프로필 > 사용자 게시물·좋아요 상세 목록",
+      "source": "src/navigation/MainNavigation.tsx",
+      "sourceLine": 198
+    },
+    {
+      "id": "app:ContentAnalytics",
+      "surface": "app",
+      "route": "ContentAnalytics",
+      "label": "프로필 > 내 콘텐츠 분석",
+      "source": "src/navigation/MainNavigation.tsx",
+      "sourceLine": 204
+    },
+    {
+      "id": "app:VideoPostEditor",
+      "surface": "app",
+      "route": "VideoPostEditor",
+      "label": "추가 > 영상 등록·수정",
+      "source": "src/navigation/MainNavigation.tsx",
+      "sourceLine": 215
+    },
+    {
+      "id": "app:ImageFeedEditor",
+      "surface": "app",
+      "route": "ImageFeedEditor",
+      "label": "추가 > 사진 등록·수정",
+      "source": "src/navigation/MainNavigation.tsx",
+      "sourceLine": 216
+    },
+    {
+      "id": "admin:/admin/dashboard",
+      "surface": "admin",
+      "route": "/admin/dashboard",
+      "label": "운영 > 대시보드",
+      "source": "src/config/routes.js",
+      "sourceLine": 158
+    },
+    {
+      "id": "admin:/admin/operations",
+      "surface": "admin",
+      "route": "/admin/operations",
+      "label": "서비스 운영 > 운영 홈",
+      "source": "src/admin/pages/AdminOperationsHome.js",
+      "sourceLine": 1,
+      "notes": "su12ng 전용",
+      "apiIds": [
+        "api_1feef140f5eedc1c"
+      ],
+      "missingCalls": [],
+      "apiCount": 1
+    },
+    {
+      "id": "admin:/admin/operations/incidents",
+      "surface": "admin",
+      "route": "/admin/operations/incidents",
+      "label": "서비스 운영 > 장애·알림 진단",
+      "source": "src/admin/pages/AdminOperationsIncidents.js",
+      "sourceLine": 1,
+      "notes": "su12ng 전용",
+      "apiIds": [
+        "api_1feef140f5eedc1c",
+        "api_4c896d73d9449141"
+      ],
+      "missingCalls": [],
+      "apiCount": 2
+    },
+    {
+      "id": "admin:/admin/operations/releases",
+      "surface": "admin",
+      "route": "/admin/operations/releases",
+      "label": "서비스 운영 > 배포·품질",
+      "source": "src/admin/pages/AdminOperationsReleases.js",
+      "sourceLine": 1,
+      "notes": "su12ng 전용",
+      "apiIds": [
+        "api_1feef140f5eedc1c",
+        "api_878202461851b9ac",
+        "api_35a413f30d5ec951"
+      ],
+      "missingCalls": [],
+      "apiCount": 3
+    },
+    {
+      "id": "app:PushReceipt",
+      "surface": "app",
+      "route": "PushReceipt",
+      "label": "알림 > 수신·열기 확인",
+      "source": "src/notifications/pushReceipts.ts",
+      "sourceLine": 1,
+      "notes": "신규 nonce가 포함된 푸시만, 본인 계정 확인",
+      "apiIds": [
+        "api_f664dbdb427f588d"
+      ],
+      "missingCalls": [],
+      "apiCount": 1
     }
   ],
   "routes": [
@@ -47,7 +399,8 @@
       "menuIds": [],
       "usageStatus": "client_wrapper_only",
       "usageNote": "앱 화면 연결 근거 없음",
-      "id": "api_98d81feea3a05d45"
+      "id": "api_98d81feea3a05d45",
+      "linkPolicy": "replace"
     },
     {
       "method": "PUT",
@@ -114,7 +467,8 @@
       "menuIds": [],
       "usageStatus": "no_frontend_reference",
       "usageNote": "앱 화면 연결 근거 없음",
-      "id": "api_260511e6d1d01d05"
+      "id": "api_260511e6d1d01d05",
+      "linkPolicy": "replace"
     },
     {
       "method": "POST",
@@ -123,7 +477,8 @@
       "menuIds": [],
       "usageStatus": "client_wrapper_only",
       "usageNote": "현재 앱 화면은 명시 상태 API를 사용합니다. 구형 설치본을 위한 계약은 유지합니다.",
-      "id": "api_b8f4471635da55a3"
+      "id": "api_b8f4471635da55a3",
+      "linkPolicy": "replace"
     },
     {
       "method": "GET",
@@ -157,6 +512,1553 @@
       "usageStatus": "connected_in_source",
       "usageNote": "공통 전송 계층이 최종 API 실패를 보고합니다. 앱은 이 코드가 포함된 설치본부터 수집됩니다. 수집 API 자체의 오류는 재보고하지 않습니다.",
       "id": "api_45e8e53acc85dfa6"
+    },
+    {
+      "id": "api_027bcc41f53e8702",
+      "method": "GET",
+      "path": "/api/users/me/stats",
+      "module": "account",
+      "capability": "account-profile",
+      "commonizationGroup": "account-profile-and-role-adapters",
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [],
+      "menuIds": [],
+      "usageStatus": "no_frontend_reference"
+    },
+    {
+      "id": "api_c09b847ed75a1d19",
+      "method": "GET",
+      "path": "/api/users/{username}/stats",
+      "module": "account",
+      "capability": "account-profile",
+      "commonizationGroup": "account-profile-and-role-adapters",
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [],
+      "menuIds": [],
+      "usageStatus": "no_frontend_reference"
+    },
+    {
+      "id": "api_5b07d363f9613a9b",
+      "method": "GET",
+      "path": "/api/users/{username}/images",
+      "module": "account",
+      "capability": "profile-content-projections",
+      "commonizationGroup": null,
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:MyPosts",
+        "app:ProfileContentGrid",
+        "app:ChatContentPicker"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_85443dad318bb335",
+      "method": "GET",
+      "path": "/api/users/{username}/videos",
+      "module": "account",
+      "capability": "profile-content-projections",
+      "commonizationGroup": null,
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:MyPosts",
+        "app:ProfileContentGrid",
+        "app:ChatContentPicker"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_7708ce1ea8bfa2b2",
+      "method": "DELETE",
+      "path": "/api/image-feeds/comments/{commentId}",
+      "module": "engagement",
+      "capability": "image-comments",
+      "commonizationGroup": "comments",
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ContentAnalytics",
+        "app:FullScreenMap",
+        "app:Home",
+        "app:Home.Nearby",
+        "app:ImageFeedViewer",
+        "app:MyFriends",
+        "app:MyLikes",
+        "app:MyPage",
+        "app:MyPosts",
+        "app:ProfileContentGrid",
+        "app:Search",
+        "app:CommentComposer"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_7dcab3debca25c4f",
+      "method": "PUT",
+      "path": "/api/image-feeds/comments/{commentId}",
+      "module": "engagement",
+      "capability": "image-comments",
+      "commonizationGroup": "comments",
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ContentAnalytics",
+        "app:FullScreenMap",
+        "app:Home",
+        "app:Home.Nearby",
+        "app:ImageFeedViewer",
+        "app:MyFriends",
+        "app:MyLikes",
+        "app:MyPage",
+        "app:MyPosts",
+        "app:ProfileContentGrid",
+        "app:Search",
+        "app:CommentComposer"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_98d6d0e790d8f28b",
+      "method": "GET",
+      "path": "/api/image-feeds/comments/{commentId}/replies",
+      "module": "engagement",
+      "capability": "image-comments",
+      "commonizationGroup": "comments",
+      "authorization": "비로그인 허용(상세 권한·가용성 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ContentAnalytics",
+        "app:FullScreenMap",
+        "app:Home",
+        "app:Home.Nearby",
+        "app:ImageFeedViewer",
+        "app:MyFriends",
+        "app:MyLikes",
+        "app:MyPage",
+        "app:MyPosts",
+        "app:ProfileContentGrid",
+        "app:Search",
+        "app:CommentComposer"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_f8965650d7b49107",
+      "method": "POST",
+      "path": "/api/image-feeds/comments/{commentId}/replies",
+      "module": "engagement",
+      "capability": "image-comments",
+      "commonizationGroup": "comments",
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ContentAnalytics",
+        "app:FullScreenMap",
+        "app:Home",
+        "app:Home.Nearby",
+        "app:ImageFeedViewer",
+        "app:MyFriends",
+        "app:MyLikes",
+        "app:MyPage",
+        "app:MyPosts",
+        "app:ProfileContentGrid",
+        "app:Search",
+        "app:CommentComposer"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_ed9a459de0ce622f",
+      "method": "DELETE",
+      "path": "/api/image-feeds/replies/{replyId}",
+      "module": "engagement",
+      "capability": "image-comments",
+      "commonizationGroup": "comments",
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ContentAnalytics",
+        "app:FullScreenMap",
+        "app:Home",
+        "app:Home.Nearby",
+        "app:ImageFeedViewer",
+        "app:MyFriends",
+        "app:MyLikes",
+        "app:MyPage",
+        "app:MyPosts",
+        "app:ProfileContentGrid",
+        "app:Search",
+        "app:CommentComposer"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_c3fe74d57ef3e19b",
+      "method": "PUT",
+      "path": "/api/image-feeds/replies/{replyId}",
+      "module": "engagement",
+      "capability": "image-comments",
+      "commonizationGroup": "comments",
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ContentAnalytics",
+        "app:FullScreenMap",
+        "app:Home",
+        "app:Home.Nearby",
+        "app:ImageFeedViewer",
+        "app:MyFriends",
+        "app:MyLikes",
+        "app:MyPage",
+        "app:MyPosts",
+        "app:ProfileContentGrid",
+        "app:Search",
+        "app:CommentComposer"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_debdf0967cea85c6",
+      "method": "GET",
+      "path": "/api/image-feeds/{feedId}/comments",
+      "module": "engagement",
+      "capability": "image-comments",
+      "commonizationGroup": "comments",
+      "authorization": "비로그인 허용(상세 권한·가용성 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ContentAnalytics",
+        "app:FullScreenMap",
+        "app:Home",
+        "app:Home.Nearby",
+        "app:ImageFeedViewer",
+        "app:MyFriends",
+        "app:MyLikes",
+        "app:MyPage",
+        "app:MyPosts",
+        "app:ProfileContentGrid",
+        "app:Search",
+        "app:CommentComposer"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_0aabe61bd02ab692",
+      "method": "POST",
+      "path": "/api/image-feeds/{feedId}/comments",
+      "module": "engagement",
+      "capability": "image-comments",
+      "commonizationGroup": "comments",
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ContentAnalytics",
+        "app:FullScreenMap",
+        "app:Home",
+        "app:Home.Nearby",
+        "app:ImageFeedViewer",
+        "app:MyFriends",
+        "app:MyLikes",
+        "app:MyPage",
+        "app:MyPosts",
+        "app:ProfileContentGrid",
+        "app:Search",
+        "app:CommentComposer"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_3e2fd487df2985ad",
+      "method": "GET",
+      "path": "/api/notifications",
+      "module": "engagement",
+      "capability": "notifications",
+      "commonizationGroup": null,
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:Notification"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_fc90e6ab1c6abb95",
+      "method": "DELETE",
+      "path": "/api/notifications/all",
+      "module": "engagement",
+      "capability": "notifications",
+      "commonizationGroup": null,
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:Notification"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_ef5bb206e102ae45",
+      "method": "PUT",
+      "path": "/api/notifications/read-all",
+      "module": "engagement",
+      "capability": "notifications",
+      "commonizationGroup": null,
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:Notification"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_35034232bb11d0bc",
+      "method": "GET",
+      "path": "/api/notifications/unread-count",
+      "module": "engagement",
+      "capability": "notifications",
+      "commonizationGroup": null,
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:Home",
+        "app:Recipe"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_4e1282a7c4d40892",
+      "method": "DELETE",
+      "path": "/api/notifications/{notificationId}",
+      "module": "engagement",
+      "capability": "notifications",
+      "commonizationGroup": null,
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:Notification"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_cce00b7b59ac1e08",
+      "method": "PUT",
+      "path": "/api/notifications/{notificationId}/read",
+      "module": "engagement",
+      "capability": "notifications",
+      "commonizationGroup": null,
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:Notification"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_286b62596146a657",
+      "method": "DELETE",
+      "path": "/api/comments/{commentId}",
+      "module": "engagement",
+      "capability": "video-comments",
+      "commonizationGroup": "comments",
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ContentAnalytics",
+        "app:FullScreenMap",
+        "app:Home",
+        "app:Home.Nearby",
+        "app:MyFriends",
+        "app:MyLikes",
+        "app:MyPage",
+        "app:MyPosts",
+        "app:ProfileContentGrid",
+        "app:Search",
+        "app:VideoFeedScreen",
+        "app:CommentComposer"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_74a8724c2ca6c8d2",
+      "method": "PUT",
+      "path": "/api/comments/{commentId}",
+      "module": "engagement",
+      "capability": "video-comments",
+      "commonizationGroup": "comments",
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ContentAnalytics",
+        "app:FullScreenMap",
+        "app:Home",
+        "app:Home.Nearby",
+        "app:MyFriends",
+        "app:MyLikes",
+        "app:MyPage",
+        "app:MyPosts",
+        "app:ProfileContentGrid",
+        "app:Search",
+        "app:VideoFeedScreen",
+        "app:CommentComposer"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_7281b78d8b28ee2b",
+      "method": "GET",
+      "path": "/api/comments/{commentId}/replies",
+      "module": "engagement",
+      "capability": "video-comments",
+      "commonizationGroup": "comments",
+      "authorization": "비로그인 허용(상세 권한·가용성 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ContentAnalytics",
+        "app:FullScreenMap",
+        "app:Home",
+        "app:Home.Nearby",
+        "app:MyFriends",
+        "app:MyLikes",
+        "app:MyPage",
+        "app:MyPosts",
+        "app:ProfileContentGrid",
+        "app:Search",
+        "app:VideoFeedScreen",
+        "app:CommentComposer"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_f1b8121bf046bda9",
+      "method": "POST",
+      "path": "/api/comments/{commentId}/replies",
+      "module": "engagement",
+      "capability": "video-comments",
+      "commonizationGroup": "comments",
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ContentAnalytics",
+        "app:FullScreenMap",
+        "app:Home",
+        "app:Home.Nearby",
+        "app:MyFriends",
+        "app:MyLikes",
+        "app:MyPage",
+        "app:MyPosts",
+        "app:ProfileContentGrid",
+        "app:Search",
+        "app:VideoFeedScreen",
+        "app:CommentComposer"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_7c8c4a14f754feb7",
+      "method": "DELETE",
+      "path": "/api/replies/{replyId}",
+      "module": "engagement",
+      "capability": "video-comments",
+      "commonizationGroup": "comments",
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ContentAnalytics",
+        "app:FullScreenMap",
+        "app:Home",
+        "app:Home.Nearby",
+        "app:MyFriends",
+        "app:MyLikes",
+        "app:MyPage",
+        "app:MyPosts",
+        "app:ProfileContentGrid",
+        "app:Search",
+        "app:VideoFeedScreen",
+        "app:CommentComposer"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_44418b489f0e7968",
+      "method": "PUT",
+      "path": "/api/replies/{replyId}",
+      "module": "engagement",
+      "capability": "video-comments",
+      "commonizationGroup": "comments",
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ContentAnalytics",
+        "app:FullScreenMap",
+        "app:Home",
+        "app:Home.Nearby",
+        "app:MyFriends",
+        "app:MyLikes",
+        "app:MyPage",
+        "app:MyPosts",
+        "app:ProfileContentGrid",
+        "app:Search",
+        "app:VideoFeedScreen",
+        "app:CommentComposer"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_1b416064294df441",
+      "method": "GET",
+      "path": "/api/stores/{videoStoreId}/comments",
+      "module": "engagement",
+      "capability": "video-comments",
+      "commonizationGroup": "comments",
+      "authorization": "비로그인 허용(상세 권한·가용성 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ContentAnalytics",
+        "app:FullScreenMap",
+        "app:Home",
+        "app:Home.Nearby",
+        "app:MyFriends",
+        "app:MyLikes",
+        "app:MyPage",
+        "app:MyPosts",
+        "app:ProfileContentGrid",
+        "app:Search",
+        "app:VideoFeedScreen",
+        "app:CommentComposer"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_0006f5d176029882",
+      "method": "POST",
+      "path": "/api/stores/{videoStoreId}/comments",
+      "module": "engagement",
+      "capability": "video-comments",
+      "commonizationGroup": "comments",
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ContentAnalytics",
+        "app:FullScreenMap",
+        "app:Home",
+        "app:Home.Nearby",
+        "app:MyFriends",
+        "app:MyLikes",
+        "app:MyPage",
+        "app:MyPosts",
+        "app:ProfileContentGrid",
+        "app:Search",
+        "app:VideoFeedScreen",
+        "app:CommentComposer"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_6eddd7d128011227",
+      "method": "GET",
+      "path": "/api/admin/dashboard/activity-trends",
+      "module": "analytics",
+      "capability": "admin-dashboard",
+      "commonizationGroup": "analytics-projections",
+      "authorization": "비로그인 허용(상세 권한·가용성 별도)",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/dashboard"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_2a8b4b306ff4c9b8",
+      "method": "GET",
+      "path": "/api/admin/dashboard/region-distribution",
+      "module": "analytics",
+      "capability": "admin-dashboard",
+      "commonizationGroup": "analytics-projections",
+      "authorization": "비로그인 허용(상세 권한·가용성 별도)",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/dashboard"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_d880374d4fb5aad1",
+      "method": "GET",
+      "path": "/api/admin/dashboard/summary",
+      "module": "analytics",
+      "capability": "admin-dashboard",
+      "commonizationGroup": "analytics-projections",
+      "authorization": "비로그인 허용(상세 권한·가용성 별도)",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/dashboard"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_14d0e8d062e45565",
+      "method": "GET",
+      "path": "/api/friends/search",
+      "module": "social",
+      "capability": "friendships-and-visit-queries",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ImageFeedEditor",
+        "app:MyFriends",
+        "app:VideoPostEditor",
+        "app:CommentComposer"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_2a13a3b3358cfeb1",
+      "method": "GET",
+      "path": "/api/search",
+      "module": "discovery",
+      "capability": "search",
+      "commonizationGroup": "discovery-access-projections",
+      "authorization": "비로그인 허용(상세 권한·가용성 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:FullScreenMap",
+        "app:Search"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_ba0d441dde552418",
+      "method": "GET",
+      "path": "/api/users/{username}/profile-detail",
+      "module": "account",
+      "capability": "profile-detail",
+      "commonizationGroup": "account-profile-and-role-adapters",
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ProfileEdit",
+        "app:ChatInbox",
+        "app:ChatRoom",
+        "app:ChatGroupRoom"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_55cef46ac2e284f1",
+      "method": "GET",
+      "path": "/api/chat/capabilities",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·해당 대화 참여자만 허용",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatBoard",
+        "app:ChatInbox",
+        "app:ChatRoom",
+        "app:ChatSearch",
+        "app:ChatShare",
+        "app:ChatShared",
+        "app:Home",
+        "app:Home.Nearby",
+        "app:HomeChatShare",
+        "app:ChatGroups",
+        "app:ChatGroupCreate",
+        "app:ChatGroupRoom",
+        "app:ChatMediaCompose",
+        "app:ChatWatch",
+        "app:HomeChatMap"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_796392dc804cf2f5",
+      "method": "POST",
+      "path": "/api/chat/rooms",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·해당 대화 참여자만 허용",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatRoom",
+        "app:ChatShare",
+        "app:HomeChatShare"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_8f54fa11853f1fb9",
+      "method": "GET",
+      "path": "/api/chat/rooms",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·해당 대화 참여자만 허용",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatInbox",
+        "app:HomeChatMap",
+        "app:HomeChatShare"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_ffd5bcb5151d021a",
+      "method": "GET",
+      "path": "/api/chat/rooms/{roomId}",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·해당 대화 참여자만 허용",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatBoard",
+        "app:ChatRoom",
+        "app:ChatShared",
+        "app:ChatWatch"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_ef33590c8c7251bd",
+      "method": "GET",
+      "path": "/api/chat/rooms/{roomId}/messages",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·해당 대화 참여자만 허용",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatRoom"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_a2ea3ba772139b3f",
+      "method": "POST",
+      "path": "/api/chat/rooms/{roomId}/messages",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·해당 대화 참여자만 허용",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatRoom"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_1b3722f87de33ef1",
+      "method": "POST",
+      "path": "/api/chat/rooms/{roomId}/shared-messages",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·해당 대화 참여자만 허용",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatRoom",
+        "app:HomeChatShare"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_3aad2d763c5c486b",
+      "method": "GET",
+      "path": "/api/chat/rooms/{roomId}/messages/{sequence}",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·해당 대화 참여자만 허용",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatRoom",
+        "app:ChatShared"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_312bc15bfee920c6",
+      "method": "GET",
+      "path": "/api/chat/rooms/{roomId}/shared",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·해당 대화 참여자만 허용",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatBoard",
+        "app:ChatShared",
+        "app:HomeChatMap"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_d9616d7e435d5fa6",
+      "method": "PUT",
+      "path": "/api/chat/rooms/{roomId}/messages/{sequence}/action",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·해당 대화 참여자만 허용",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatBoard",
+        "app:ChatRoom",
+        "app:ChatShared"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_c14d87dfdac9a471",
+      "method": "PUT",
+      "path": "/api/chat/rooms/{roomId}/read",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·해당 대화 참여자만 허용",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatRoom"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_76435166023d6eae",
+      "method": "GET",
+      "path": "/api/chat/rooms/{roomId}/messages/context",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·해당 대화 참여자만 허용",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatRoom"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_e7e458dc213bd12c",
+      "method": "POST",
+      "path": "/api/chat/rooms/{roomId}/messages/search",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·해당 대화 참여자만 허용",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatSearch"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_957a5cb1cfdce439",
+      "method": "PUT",
+      "path": "/api/chat/rooms/{roomId}/preferences",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·해당 대화 참여자만 허용",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatRoom"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_23faf490d79bf497",
+      "method": "GET",
+      "path": "/api/chat/summary",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원 본인의 미확인 대화 수",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:Home",
+        "app:ChatInbox"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_d676a0c02bff438d",
+      "method": "PUT",
+      "path": "/api/notifications/categories/{category}/read-all",
+      "module": "engagement",
+      "capability": "notifications",
+      "commonizationGroup": null,
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:Notification"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_1a322c1b699bf0ae",
+      "method": "DELETE",
+      "path": "/api/notifications/categories/{category}",
+      "module": "engagement",
+      "capability": "notifications",
+      "commonizationGroup": null,
+      "authorization": "로그인 필요(소유권·역할 검증 별도)",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:Notification"
+      ],
+      "usageStatus": "connected_in_source"
+    },
+    {
+      "id": "api_5f45fa6e8aaa849f",
+      "method": "GET",
+      "path": "/api/chat/home",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·현재 콘텐츠 접근과 대화 참여 범위 검증",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:Home"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "server_pr"
+    },
+    {
+      "id": "api_64554ab6b3c4b07a",
+      "method": "GET",
+      "path": "/api/chat/places/{placeId}",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·현재 콘텐츠 접근과 대화 참여 범위 검증",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:Home.Nearby"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "server_pr"
+    },
+    {
+      "id": "api_1784b00a63301286",
+      "method": "GET",
+      "path": "/api/chat/references/{type}/{id}",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·현재 콘텐츠 접근과 대화 참여 범위 검증",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:HomeChatShare",
+        "app:ChatRoom"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "server_pr"
+    },
+    {
+      "id": "api_955861dd5662ac12",
+      "method": "POST",
+      "path": "/api/chat/rooms/{roomId}/candidate-bundles",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·현재 콘텐츠 접근과 대화 참여 범위 검증",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:HomeChatShare"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "server_pr"
+    },
+    {
+      "id": "api_7105d9b4848c67c2",
+      "method": "GET",
+      "path": "/api/chat/live/DIRECT/{roomId}/watch",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·현재 콘텐츠 접근과 대화 참여 범위 검증",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatWatch"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "server_pr"
+    },
+    {
+      "id": "api_ee0c93a867cd305d",
+      "method": "GET",
+      "path": "/api/chat/live/DIRECT/{roomId}/typing",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·현재 콘텐츠 접근과 대화 참여 범위 검증",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatRoom"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "server_pr"
+    },
+    {
+      "id": "api_53b5ae1336b35a0b",
+      "method": "POST",
+      "path": "/api/chat/live/DIRECT/{roomId}/watch",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·현재 콘텐츠 접근과 대화 참여 범위 검증",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatWatch"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "server_pr"
+    },
+    {
+      "id": "api_78a14afc5e97f9ba",
+      "method": "POST",
+      "path": "/api/chat/live/DIRECT/{roomId}/typing",
+      "module": "social",
+      "capability": "friend-chat",
+      "commonizationGroup": "social-policy",
+      "authorization": "로그인 회원·현재 콘텐츠 접근과 대화 참여 범위 검증",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatRoom"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "server_pr"
+    },
+    {
+      "id": "api_5978e771d23e4c94",
+      "method": "GET",
+      "path": "/api/chat/groups",
+      "module": "social",
+      "capability": "chat",
+      "authorization": "회원 토큰 및 대화 참여·관계 권한",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatGroups"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "backend_pending"
+    },
+    {
+      "id": "api_87fab7954185ca8f",
+      "method": "POST",
+      "path": "/api/chat/groups",
+      "module": "social",
+      "capability": "chat",
+      "authorization": "회원 토큰 및 대화 참여·관계 권한",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatGroupCreate"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "backend_pending"
+    },
+    {
+      "id": "api_e25c1c4c5c806dae",
+      "method": "GET",
+      "path": "/api/chat/groups/{id}",
+      "module": "social",
+      "capability": "chat",
+      "authorization": "회원 토큰 및 대화 참여·관계 권한",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatGroupRoom"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "backend_pending"
+    },
+    {
+      "id": "api_f663f486f909c501",
+      "method": "POST",
+      "path": "/api/chat/groups/{id}/membership",
+      "module": "social",
+      "capability": "chat",
+      "authorization": "회원 토큰 및 대화 참여·관계 권한",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatGroups",
+        "app:ChatGroupRoom"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "backend_pending"
+    },
+    {
+      "id": "api_4c7c14b3692bed6f",
+      "method": "POST",
+      "path": "/api/chat/groups/{id}/invite",
+      "module": "social",
+      "capability": "chat",
+      "authorization": "회원 토큰 및 대화 참여·관계 권한",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatGroupRoom"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "backend_pending"
+    },
+    {
+      "id": "api_254ef02b85c6a68b",
+      "method": "PUT",
+      "path": "/api/chat/groups/{id}/read",
+      "module": "social",
+      "capability": "chat",
+      "authorization": "회원 토큰 및 대화 참여·관계 권한",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatGroupRoom"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "backend_pending"
+    },
+    {
+      "id": "api_461a87f7a0a73148",
+      "method": "PUT",
+      "path": "/api/chat/groups/{id}/preferences",
+      "module": "social",
+      "capability": "chat",
+      "authorization": "회원 토큰 및 대화 참여·관계 권한",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatGroupRoom"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "backend_pending"
+    },
+    {
+      "id": "api_ed4256b6e91d1131",
+      "method": "GET",
+      "path": "/api/chat/groups/{id}/messages",
+      "module": "social",
+      "capability": "chat",
+      "authorization": "회원 토큰 및 대화 참여·관계 권한",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatGroupRoom"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "backend_pending"
+    },
+    {
+      "id": "api_dff768689e74456e",
+      "method": "POST",
+      "path": "/api/chat/groups/{id}/messages",
+      "module": "social",
+      "capability": "chat",
+      "authorization": "회원 토큰 및 대화 참여·관계 권한",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatGroupRoom"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "backend_pending"
+    },
+    {
+      "id": "api_3f16cec5c3226e5d",
+      "method": "PUT",
+      "path": "/api/chat/groups/{id}/messages/{seq}/interaction",
+      "module": "social",
+      "capability": "chat",
+      "authorization": "회원 토큰 및 대화 참여·관계 권한",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatGroupRoom"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "backend_pending"
+    },
+    {
+      "id": "api_420ddd591ac5bd0b",
+      "method": "POST",
+      "path": "/api/chat/media",
+      "module": "social",
+      "capability": "chat",
+      "authorization": "회원 토큰 및 대화 참여·관계 권한",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatMediaCompose"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "backend_pending"
+    },
+    {
+      "id": "api_570e69217f1056c9",
+      "method": "GET",
+      "path": "/api/chat/media/{id}",
+      "module": "social",
+      "capability": "chat",
+      "authorization": "회원 토큰 및 대화 참여·관계 권한",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatRoom",
+        "app:ChatGroupRoom"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "backend_pending"
+    },
+    {
+      "id": "api_6bf7033b1ee78d3f",
+      "method": "DELETE",
+      "path": "/api/chat/media/{id}",
+      "module": "social",
+      "capability": "chat",
+      "authorization": "회원 토큰 및 대화 참여·관계 권한",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatMediaCompose"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "backend_pending"
+    },
+    {
+      "id": "api_e6a4e082685572e1",
+      "method": "POST",
+      "path": "/api/chat/rooms/{id}/media-messages",
+      "module": "social",
+      "capability": "chat",
+      "authorization": "회원 토큰 및 대화 참여·관계 권한",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatMediaCompose"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "backend_pending"
+    },
+    {
+      "id": "api_0e1a030fdafee45c",
+      "method": "POST",
+      "path": "/api/chat/groups/{id}/media-messages",
+      "module": "social",
+      "capability": "chat",
+      "authorization": "회원 토큰 및 대화 참여·관계 권한",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatMediaCompose"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "backend_pending"
+    },
+    {
+      "id": "api_76d623f9d7a95338",
+      "method": "GET",
+      "path": "/api/chat/rooms/{roomId}/board",
+      "module": "social",
+      "capability": "chat",
+      "authorization": "회원 토큰 및 대화 참여·관계 권한",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatBoard"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "backend_pending"
+    },
+    {
+      "id": "api_0e5d275715f3cf9d",
+      "method": "PUT",
+      "path": "/api/chat/rooms/{roomId}/messages/{sequence}/interaction",
+      "module": "social",
+      "capability": "chat",
+      "authorization": "회원 토큰 및 대화 참여·관계 권한",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:ChatRoom",
+        "app:ChatBoard"
+      ],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "backend_pending"
+    },
+    {
+      "id": "api_1feef140f5eedc1c",
+      "method": "GET",
+      "path": "/api/admin/operations/snapshot",
+      "module": "platform",
+      "capability": "operations-monitoring",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/operations",
+        "admin:/admin/operations/incidents",
+        "admin:/admin/operations/releases"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "새 운영 관리 구현. 운영 반영·수집 설정 상태는 별도 확인."
+    },
+    {
+      "id": "api_4c896d73d9449141",
+      "method": "GET",
+      "path": "/api/admin/operations/push-attempts/{deliveryId}",
+      "module": "platform",
+      "capability": "operations-monitoring",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/operations/incidents"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "새 운영 관리 구현. 운영 반영·수집 설정 상태는 별도 확인."
+    },
+    {
+      "id": "api_878202461851b9ac",
+      "method": "POST",
+      "path": "/api/admin/operations/releases",
+      "module": "platform",
+      "capability": "operations-monitoring",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/operations/releases"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "새 운영 관리 구현. 운영 반영·수집 설정 상태는 별도 확인."
+    },
+    {
+      "id": "api_35a413f30d5ec951",
+      "method": "POST",
+      "path": "/api/admin/operations/releases/{releaseId}/checks",
+      "module": "platform",
+      "capability": "operations-monitoring",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/operations/releases"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "새 운영 관리 구현. 운영 반영·수집 설정 상태는 별도 확인."
+    },
+    {
+      "id": "api_f664dbdb427f588d",
+      "method": "POST",
+      "path": "/api/monitoring/push-receipts",
+      "module": "platform",
+      "capability": "operations-monitoring",
+      "commonizationGroup": null,
+      "authorization": "회원 본인 수신 기록",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "app"
+      ],
+      "menuIds": [
+        "app:PushReceipt"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "새 운영 관리 구현. 운영 반영·수집 설정 상태는 별도 확인."
     }
   ]
 }

@@ -2,6 +2,7 @@ import React, {useMemo} from "react";
 import {relationshipGraph} from "../pages/apiRegistryModel";
 import {summarizeClientErrors} from "../pages/apiClientErrors";
 import ApiClientErrorBadge from "./ApiClientErrorBadge";
+import {registrationLabel} from "../pages/apiRegistryUpdates";
 
 export default function ApiRelationshipMap({rows, menu, selectedApiId, onSelectModule, onSelectApi}) {
   const graph = useMemo(() => relationshipGraph(rows), [rows]);
@@ -28,7 +29,7 @@ export default function ApiRelationshipMap({rows, menu, selectedApiId, onSelectM
       </div>
       <div className="api-map-lane api-map-lane--routes">
         {graph.routes.map((row, index) => <button type="button" className={`api-map-node api-map-api ${selectedApiId === row.id ? "is-selected" : ""} api-map-error--${row.clientErrorSeverity}`} data-error-severity={row.clientErrorSeverity} key={row.id} style={{top: `${20 + index * 96}px`}} onClick={() => onSelectApi(row)} aria-label={`관계도 ${row.method} ${row.path}${row.clientErrorCount > 0 ? ` 오류 보고 ${row.clientErrorCount}건` : ""}`}>
-          <span><b className={`api-method api-method--${row.method.toLowerCase()}`}>{row.method}</b><small>상세 보기 →</small></span><code>{row.path}</code><ApiClientErrorBadge row={row} compact />
+          <span><b className={`api-method api-method--${row.method.toLowerCase()}`}>{row.method}</b><small className={row.active ? "" : "api-registration--pending"}>{registrationLabel(row)}</small></span><code>{row.path}</code><ApiClientErrorBadge row={row} compact />
         </button>)}
       </div>
     </div>
