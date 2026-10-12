@@ -2,7 +2,7 @@ import {compareClientErrors, summarizeClientErrors} from "./apiClientErrors";
 
 export const MODULE_DETAILS = {
   account: {label: "계정·인증", description: "로그인, 회원 정보와 계정 수명 주기", symbol: "01"},
-  social: {label: "친구·관계", description: "친구 요청, 관계와 공개 범위", symbol: "02"},
+  social: {label: "친구·대화", description: "친구 관계, 대화·공유와 참여 권한", symbol: "02"},
   content: {label: "콘텐츠", description: "사진·영상 등록과 콘텐츠 조회", symbol: "03"},
   engagement: {label: "좋아요·댓글", description: "콘텐츠에 대한 반응과 참여", symbol: "04"},
   places: {label: "장소·방문", description: "장소 정보와 함께한 방문", symbol: "05"},
@@ -72,14 +72,15 @@ export function summarizeModules(rows) {
   })).sort((a, b) => Object.keys(MODULE_DETAILS).indexOf(a.id) - Object.keys(MODULE_DETAILS).indexOf(b.id));
 }
 
-export function filterRegistryRows(rows, {query = "", module = "", method = "", surface = "", menuId = "", group = "", errorsOnly = false} = {}) {
+export function filterRegistryRows(rows, {query = "", module = "", method = "", surface = "", menuId = "", group = "", updateId = "", errorsOnly = false} = {}) {
   const needle = query.trim().toLowerCase();
   return rows.filter(row => (!module || row.module === module) && (!method || row.method === method)
     && (!errorsOnly || row.clientErrorAvailable !== true || row.clientErrorCount > 0)
     && (!surface || (row.surfaces || []).includes(surface))
     && (!group || row.commonizationGroup === group)
+    && (!updateId || (row.updateIds || []).includes(updateId))
     && (!menuId || (menuId === UNLINKED_MENU ? !(row.menuIds || []).length : (row.menuIds || []).includes(menuId)))
-    && `${row.method} ${row.path} ${row.module} ${moduleDetails(row.module).label} ${row.capability || ""} ${(row.menuLabels || []).join(" ")}`.toLowerCase().includes(needle));
+    && `${row.method} ${row.path} ${row.module} ${moduleDetails(row.module).label} ${row.capability || ""} ${(row.menuLabels || []).join(" ")} ${(row.updateLabels || []).join(" ")}`.toLowerCase().includes(needle));
 }
 
 export function relationshipGraph(rows, limit = 8) {

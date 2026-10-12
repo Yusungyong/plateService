@@ -1,6 +1,6 @@
 import {act, fireEvent, render, screen, waitFor, within} from "@testing-library/react";
 import AdminApiRegistry from "./AdminApiRegistry";
-import {getApiRegistry} from "../api/apiRegistryApi";
+import {getApiRegistry, registryRows} from "../api/apiRegistryApi";
 jest.mock("../api/apiRegistryApi", () => ({...jest.requireActual("../api/apiRegistryApi"), getApiRegistry: jest.fn()}));
 const stamp = "2026-10-08T06:20:00Z";
 const socialError = {method: "POST", path: "/api/test/social", errorCount: 4, http4xxCount: 1, http5xxCount: 1, networkCount: 1, timeoutCount: 1, lastSeenAt: stamp,
@@ -13,7 +13,7 @@ const snapshot = {declaredBaseline: {routes: [{id: "home", method: "GET", path: 
 beforeEach(() => {jest.clearAllMocks(); getApiRegistry.mockResolvedValue(snapshot);});
 afterEach(() => {jest.useRealTimers();});
 
-test("global error action reaches failures outside the default Home menu, highlights graph/list/menu and preserves three columns", async () => {
+test("global error action reaches failures outside the default Home menu, highlights graph/list/menu and preserves compact columns and registration state", async () => {
   render(<AdminApiRegistry />);
   await screen.findByRole("button", {name: "GET /api/test/home"});
   const monitor = screen.getByRole("region", {name: "클라이언트 오류 모니터링"});
@@ -31,7 +31,7 @@ test("global error action reaches failures outside the default Home menu, highli
   expect(route.closest("tr")).toHaveAttribute("data-error-severity", "critical");
   expect(screen.getByRole("button", {name: "관계도 POST /api/test/social 오류 보고 4건"})).toHaveAttribute("data-error-severity", "critical");
   expect(screen.getByRole("button", {name: "메뉴 친구 요청 테스트 1개 API 오류 보고 4건"})).toHaveAttribute("data-error-severity", "critical");
-  expect(screen.getAllByRole("columnheader")).toHaveLength(3);
+  expect(screen.getAllByRole("columnheader")).toHaveLength(4);
   fireEvent.click(route);
   const detail = screen.getByRole("region", {name: "API 오류 보고 상세"});
   expect(within(detail).getByText("HTTP 503")).toBeInTheDocument();
@@ -46,7 +46,7 @@ test("unavailable or malformed monitoring remains visible and never hides APIs a
   expect(screen.getByText("오류 집계를 확인할 수 없습니다. 보고 0건으로 판단하지 마세요.")).toBeInTheDocument();
   expect(screen.getByRole("checkbox", {name: "오류가 보고된 API만"})).toBeDisabled();
   fireEvent.click(await screen.findByRole("button", {name: "필터 초기화"}));
-  expect(screen.getByText("2개 표시")).toBeInTheDocument();
+  expect(screen.getByText(`${registryRows(snapshot).length}개 표시`)).toBeInTheDocument();
 });
 test("HTTP 4xx reports have an accessible request-error label and amber severity", async () => {
   getApiRegistry.mockResolvedValue({...snapshot, clientErrors: {...snapshot.clientErrors, rows: [{...socialError, errorCount: 1, http4xxCount: 1, http5xxCount: 0, networkCount: 0, timeoutCount: 0, recent: socialError.recent.slice(0, 1)}]}});

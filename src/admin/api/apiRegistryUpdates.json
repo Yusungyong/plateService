@@ -1,0 +1,290 @@
+{
+  "reviewedAt": "2026-10-12",
+  "serverSourceCommit": "44bf85701ec16e8fbb299269a30cc2330c97cf62",
+  "serverPullRequest": "https://github.com/Yusungyong/plateAppServer/pull/149",
+  "pendingServerIssue": "https://github.com/Yusungyong/plateAppServer/issues/147",
+  "features": [
+    {
+      "id": "home-companion",
+      "label": "홈에서 대화·약속 바로가기",
+      "detail": "홈에서 읽지 않은 대화와 확정된 약속을 확인하고 대화방으로 이동합니다.",
+      "routeKeys": [
+        "GET /api/chat/home",
+        "GET /api/chat/capabilities",
+        "GET /api/chat/summary"
+      ],
+      "source": "src/screens/home/components/HomeChatCompanion.tsx",
+      "stage": "server_pr",
+      "note": "서버 PR #149 및 최신 앱 반영이 필요합니다. 서버 등록 여부와 기능 활성화 여부는 별개입니다."
+    },
+    {
+      "id": "home-share",
+      "label": "친구에게 콘텐츠·식당 후보 보내기",
+      "detail": "사진·영상·장소를 친구에게 공유하고, 2~5개 후보는 한 묶음으로 보냅니다.",
+      "routeKeys": [
+        "POST /api/chat/rooms",
+        "GET /api/chat/rooms",
+        "GET /api/chat/references/{type}/{id}",
+        "POST /api/chat/rooms/{roomId}/shared-messages",
+        "POST /api/chat/rooms/{roomId}/candidate-bundles"
+      ],
+      "source": "src/screens/chat/HomeChatShareScreen.tsx",
+      "stage": "server_pr",
+      "note": "제철 추천도 같은 공유 화면과 API를 재사용합니다. 신규 계약은 서버 PR #149에 있습니다."
+    },
+    {
+      "id": "nearby-candidates",
+      "label": "주변 식당에서 친구와 비교하기",
+      "detail": "주변 장소 정보를 공유 후보로 가져와 대화에서 식당을 비교합니다.",
+      "routeKeys": [
+        "GET /api/chat/places/{placeId}",
+        "POST /api/chat/rooms/{roomId}/candidate-bundles"
+      ],
+      "source": "src/screens/home/components/NearbyHomeExperience.tsx",
+      "stage": "server_pr",
+      "note": "최신 앱 설치본에서 확인합니다. 기능 노출은 capabilities와 현재 사용자 권한을 따릅니다."
+    },
+    {
+      "id": "shared-map",
+      "label": "친구와 갈 곳 지도",
+      "detail": "대화방의 공유 장소를 모아 지도에서 살펴봅니다. 기존 대화·공유 조회를 재사용합니다.",
+      "routeKeys": [
+        "GET /api/chat/rooms",
+        "GET /api/chat/rooms/{roomId}/shared"
+      ],
+      "source": "src/screens/chat/HomeChatMapScreen.tsx",
+      "stage": "app_revision",
+      "note": "최신 앱 설치본에서 확인합니다. 기능 노출은 capabilities와 현재 사용자 권한을 따릅니다."
+    },
+    {
+      "id": "shared-plans",
+      "label": "콘텐츠 공유·식당 비교·약속",
+      "detail": "공유 콘텐츠와 약속을 조회하고 좋아요·댓글·약속 상태를 함께 확인합니다.",
+      "routeKeys": [
+        "GET /api/chat/rooms/{roomId}/shared",
+        "PUT /api/chat/rooms/{roomId}/messages/{sequence}/action",
+        "POST /api/chat/rooms/{roomId}/shared-messages"
+      ],
+      "source": "src/screens/chat/ChatBoardScreen.tsx",
+      "stage": "app_revision",
+      "note": "기존 공유함을 사용하는 기본 비교는 지원합니다. 확장 보드·상호작용 계약은 별도 구현 대기로 표시합니다."
+    },
+    {
+      "id": "watch",
+      "label": "함께 보기·입력 상태",
+      "detail": "1:1 대화에서 공유 콘텐츠를 함께 보고 상대의 입력 상태를 확인합니다.",
+      "routeKeys": [
+        "GET /api/chat/live/DIRECT/{roomId}/watch",
+        "POST /api/chat/live/DIRECT/{roomId}/watch",
+        "GET /api/chat/live/DIRECT/{roomId}/typing",
+        "POST /api/chat/live/DIRECT/{roomId}/typing"
+      ],
+      "source": "src/api/chatLiveApi.ts",
+      "stage": "server_pr",
+      "note": "DIRECT 계약은 서버 PR #149에 있습니다. GROUP 함께 보기 서버 구현은 완료되지 않았습니다."
+    },
+    {
+      "id": "groups",
+      "label": "그룹 대화·초대 수락",
+      "detail": "초대받은 사람이 수락한 뒤 참여하는 그룹 대화 UI와 클라이언트 계약입니다.",
+      "routeKeys": [
+        "GET /api/chat/groups",
+        "POST /api/chat/groups",
+        "GET /api/chat/groups/{id}",
+        "POST /api/chat/groups/{id}/membership",
+        "POST /api/chat/groups/{id}/invite",
+        "PUT /api/chat/groups/{id}/read",
+        "PUT /api/chat/groups/{id}/preferences",
+        "GET /api/chat/groups/{id}/messages",
+        "POST /api/chat/groups/{id}/messages",
+        "PUT /api/chat/groups/{id}/messages/{seq}/interaction"
+      ],
+      "source": "src/api/chatGroupApi.ts",
+      "stage": "backend_pending",
+      "note": "서버 Issue #147 구현 대기입니다. 클라이언트 코드 존재를 운영 지원으로 표시하지 않습니다."
+    },
+    {
+      "id": "media",
+      "label": "사진·음성 메시지",
+      "detail": "대화방에서 사진·음성을 보내고 권한을 확인한 뒤 미디어를 표시하는 클라이언트 계약입니다.",
+      "routeKeys": [
+        "POST /api/chat/media",
+        "GET /api/chat/media/{id}",
+        "DELETE /api/chat/media/{id}",
+        "POST /api/chat/rooms/{id}/media-messages",
+        "POST /api/chat/groups/{id}/media-messages"
+      ],
+      "source": "src/api/chatMediaApi.ts",
+      "stage": "backend_pending",
+      "note": "서버 Issue #147 구현 대기입니다. capabilities가 지원할 때만 노출합니다."
+    },
+    {
+      "id": "smart-board",
+      "label": "반응·북마크·확장 보드",
+      "detail": "메시지 반응·편집과 확장된 식당 보드를 위한 클라이언트 계약입니다.",
+      "routeKeys": [
+        "GET /api/chat/rooms/{roomId}/board",
+        "PUT /api/chat/rooms/{roomId}/messages/{sequence}/interaction"
+      ],
+      "source": "src/api/chatSmartApi.ts",
+      "stage": "backend_pending",
+      "note": "서버 Issue #147 구현 대기입니다. 현재 기본 보드는 기존 공유 조회로 대체합니다."
+    },
+    {
+      "id": "mentions",
+      "label": "댓글에서 사용자 언급",
+      "detail": "댓글 작성 시 사용자 검색과 언급을 지원합니다. 댓글·답글의 기존 계약을 재사용합니다.",
+      "routeKeys": [
+        "DELETE /api/image-feeds/comments/{commentId}",
+        "PUT /api/image-feeds/comments/{commentId}",
+        "GET /api/image-feeds/comments/{commentId}/replies",
+        "POST /api/image-feeds/comments/{commentId}/replies",
+        "DELETE /api/image-feeds/replies/{replyId}",
+        "PUT /api/image-feeds/replies/{replyId}",
+        "GET /api/image-feeds/{feedId}/comments",
+        "POST /api/image-feeds/{feedId}/comments",
+        "DELETE /api/comments/{commentId}",
+        "PUT /api/comments/{commentId}",
+        "GET /api/comments/{commentId}/replies",
+        "POST /api/comments/{commentId}/replies",
+        "DELETE /api/replies/{replyId}",
+        "PUT /api/replies/{replyId}",
+        "GET /api/stores/{videoStoreId}/comments",
+        "POST /api/stores/{videoStoreId}/comments",
+        "GET /api/friends/search"
+      ],
+      "source": "src/screens/shared/useCommentMentionComposer.ts",
+      "stage": "app_revision",
+      "note": "최신 앱 설치본에서 확인합니다. 기능 노출은 capabilities와 현재 사용자 권한을 따릅니다."
+    }
+  ],
+  "optimizations": [
+    {
+      "id": "peer-photo",
+      "label": "프로필 이미지 캐시·썸네일",
+      "detail": "대화 응답의 썸네일을 우선 사용하고, 누락 시 공개 프로필 조회를 합칩니다. 계정별 캐시는 100명·60초, 동시 요청은 최대 4개, 실패 재시도는 5초 간격입니다.",
+      "routeKeys": [
+        "GET /api/chat/rooms",
+        "GET /api/chat/rooms/{roomId}",
+        "GET /api/users/{username}/profile-detail"
+      ],
+      "source": "src/features/chat/chatPeerPhoto.ts",
+      "note": "서버 V47·192×192 썸네일 전환 완료 기록이 있습니다. 앱 측 변경은 최신 설치본이 필요하며 체감 지연은 실기기에서 확인합니다."
+    },
+    {
+      "id": "chat-resources",
+      "label": "대화 조회 중복·메모리 제한",
+      "detail": "공유 카드·사용자 조회를 합치고 캐시와 대기열을 제한합니다. 계정 변경 시 이전 계정의 캐시와 대기 작업을 무효화합니다.",
+      "routeKeys": [
+        "GET /api/chat/rooms/{roomId}",
+        "GET /api/chat/rooms/{roomId}/messages",
+        "GET /api/chat/rooms/{roomId}/shared"
+      ],
+      "source": "src/features/chat/chatResourceCache.ts",
+      "note": "소스 검토 기준입니다. 실제 속도 개선 폭은 실기기·운영 측정이 필요합니다."
+    },
+    {
+      "id": "read-notifications",
+      "label": "읽은 채팅 알림 정리·일반 알림 분리",
+      "detail": "대화 읽음 위치를 반영하고 일반 알림과 채팅 알림을 카테고리별로 관리합니다. 카테고리 요청은 새 API, 목록 분류는 기존 API의 파라미터입니다.",
+      "routeKeys": [
+        "PUT /api/chat/rooms/{roomId}/read",
+        "GET /api/notifications",
+        "GET /api/notifications/unread-count",
+        "PUT /api/notifications/categories/{category}/read-all",
+        "DELETE /api/notifications/categories/{category}"
+      ],
+      "source": "src/features/chat/useChatReadReceipts.ts",
+      "note": "소스 검토 기준입니다. 실제 속도 개선 폭은 실기기·운영 측정이 필요합니다."
+    },
+    {
+      "id": "likes",
+      "label": "좋아요 명시 상태·공통 계약",
+      "detail": "사진 좋아요를 토글 대신 PUT·DELETE의 명시 상태로 전송합니다. 여러 화면이 같은 계약을 재사용합니다.",
+      "routeKeys": [
+        "PUT /api/v3/contents/{kind}/{contentId}/likes/me",
+        "DELETE /api/v3/contents/{kind}/{contentId}/likes/me"
+      ],
+      "source": "src/api/contentLikesApi.ts",
+      "note": "서버 알림 쿨다운 검토·검증 기록은 PR #128에 있습니다. 이 관리 화면은 푸시 전달 성공을 검증하는 화면이 아닙니다."
+    },
+    {
+      "id": "comments",
+      "label": "댓글·답글 공통 처리",
+      "detail": "사진·영상 댓글 UI와 전송 작업을 공통 컴포넌트로 모았습니다. 사용자 언급도 같은 작성 흐름을 사용합니다.",
+      "routeKeys": [
+        "DELETE /api/image-feeds/comments/{commentId}",
+        "PUT /api/image-feeds/comments/{commentId}",
+        "GET /api/image-feeds/comments/{commentId}/replies",
+        "POST /api/image-feeds/comments/{commentId}/replies",
+        "DELETE /api/image-feeds/replies/{replyId}",
+        "PUT /api/image-feeds/replies/{replyId}",
+        "GET /api/image-feeds/{feedId}/comments",
+        "POST /api/image-feeds/{feedId}/comments",
+        "DELETE /api/comments/{commentId}",
+        "PUT /api/comments/{commentId}",
+        "GET /api/comments/{commentId}/replies",
+        "POST /api/comments/{commentId}/replies",
+        "DELETE /api/replies/{replyId}",
+        "PUT /api/replies/{replyId}",
+        "GET /api/stores/{videoStoreId}/comments",
+        "POST /api/stores/{videoStoreId}/comments"
+      ],
+      "source": "src/components/ContentCommentModal.tsx",
+      "note": "소스 검토 기준입니다. 실제 속도 개선 폭은 실기기·운영 측정이 필요합니다."
+    },
+    {
+      "id": "home-load",
+      "label": "홈 갱신·후보 묶음 전송 제한",
+      "detail": "기존 알림 이벤트로 홈을 갱신하고 중복 요청을 제한합니다. 식당 후보 2~5개는 하나의 트랜잭션·푸시로 전송합니다.",
+      "routeKeys": [
+        "GET /api/chat/home",
+        "POST /api/chat/rooms/{roomId}/candidate-bundles"
+      ],
+      "source": "src/screens/home/components/HomeChatCompanion.tsx",
+      "note": "서버 PR #149 반영 대기입니다. 추가 홈 전용 WebSocket은 만들지 않습니다."
+    },
+    {
+      "id": "db-queries",
+      "label": "DB 인덱스·조회 쿼리 개선",
+      "detail": "V45 인덱스 31개 적용 및 검증 기록이 있습니다. 대시보드의 93일 추세 조회를 최대 279 SQL에서 3 SQL로 묶고, 작성자 통계·검색 조회를 정리했습니다.",
+      "routeKeys": [
+        "GET /api/admin/dashboard/activity-trends",
+        "GET /api/admin/dashboard/region-distribution",
+        "GET /api/admin/dashboard/summary",
+        "GET /api/search",
+        "GET /api/users/me/stats",
+        "GET /api/users/{username}/stats"
+      ],
+      "source": "output/db-performance-implementation-2026-10-10/README.txt",
+      "note": "운영 적용 기록: 서버 PR #122 · V45. 동일한 API 계약을 유지합니다. 실제 운영 응답시간·p95 개선 폭은 측정하지 않았습니다."
+    },
+    {
+      "id": "source-common",
+      "label": "앱·서버·웹 공통 소스 정리",
+      "detail": "앱의 사진·영상 댓글 어댑터와 좋아요 전송을 공통화했습니다. 서버의 미사용 소스 정리와 웹 테스트 정리는 별도 PR의 검토 항목입니다.",
+      "routeKeys": [
+        "GET /api/admin/api-registry",
+        "PUT /api/v3/contents/{kind}/{contentId}/likes/me",
+        "DELETE /api/image-feeds/comments/{commentId}",
+        "PUT /api/image-feeds/comments/{commentId}",
+        "GET /api/image-feeds/comments/{commentId}/replies",
+        "POST /api/image-feeds/comments/{commentId}/replies",
+        "DELETE /api/image-feeds/replies/{replyId}",
+        "PUT /api/image-feeds/replies/{replyId}",
+        "GET /api/image-feeds/{feedId}/comments",
+        "POST /api/image-feeds/{feedId}/comments",
+        "DELETE /api/comments/{commentId}",
+        "PUT /api/comments/{commentId}",
+        "GET /api/comments/{commentId}/replies",
+        "POST /api/comments/{commentId}/replies",
+        "DELETE /api/replies/{replyId}",
+        "PUT /api/replies/{replyId}",
+        "GET /api/stores/{videoStoreId}/comments",
+        "POST /api/stores/{videoStoreId}/comments"
+      ],
+      "source": "docs/code-optimization-2026-10-11.md",
+      "note": "앱 코드는 로컬 반영됐습니다. 서버 PR #134와 웹 PR #37은 이번 작업에 포함하거나 병합하지 않았습니다. API 등록 여부로 해당 PR의 반영 여부를 판단할 수 없습니다."
+    }
+  ]
+}
