@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import MemberActions from "../admin/components/MemberActions";
 import PageLayout from "../components/PageLayout";
 import {
   fetchMemberMonitoringLoginRisks,
@@ -34,12 +36,14 @@ function normalizeItemsResponse(response) {
 }
 
 function formatNumber(value) {
-  const numeric = Number(value || 0);
+  if (value === undefined || value === null) return "확인 불가";
+  const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric.toLocaleString("ko-KR") : "-";
 }
 
 function formatPercent(value) {
-  const numeric = Number(value || 0);
+  if (value === undefined || value === null) return "확인 불가";
+  const numeric = Number(value);
   return Number.isFinite(numeric) ? `${numeric.toLocaleString("ko-KR")}%` : "-";
 }
 
@@ -87,9 +91,9 @@ function buildKpiCards(summary) {
       note: "오늘 로그인 시도 대비 실패 비율",
     },
     {
-      label: "권한 변경 대기",
+      label: "최근 24시간 권한 변경",
       value: formatNumber(summary.pendingRoleChanges),
-      note: "운영 확인이 필요한 변경 건수",
+      note: "변경 이력 수 · 승인 대기 건수가 아닙니다.",
     },
     {
       label: "위험 회원",
@@ -108,6 +112,8 @@ function MemberMonitoring() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const [refresh, setRefresh] = useState(0);
+  const [failures, setFailures] = useState([]);
   const profileChangesPageSize = 5;
 
   useEffect(() => {
@@ -118,22 +124,15 @@ function MemberMonitoring() {
       setErrorMessage("");
 
       try {
-        const [summaryResponse, loginRisksResponse, profileChangesResponse, riskUsersResponse] =
-          await Promise.all([
-            fetchMemberMonitoringSummary(),
-            fetchMemberMonitoringLoginRisks(),
-            fetchMemberMonitoringProfileChanges(),
-            fetchMemberMonitoringRiskUsers(),
-          ]);
-
-        if (!isMounted) {
-          return;
-        }
-
-        setSummary(unwrapPayload(summaryResponse) || {});
-        setLoginRisks(normalizeItemsResponse(loginRisksResponse));
-        setProfileChanges(normalizeItemsResponse(profileChangesResponse));
-        setRiskUsers(normalizeItemsResponse(riskUsersResponse));
+        const results = await Promise.allSettled([
+          fetchMemberMonitoringSummary(), fetchMemberMonitoringLoginRisks(),
+          fetchMemberMonitoringProfileChanges(), fetchMemberMonitoringRiskUsers(),
+        ]);
+        if (!isMounted) return;
+        const names = ["회원 지표", "로그인 이상 징후", "변경 이력", "위험 계정"];
+        setFailures(results.flatMap((r,i)=>r.status==="rejected"?[names[i]]:[]));
+        setSummary(results[0].status==="fulfilled" ? unwrapPayload(results[0].value) : {});
+        [setLoginRisks,setProfileChanges,setRiskUsers].forEach((setter,i)=>setter(results[i+1].status==="fulfilled"?normalizeItemsResponse(results[i+1].value):[]));
         setProfileChangesPage(1);
       } catch (error) {
         if (!isMounted) {
@@ -153,7 +152,7 @@ function MemberMonitoring() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [refresh]);
 
   const kpiCards = useMemo(() => buildKpiCards(summary), [summary]);
   const totalProfileChangesPages = Math.max(
@@ -171,6 +170,9 @@ function MemberMonitoring() {
       description="가입, 로그인, 권한 변경, 신고·차단 위험 신호를 한 화면에서 확인하는 운영자용 대시보드입니다."
     >
       <div className="stack-layout">
+        <div className="admin-work-actions"><button type="button" className="admin-button admin-button--secondary" disabled={isLoading} onClick={()=>setRefresh(n=>n+1)}>모니터링 새로고침</button></div>
+        <MemberActions />
+        {failures.length>0&&<p role="alert">조회 실패: {failures.join(" · ")}. 새로고침으로 다시 확인해 주세요.</p>}
         {errorMessage ? <div className="api-status api-status--error">{errorMessage}</div> : null}
 
         <section className="metric-grid" aria-label="회원 핵심 지표">
@@ -202,7 +204,7 @@ function MemberMonitoring() {
                 {isLoading ? (
                   <div className="board-empty">회원 모니터링 데이터를 불러오는 중입니다.</div>
                 ) : loginRisks.length === 0 ? (
-                  <div className="board-empty">현재 확인된 로그인 이상 징후가 없습니다.</div>
+                  <div className="board-empty">{failures.includes("로그인 이상 징후") ? "로그인 이상 징후 조회 실패" : "현재 확인된 로그인 이상 징후가 없습니다."}</div>
                 ) : (
                   loginRisks.map((item) => (
                     <div
@@ -210,7 +212,7 @@ function MemberMonitoring() {
                       className="monitoring-table__row"
                       role="row"
                     >
-                      <strong>{item.username || "-"}</strong>
+                      {item.username && !item.username.includes(",") ? <Link to={"/admin/member-monitoring?username="+encodeURIComponent(item.username)}>{item.username} 확인 →</Link> : <strong>{item.username || "-"}</strong>}
                       <span>{item.riskLabel || item.issue || item.riskType || "-"}</span>
                       <span>
                         {item.detail ||
@@ -252,7 +254,7 @@ function MemberMonitoring() {
               {isLoading ? (
                 <div className="board-empty">변경 이력을 불러오는 중입니다.</div>
               ) : profileChanges.length === 0 ? (
-                <div className="board-empty">최근 변경 이력이 없습니다.</div>
+                <div className="board-empty">{failures.includes("변경 이력") ? "변경 이력 조회 실패" : "최근 변경 이력이 없습니다."}</div>
               ) : (
                 <>
                   {pagedProfileChanges.map((item) => (
@@ -261,11 +263,11 @@ function MemberMonitoring() {
                       className="monitoring-list__item"
                     >
                       <div>
-                        <strong>{item.username || "-"}</strong>
+                        {item.username && !item.username.includes(",") ? <Link to={"/admin/member-monitoring?username="+encodeURIComponent(item.username)}>{item.username} 확인 →</Link> : <strong>{item.username || "-"}</strong>}
                         <p>{item.changedField || item.changeType || item.change || "-"}</p>
                       </div>
                       <div className="monitoring-list__meta">
-                        <span>{item.actor || item.actorUsername || item.actorName || "system"}</span>
+                        <span>{item.actor === "system" ? "수행자 미수집" : item.actor || item.actorUsername || item.actorName || "수행자 미수집"}</span>
                         <span>{formatDateTime(item.createdAt || item.at)}</span>
                       </div>
                     </article>
@@ -311,12 +313,12 @@ function MemberMonitoring() {
               {isLoading ? (
                 <div className="board-empty">위험 계정 목록을 불러오는 중입니다.</div>
               ) : riskUsers.length === 0 ? (
-                <div className="board-empty">현재 표시할 위험 계정이 없습니다.</div>
+                <div className="board-empty">{failures.includes("위험 계정") ? "위험 계정 조회 실패" : "현재 표시할 위험 계정이 없습니다."}</div>
               ) : (
                 riskUsers.map((item) => (
                   <article key={item.username} className="monitoring-list__item">
                     <div>
-                      <strong>{item.username || "-"}</strong>
+                      {item.username && !item.username.includes(",") ? <Link to={"/admin/member-monitoring?username="+encodeURIComponent(item.username)}>{item.username} 확인 →</Link> : <strong>{item.username || "-"}</strong>}
                       <p>
                         신고 {formatNumber(item.reportCount)}건 / 차단 {formatNumber(item.blockedCount)}
                         건

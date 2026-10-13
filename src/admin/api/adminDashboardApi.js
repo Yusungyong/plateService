@@ -16,7 +16,7 @@ const METRIC_PRESENTATION = {
   regionalPosts: { tone: "neutral", defaultNote: "조회 기간" },
 };
 
-export async function getDashboardSummary(params = {}) {
+export async function getDashboardSummary(params = {}, options = {}) {
   if (shouldUseAdminMocks()) {
     if (params.scenario === "error") {
       return mockRequest(null, {
@@ -38,15 +38,15 @@ export async function getDashboardSummary(params = {}) {
 
   const [summaryResponse, trendsResponse, regionsResponse, activitiesResponse] =
     await Promise.all([
-      apiClient.get("/api/admin/dashboard/summary", { query: dateQuery }),
+      apiClient.get("/api/admin/dashboard/summary", { ...options, query: dateQuery }),
       apiClient.get("/api/admin/dashboard/activity-trends", {
-        query: { ...dateQuery, interval: "day" },
+        ...options, query: { ...dateQuery, interval: "day" },
       }),
       apiClient.get("/api/admin/dashboard/region-distribution", {
-        query: dateQuery,
+        ...options, query: dateQuery,
       }),
       apiClient.get("/api/admin/activities", {
-        query: { page: 0, size: 20, sort: "occurredAt,desc" },
+        ...options, query: { page: params.activityPage || 0, size: 20, sort: "occurredAt,desc" },
       }),
     ]);
 
@@ -65,6 +65,7 @@ export function normalizeDashboardData({
   activities = {},
 } = {}) {
   return {
+    activitiesHasNext: !!activities.hasNext,
     metrics: (summary.metrics || []).map((metric) => {
       const presentation = METRIC_PRESENTATION[metric.key] || {
         tone: "neutral",
@@ -74,7 +75,7 @@ export function normalizeDashboardData({
       return {
         key: metric.key,
         label: metric.label,
-        value: metric.value,
+        value: metric.comparison === "not_available" ? "미집계" : metric.value,
         change: metric.changeRate,
         note: comparisonLabel(metric.comparison, presentation.defaultNote),
         tone: presentation.tone,
@@ -100,7 +101,7 @@ export function normalizeDashboardData({
         [item.resourceType, item.resourceId].filter(Boolean).join(" #") ||
         "운영 기록",
       action: item.actionLabel || item.action || "관리자 작업",
-      operator: item.operatorName || "미배정",
+      operator: item.operatorName || (item.operatorId ? `담당자 #${item.operatorId}` : "수행자 미확인"),
       status: item.status || actionStatus(item.action),
     })),
   };

@@ -1,4 +1,5 @@
 import React from "react";
+import useDialogFocus from "./useDialogFocus";
 
 function ConfirmDialog({
   isOpen,
@@ -9,13 +10,20 @@ function ConfirmDialog({
   onCancel,
   onConfirm,
 }) {
+  const dialogRef = useDialogFocus(isOpen, onCancel, isSubmitting);
   if (!isOpen) {
     return null;
   }
 
   return (
     <div className="admin-dialog-layer">
-      <div className="admin-dialog" role="dialog" aria-modal="true" aria-label={title}>
+      <div
+        ref={dialogRef}
+        className="admin-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
         <header>
           <h2>{title}</h2>
           <p>{description}</p>
@@ -24,7 +32,12 @@ function ConfirmDialog({
           <button type="button" onClick={onCancel} disabled={isSubmitting}>
             취소
           </button>
-          <button type="button" className="admin-button admin-button--primary" onClick={onConfirm} disabled={isSubmitting}>
+          <button
+            type="button"
+            className="admin-button admin-button--primary"
+            onClick={onConfirm}
+            disabled={isSubmitting}
+          >
             {isSubmitting ? "처리 중" : confirmLabel}
           </button>
         </div>

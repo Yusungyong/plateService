@@ -5,6 +5,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { adminNavigationItems } from "../../config/routes";
 import { getPrimaryAdminRole, userCanViewApiRegistry } from "../constants/adminPermissions";
 import "../styles/admin.css";
+import AdminMenuTools from "./AdminMenuTools";
 import PlateBrand from "../../components/PlateBrand";
 
 const ROLE_LABELS = {
@@ -139,7 +140,7 @@ function AdminShell({ children }) {
             </div>
           </div>
 
-          <form className="admin-global-search" onSubmit={handleGlobalSearch}>
+          {canAdmin("STORE_READ") && <form className="admin-global-search" onSubmit={handleGlobalSearch}>
             <label htmlFor="admin-global-search">승인 검색</label>
             <input
               id="admin-global-search"
@@ -149,18 +150,9 @@ function AdminShell({ children }) {
               placeholder="매장명, 대표자명, 지역 검색"
             />
             <button type="submit">검색</button>
-          </form>
+          </form>}
 
           <div className="admin-profile">
-            <button
-              type="button"
-              className="admin-notification"
-              aria-label="알림 준비 중"
-              title="알림 기능을 준비하고 있습니다."
-              disabled
-            >
-              <span aria-hidden="true">!</span>
-            </button>
             <div className="admin-profile__identity">
               <strong>{user?.displayName || user?.username || "운영자"}</strong>
               <span>{roleLabel}</span>
@@ -171,7 +163,7 @@ function AdminShell({ children }) {
           </div>
         </header>
 
-        <main className="admin-main" id="admin-main">{children}</main>
+        <main className="admin-main" id="admin-main"><AdminMenuTools />{children}</main>
       </div>
     </div>
   );

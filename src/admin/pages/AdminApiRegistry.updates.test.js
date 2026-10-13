@@ -49,7 +49,7 @@ test("JSON export includes feature evidence, optimizations and runtime registrat
   const click = jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
   try {
     fireEvent.click(screen.getByRole("button", {name: "JSON 저장"}));
-    expect(exported.updateCatalog.features).toHaveLength(10);
+    expect(exported.updateCatalog.features).toHaveLength(11);
     expect(exported.updateCatalog.optimizations).toHaveLength(8);
     expect(exported.effectiveRows.filter(row => row.active)).toHaveLength(1);
     expect(exported.updateSummary.find(item => item.id === "groups").registeredCount).toBe(0);

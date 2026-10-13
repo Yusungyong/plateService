@@ -156,6 +156,27 @@
       "source": "src/screens/shared/useCommentMentionComposer.ts",
       "stage": "app_revision",
       "note": "최신 앱 설치본에서 확인합니다. 기능 노출은 capabilities와 현재 사용자 권한을 따릅니다."
+    },
+    {
+      "id": "admin-menu-actions",
+      "label": "운영 메뉴 직접 조치",
+      "detail": "회원 검색·세션 종료, 피드 숨김·복원·추천, 메뉴별 운영 점검 기록. 실제 서버 등록 여부를 따로 확인합니다.",
+      "routeKeys": [
+        "GET /api/admin/member-monitoring/members",
+        "GET /api/admin/member-monitoring/members/{username}",
+        "POST /api/admin/member-monitoring/members/{username}/revoke-sessions",
+        "GET /api/admin/operations/reviews",
+        "POST /api/admin/operations/reviews",
+        "POST /api/admin/feeds/{id}/hide",
+        "POST /api/admin/feeds/{id}/restore",
+        "PATCH /api/admin/feeds/{id}/recommendation"
+      ],
+      "sources": [
+        "src/admin/components/AdminMenuTools.js",
+        "src/admin/components/MemberActions.js",
+        "src/admin/pages/AdminFeeds.js"
+      ],
+      "stage": "reviewed_source"
     }
   ],
   "optimizations": [

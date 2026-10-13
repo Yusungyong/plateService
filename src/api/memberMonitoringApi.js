@@ -21,3 +21,13 @@ export async function fetchMemberMonitoringRiskUsers({ limit = 20 } = {}) {
     query: { limit },
   });
 }
+
+export async function searchMonitoredMembers(keyword="",options={}) {
+ const response=await apiClient.get("/api/admin/member-monitoring/members",{...options,query:{keyword,limit:20}});return response.data;
+}
+export async function getMonitoredMember(username,options={}) {
+ const response=await apiClient.get("/api/admin/member-monitoring/members/"+encodeURIComponent(username),options);return response.data;
+}
+export async function revokeMemberSessions(username,value,options={}) {
+ const response=await apiClient.post("/api/admin/member-monitoring/members/"+encodeURIComponent(username)+"/revoke-sessions",value,options);return response.data;
+}

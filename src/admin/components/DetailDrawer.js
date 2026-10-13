@@ -1,26 +1,8 @@
-import React, { useEffect } from "react";
+import React from "react";
+import useDialogFocus from "./useDialogFocus";
 
 function DetailDrawer({ isOpen, title, description, onClose, children, footer }) {
-  useEffect(() => {
-    if (!isOpen) {
-      return undefined;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    function handleKeyDown(event) {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isOpen, onClose]);
+  const dialogRef = useDialogFocus(isOpen, onClose);
 
   if (!isOpen) {
     return null;
@@ -34,7 +16,13 @@ function DetailDrawer({ isOpen, title, description, onClose, children, footer })
         aria-label="상세 패널 닫기"
         onClick={onClose}
       />
-      <aside className="admin-detail-drawer" role="dialog" aria-modal="true" aria-label={title}>
+      <aside
+        ref={dialogRef}
+        className="admin-detail-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
         <header className="admin-detail-drawer__header">
           <div>
             <h2>{title}</h2>
