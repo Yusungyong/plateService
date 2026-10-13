@@ -2,6 +2,20 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import AdminPageHeader from "../components/AdminPageHeader";
 import { time } from "./operationsModel";
+function downloadSnapshot(snapshot) {
+  const blob = new Blob(
+    [JSON.stringify({ exportedAt: new Date().toISOString(), snapshot }, null, 2)],
+    { type: "application/json;charset=utf-8" }
+  );
+  const url = URL.createObjectURL(blob),
+    link = document.createElement("a");
+  link.href = url;
+  link.download = "plate-operations-diagnostics.json";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
 export function Flow({ stages, label }) {
   return (
     <div className="ops-flow" role="list" aria-label={label}>
@@ -38,12 +52,7 @@ export function State({ value, label }) {
     </span>
   );
 }
-export default function OperationsShared({
-  title,
-  description,
-  data,
-  children,
-}) {
+export default function OperationsShared({ title, description, data, children }) {
   const location = useLocation();
   return (
     <div className="admin-page ops">
@@ -53,6 +62,13 @@ export default function OperationsShared({
         actions={
           <div className="ops-actions">
             <span className="ops-muted">su12ng 전용</span>
+            <button
+              className="ops-button"
+              disabled={!data.snapshot || data.loading || !!data.error}
+              onClick={() => downloadSnapshot(data.snapshot)}
+            >
+              진단 파일 저장
+            </button>
             <label>
               <input
                 type="checkbox"
@@ -61,11 +77,7 @@ export default function OperationsShared({
               />{" "}
               30초 자동 갱신
             </label>
-            <button
-              className="ops-button"
-              disabled={data.loading}
-              onClick={data.load}
-            >
+            <button className="ops-button" disabled={data.loading} onClick={data.load}>
               {data.loading ? "확인 중…" : "새로고침"}
             </button>
           </div>
@@ -77,11 +89,7 @@ export default function OperationsShared({
           ["/admin/operations/incidents", "장애·알림"],
           ["/admin/operations/releases", "배포·품질"],
         ].map(([path, label]) => (
-          <Link
-            key={path}
-            to={path}
-            aria-current={location.pathname === path ? "page" : undefined}
-          >
+          <Link key={path} to={path} aria-current={location.pathname === path ? "page" : undefined}>
             {label}
           </Link>
         ))}
@@ -94,15 +102,12 @@ export default function OperationsShared({
           </button>
         </div>
       )}
-      {!data.snapshot && data.loading && (
-        <p role="status">운영 기록을 불러오는 중입니다.</p>
-      )}
+      {!data.snapshot && data.loading && <p role="status">운영 기록을 불러오는 중입니다.</p>}
       {data.snapshot && (
         <>
           <p className="ops-muted">
-            마지막 조회 {time(data.snapshot.collectedAt)} · 서버 지표는 현재
-            프로세스 누적, 앱 오류는 24 UTC 시간 버킷, 푸시는 최근 24시간
-            기준입니다.
+            마지막 조회 {time(data.snapshot.collectedAt)} · 서버 지표는 현재 프로세스 누적, 앱
+            오류는 24 UTC 시간 버킷, 푸시는 최근 24시간 기준입니다.
           </p>
           {children}
         </>

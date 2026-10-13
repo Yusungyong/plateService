@@ -6,7 +6,7 @@ function KpiCard({ label, value, change, note, tone = "primary" }) {
   return (
     <article className={`admin-kpi-card admin-kpi-card--${tone}`}>
       <span className="admin-kpi-card__label">{label}</span>
-      <strong>{Number(value || 0).toLocaleString()}</strong>
+      <strong>{typeof value === "string" ? value : Number.isFinite(Number(value)) && value !== null && value !== undefined ? Number(value).toLocaleString() : "확인 불가"}</strong>
       <div className="admin-kpi-card__meta">
         {typeof change === "number" ? (
           <span

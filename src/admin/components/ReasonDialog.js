@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 
+import useDialogFocus from "./useDialogFocus";
+
 function ReasonDialog({
   isOpen,
   title,
@@ -10,6 +12,7 @@ function ReasonDialog({
   onCancel,
   onConfirm,
 }) {
+  const dialogRef = useDialogFocus(isOpen, onCancel, isSubmitting);
   const [reason, setReason] = useState("");
   const [reasonCode, setReasonCode] = useState("");
   const [error, setError] = useState("");
@@ -46,7 +49,13 @@ function ReasonDialog({
 
   return (
     <div className="admin-dialog-layer">
-      <div className="admin-dialog" role="dialog" aria-modal="true" aria-label={title}>
+      <div
+        ref={dialogRef}
+        className="admin-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
         <header>
           <h2>{title}</h2>
           <p>{description}</p>
@@ -61,7 +70,6 @@ function ReasonDialog({
                   setReasonCode(event.target.value);
                   setError("");
                 }}
-                autoFocus
               >
                 {reasonCodeOptions.map((option) => (
                   <option value={option.value} key={option.value}>
@@ -83,7 +91,6 @@ function ReasonDialog({
               placeholder="담당자가 확인할 수 있도록 구체적으로 입력해 주세요."
               minLength={10}
               maxLength={1000}
-              autoFocus={reasonCodeOptions.length === 0}
             />
           </label>
           {error ? <p className="admin-dialog__error">{error}</p> : null}
@@ -91,7 +98,11 @@ function ReasonDialog({
             <button type="button" onClick={onCancel} disabled={isSubmitting}>
               취소
             </button>
-            <button type="submit" className="admin-button admin-button--danger" disabled={isSubmitting}>
+            <button
+              type="submit"
+              className="admin-button admin-button--danger"
+              disabled={isSubmitting}
+            >
               {isSubmitting ? "처리 중" : confirmLabel}
             </button>
           </div>

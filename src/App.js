@@ -38,7 +38,7 @@ import "./styles/readiness.css";
 function FaqEntryRoute({ Component }) {
   const { canAdmin } = useAuth();
 
-  if (canAdmin(ADMIN_PERMISSIONS.SUPPORT_MANAGE)) {
+  if (canAdmin(ADMIN_PERMISSIONS.FAQ_MANAGE)) {
     return <Navigate to="/admin/faq" replace />;
   }
 

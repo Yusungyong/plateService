@@ -63,7 +63,7 @@ test("renders the internal operator dashboard and scoped navigation", async () =
   expect(screen.getByRole("link", { name: "입점 신청 심사" })).toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "FAQ 관리" })).not.toBeInTheDocument();
   expect((await screen.findAllByText("신규 매장 신청")).length).toBeGreaterThan(0);
-  expect(screen.getByText("주간 활성 추이")).toBeInTheDocument();
+  expect(screen.getByText("기간별 활동 추이")).toBeInTheDocument();
 });
 
 test("approves a pending store from the detail drawer", async () => {

@@ -32,7 +32,7 @@ test("server parameter names, identity, contract and consumers survive additive 
 test("feature API selection, error emphasis and registration counts use the same rows", () => {
   const rows = registryRows(snapshot);
   const items = summarizeUpdates(rows);
-  expect(items.filter(item => item.kind === "feature")).toHaveLength(10);
+  expect(items.filter(item => item.kind === "feature")).toHaveLength(11);
   expect(items.filter(item => item.kind === "optimization")).toHaveLength(8);
   expect(items.find(item => item.id === "home-companion")).toMatchObject({apiCount: 3, registeredCount: 1, pendingCount: 2, clientErrorCount: 2});
   expect(items.find(item => item.id === "groups")).toMatchObject({registeredCount: 0, stage: "backend_pending"});

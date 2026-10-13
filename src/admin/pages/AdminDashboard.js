@@ -1,5 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../../auth/AuthContext";
+import { ADMIN_PERMISSIONS as P } from "../constants/adminPermissions";
+import { getDefaultDashboardRange } from "../api/adminApiUtils";
 import { getDashboardSummary } from "../api/adminDashboardApi";
 import AdminPageHeader from "../components/AdminPageHeader";
 import KpiCard from "../components/KpiCard";
@@ -7,25 +10,36 @@ import StatusBadge from "../components/StatusBadge";
 import { STORE_APPROVAL_STATUS_LABELS } from "../constants/adminStatuses";
 
 function AdminDashboard() {
+  const {canAdmin} = useAuth();
+  const [range,setRange] = useState(getDefaultDashboardRange);
+  const [applied,setApplied] = useState(getDefaultDashboardRange);
+  const [activityPage,setActivityPage] = useState(0);
+  const sequence=useRef(0), controller=useRef(null);
   const [dashboard, setDashboard] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
   const loadDashboard = useCallback(async () => {
+    controller.current?.abort();
+    const nextController=new AbortController();controller.current=nextController;
+    const id=++sequence.current;
     setIsLoading(true);
     setErrorMessage("");
 
     try {
-      setDashboard(await getDashboardSummary());
+      const next=await getDashboardSummary({...applied,activityPage},{signal:nextController.signal});
+      if(id===sequence.current&&!nextController.signal.aborted)setDashboard(next);
     } catch (error) {
-      setErrorMessage(error.message || "대시보드 데이터를 불러오지 못했습니다.");
+      if(id===sequence.current&&!nextController.signal.aborted)setErrorMessage(error.message || "대시보드 데이터를 불러오지 못했습니다.");
     } finally {
-      setIsLoading(false);
+      if(id===sequence.current&&!nextController.signal.aborted)setIsLoading(false);
     }
-  }, []);
+  }, [applied,activityPage]);
 
   useEffect(() => {
     loadDashboard();
+    const counter=sequence,request=controller;
+    return()=>{counter.current++;request.current?.abort();};
   }, [loadDashboard]);
 
   const maximumTrendValue = useMemo(() => {
@@ -47,7 +61,7 @@ function AdminDashboard() {
     [dashboard]
   );
 
-  if (isLoading) {
+  if (isLoading && !dashboard) {
     return (
       <div className="admin-page">
         <AdminPageHeader
@@ -64,7 +78,7 @@ function AdminDashboard() {
     );
   }
 
-  if (errorMessage) {
+  if (errorMessage && !dashboard) {
     return (
       <div className="admin-page">
         <AdminPageHeader title="대시보드" />
@@ -86,12 +100,15 @@ function AdminDashboard() {
         title="대시보드"
         description="매장 승인, 콘텐츠 활동, 제철 메뉴 운영 현황을 한눈에 확인합니다."
         actions={
-          <Link className="admin-button admin-button--primary" to="/admin/store-approvals">
-            승인 대기 확인
-          </Link>
+          <div className="admin-work-actions"><button type="button" disabled={isLoading} onClick={loadDashboard}>새로고침</button>{canAdmin(P.STORE_READ)&&<Link className="admin-button admin-button--primary" to="/admin/store-approvals">승인 대기 확인</Link>}</div>
         }
       />
 
+      <form className="admin-work-filter admin-date-range" onSubmit={e=>{e.preventDefault();const days=(Date.parse(range.to)-Date.parse(range.from))/86400000;if(!Number.isFinite(days)||days<0||days>=93){setErrorMessage("조회 기간은 시작일부터 최대 93일로 설정해 주세요.");return;}setActivityPage(0);setApplied({...range});}}>
+        <label>시작일<input type="date" value={range.from} onChange={e=>setRange(r=>({...r,from:e.target.value}))} required/></label><label>종료일<input type="date" value={range.to} onChange={e=>setRange(r=>({...r,to:e.target.value}))} required/></label><button type="submit" disabled={isLoading}>기간 조회</button>
+      </form>
+      {errorMessage&&<p role="alert">{errorMessage} · 아래는 이전 조회 결과입니다.</p>}
+      <p>{applied.from} ~ {applied.to} · 변경된 매장은 해당 기간에 갱신된 매장 수입니다.</p>
       <section className="admin-kpi-grid" aria-label="핵심 운영 지표">
         {dashboard.metrics.map(({ key, ...metric }) => (
           <KpiCard key={key} {...metric} />
@@ -102,11 +119,11 @@ function AdminDashboard() {
         <section className="admin-panel admin-panel--wide">
           <div className="admin-panel__header">
             <div>
-              <span>최근 7일</span>
-              <h2>주간 활성 추이</h2>
+              <span>조회 기간</span>
+              <h2>기간별 활동 추이</h2>
             </div>
             <div className="admin-chart-legend" aria-label="차트 범례">
-              <span className="admin-chart-legend__stores">활성 매장</span>
+              <span className="admin-chart-legend__stores">변경된 매장</span>
               <span className="admin-chart-legend__posts">게시물</span>
               <span className="admin-chart-legend__reactions">사용자 반응</span>
             </div>
@@ -118,7 +135,7 @@ function AdminDashboard() {
                   <span
                     className="admin-trend-chart__bar admin-trend-chart__bar--stores"
                     style={{ height: `${(item.stores / maximumTrendValue) * 100}%` }}
-                    title={`활성 매장 ${item.stores}`}
+                    title={`변경된 매장 ${item.stores}`}
                   />
                   <span
                     className="admin-trend-chart__bar admin-trend-chart__bar--posts"
@@ -140,7 +157,7 @@ function AdminDashboard() {
         <section className="admin-panel">
           <div className="admin-panel__header">
             <div>
-              <span>이번 주</span>
+              <span>조회 기간</span>
               <h2>지역별 게시물</h2>
             </div>
           </div>
@@ -168,21 +185,14 @@ function AdminDashboard() {
             <span>실시간 운영 기록</span>
             <h2>최근 활동</h2>
           </div>
-          <button
-            type="button"
-            className="admin-button admin-button--secondary"
-            disabled
-            title="전체 활동 상세 화면을 준비하고 있습니다."
-          >
-            활동 보기 준비 중
-          </button>
+          <div className="admin-work-actions"><button type="button" disabled={isLoading||activityPage===0} onClick={()=>setActivityPage(n=>n-1)}>이전 활동</button><span>{activityPage+1}페이지</span><button type="button" disabled={isLoading||!dashboard.activitiesHasNext} onClick={()=>setActivityPage(n=>n+1)}>다음 활동</button></div>
         </div>
         <div className="admin-table-scroll admin-recent-activity-table">
           <table className="admin-data-table">
             <thead>
               <tr>
                 <th>시간</th>
-                <th>매장명</th>
+                <th>대상</th>
                 <th>활동 내용</th>
                 <th>담당자</th>
                 <th>상태</th>

@@ -19,7 +19,7 @@ import BusinessApplicationDetail from "../pages/BusinessApplicationDetail";
 import BusinessApplications from "../pages/BusinessApplications";
 import BusinessSignup from "../pages/BusinessSignup";
 import AdminDashboard from "../admin/pages/AdminDashboard";
-import AdminPlaceholderPage from "../admin/pages/AdminPlaceholderPage";
+import AdminFeeds from "../admin/pages/AdminFeeds";
 import AdminStoreApprovals from "../admin/pages/AdminStoreApprovals";
 import AdminSeasonalFoods from "../admin/pages/AdminSeasonalFoods";
 import { userHasAdminPermission, userCanViewApiRegistry, ADMIN_PERMISSIONS } from "../admin/constants/adminPermissions";
@@ -69,7 +69,6 @@ export const adminNavigationItems = [
     icon: "feed",
     permission: ADMIN_PERMISSIONS.FEED_READ,
     group: "운영",
-    available: false,
   },
   {
     path: "/admin/seasonal-foods", label: "제철 음식 관리", icon: "seasonal",
@@ -79,7 +78,7 @@ export const adminNavigationItems = [
     path: "/admin/faq",
     label: "FAQ 관리",
     icon: "support",
-    permission: ADMIN_PERMISSIONS.SUPPORT_MANAGE,
+    permission: ADMIN_PERMISSIONS.FAQ_MANAGE,
     group: "고객 지원",
   },
   {
@@ -93,7 +92,7 @@ export const adminNavigationItems = [
     path: "/admin/member-monitoring",
     label: "회원 모니터링",
     icon: "member",
-    permission: ADMIN_PERMISSIONS.SUPPORT_MANAGE,
+    permission: ADMIN_PERMISSIONS.MEMBER_MONITORING_READ,
     group: "고객 지원",
   },
 ];
@@ -191,11 +190,7 @@ export const adminRoutes = [
   },
   {
     path: "/admin/feeds",
-    component: AdminPlaceholderPage,
-    props: {
-      title: "피드 관리",
-      description: "신고, 숨김, 추천 노출 흐름을 포함한 콘텐츠 검수 화면을 준비하고 있습니다.",
-    },
+    component: AdminFeeds,
     permission: ADMIN_PERMISSIONS.FEED_READ,
   },
   {
@@ -208,7 +203,7 @@ export const adminRoutes = [
     props: {
       adminMode: true,
     },
-    permission: ADMIN_PERMISSIONS.SUPPORT_MANAGE,
+    permission: ADMIN_PERMISSIONS.FAQ_MANAGE,
   },
   {
     path: "/admin/qna",
@@ -221,7 +216,7 @@ export const adminRoutes = [
   {
     path: "/admin/member-monitoring",
     component: MemberMonitoring,
-    permission: ADMIN_PERMISSIONS.SUPPORT_MANAGE,
+    permission: ADMIN_PERMISSIONS.MEMBER_MONITORING_READ,
   },
 ];
 

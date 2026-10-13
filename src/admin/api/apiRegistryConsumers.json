@@ -1,6 +1,6 @@
 {
   "analyzedAt": "2026-10-12",
-  "sourceEvidence": "Reviewed app source and server PR #149 (44bf85701ec16e8fbb299269a30cc2330c97cf62). Additive consumer links; explicit replace only for retired UI consumers. Runtime registration remains authoritative. Operations console contracts are reviewed against server Issue #152 and this web/app source; deployment is pending.",
+  "sourceEvidence": "Reviewed app source and server PR #149 (44bf85701ec16e8fbb299269a30cc2330c97cf62). Additive consumer links; explicit replace only for retired UI consumers. Runtime registration remains authoritative. Operations console server PR #153 and web PR #38 are deployed (2026-10-13). Admin actions server PR #155/#157/#159 deployed and verified (2026-10-13, main 2a62453731c20aa47a4f81a23d9517ad7941ba1c).",
   "appSourceHashes": {
     "docs/code-optimization-2026-10-11.md": "fcc8f29ba122b98c85004691ba22b1e95314a5848c4309ea42e7b6c43509f44c",
     "output/db-performance-implementation-2026-10-10/README.txt": "dc63c206cd37fa413c45e8137742a3c30d8c75e6fc86816ba45873eb882c10ea",
@@ -385,6 +385,14 @@
       ],
       "missingCalls": [],
       "apiCount": 1
+    },
+    {
+      "id": "admin:operations-reviews",
+      "label": "운영 공통 > 메뉴별 점검 기록",
+      "surface": "admin",
+      "isGrouping": true,
+      "source": "src/admin/components/AdminMenuTools.js",
+      "sourceLine": 1
     }
   ],
   "routes": [
@@ -2059,6 +2067,304 @@
         }
       ],
       "usageNote": "새 운영 관리 구현. 운영 반영·수집 설정 상태는 별도 확인."
+    },
+    {
+      "id": "api_8de36d5b7a1ffb15",
+      "method": "GET",
+      "path": "/api/admin/member-monitoring/members",
+      "module": "analytics",
+      "capability": "member-management",
+      "commonizationGroup": null,
+      "authorization": "회원 모니터링 / MEMBER_MONITORING_READ",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/member-monitoring"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/components/MemberActions.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_d5f0dbceb765a2ba",
+      "method": "GET",
+      "path": "/api/admin/member-monitoring/members/{username}",
+      "module": "analytics",
+      "capability": "member-management",
+      "commonizationGroup": null,
+      "authorization": "회원 모니터링 / MEMBER_MONITORING_READ",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/member-monitoring"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/components/MemberActions.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_e9a0e77f16538ffd",
+      "method": "POST",
+      "path": "/api/admin/member-monitoring/members/{username}/revoke-sessions",
+      "module": "analytics",
+      "capability": "member-management",
+      "commonizationGroup": null,
+      "authorization": "MEMBER_MONITORING_READ + ADMIN_ACCOUNT_MANAGE, 일반 계정만",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/member-monitoring"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/components/MemberActions.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_0aaa9b33bfbf6e0a",
+      "method": "GET",
+      "path": "/api/admin/operations/reviews",
+      "module": "platform",
+      "capability": "operations-monitoring",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:operations-reviews"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/components/AdminMenuTools.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_5e57389e779649b5",
+      "method": "POST",
+      "path": "/api/admin/operations/reviews",
+      "module": "platform",
+      "capability": "operations-monitoring",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:operations-reviews"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/components/AdminMenuTools.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_44557a0bec8dca91",
+      "method": "GET",
+      "path": "/api/admin/feeds",
+      "module": "content",
+      "capability": "moderation-adapter",
+      "commonizationGroup": null,
+      "authorization": "비로그인 허용(상세 권한·가용성 별도)",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/feeds"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminFeeds.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_dd8e2054d4bd2d4b",
+      "method": "GET",
+      "path": "/api/admin/feeds/{id}",
+      "module": "content",
+      "capability": "moderation-adapter",
+      "commonizationGroup": null,
+      "authorization": "비로그인 허용(상세 권한·가용성 별도)",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/feeds"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminFeeds.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_70440dc1cf7b0b35",
+      "method": "POST",
+      "path": "/api/admin/feeds/{id}/hide",
+      "module": "content",
+      "capability": "moderation-adapter",
+      "commonizationGroup": null,
+      "authorization": "관리자 권한·메뉴별 세부 권한",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/feeds"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminFeeds.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_89523dfa2f5c34bd",
+      "method": "PATCH",
+      "path": "/api/admin/feeds/{id}/recommendation",
+      "module": "content",
+      "capability": "moderation-adapter",
+      "commonizationGroup": null,
+      "authorization": "관리자 권한·메뉴별 세부 권한",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/feeds"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminFeeds.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_06d5e790fcb7ca5c",
+      "method": "GET",
+      "path": "/api/admin/feeds/{id}/reports",
+      "module": "content",
+      "capability": "moderation-adapter",
+      "commonizationGroup": null,
+      "authorization": "비로그인 허용(상세 권한·가용성 별도)",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/feeds"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminFeeds.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_22f770ef1a8da0b6",
+      "method": "POST",
+      "path": "/api/admin/feeds/{id}/restore",
+      "module": "content",
+      "capability": "moderation-adapter",
+      "commonizationGroup": null,
+      "authorization": "관리자 권한·메뉴별 세부 권한",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/feeds"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminFeeds.js",
+      "sourceLine": 1
     }
-  ]
+  ],
+  "reviewNotes": "2026-10-13: operations console and admin actions server deployed; actual local/public read verification passed across30 routes, all12 review scopes and private photo preview. Web implementation and isolated write verification are linked under web#39/PR40. Runtime registration remains authoritative; native app changes and unmerged chat follow-ups retain their separate status."
 }
