@@ -115,7 +115,7 @@ export default function AdminFeeds() {
         ...(kind === "recommendation" ? { recommended: !detail.recommended } : {}),
       });
       if (mounted.current) {
-        setDetail(result);
+        setDetail((previous) => ({ ...result, previewImages: previous?.previewImages || [] }));
         setAction(null);
         setMessage("피드 조치를 저장했습니다.");
         setReload((n) => n + 1);
@@ -239,9 +239,9 @@ export default function AdminFeeds() {
             <p>
               <strong>{detail.storeName || "식당 정보 없음"}</strong> · {detail.username}
             </p>
-            {feedPreviewImages(detail.images).map((url) => (
-              <img
-                key={url}
+            {feedPreviewImages(detail.previewImages?.length ? detail.previewImages : detail.images).map((url) => (
+              <FeedPreviewImage
+                key={`${url}-${detailReload}`}
                 className="admin-feed-preview"
                 src={url}
                 alt={`피드 #${detail.feedId} 사진`}
@@ -325,4 +325,11 @@ export default function AdminFeeds() {
       />
     </div>
   );
+}
+
+function FeedPreviewImage(props) {
+  const [failed, setFailed] = useState(false);
+  return failed ? (
+    <p role="status">사진을 표시하지 못했습니다. 상세 새로고침으로 다시 확인해 주세요.</p>
+  ) : <img {...props} onError={() => setFailed(true)} />;
 }

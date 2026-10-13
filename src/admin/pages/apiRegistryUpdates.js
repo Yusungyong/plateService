@@ -36,5 +36,5 @@ export function registrationLabel(row) {
   return "현재 미등록";
 }
 
-export const updateStageLabels = {server_pr: "서버 PR #149 · 앱 반영 필요", backend_pending: "서버 Issue #147 · 구현 대기", app_revision: "최신 앱 코드 기준"};
+export const updateStageLabels = {deployed: "운영 반영", server_pr: "서버 PR #149 · 앱 반영 필요", backend_pending: "서버 Issue #147 · 구현 대기", app_revision: "최신 앱 코드 기준"};
 export {updates};

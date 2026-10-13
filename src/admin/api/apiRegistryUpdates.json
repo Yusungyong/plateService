@@ -176,7 +176,8 @@
         "src/admin/components/MemberActions.js",
         "src/admin/pages/AdminFeeds.js"
       ],
-      "stage": "reviewed_source"
+      "stage": "deployed",
+      "note": "서버 PR #155·#157·#159 운영 반영 및 로컬/외부 조회 검증 완료(2026-10-13). 저장 동작은 격리 데이터에서 검증했으며 운영 데이터의 조치는 운영자가 수행합니다. 사진 상세 미리보기는 권한 확인 후 임시 주소를 제공합니다."
     }
   ],
   "optimizations": [

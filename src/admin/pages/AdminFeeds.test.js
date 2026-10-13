@@ -15,7 +15,7 @@ jest.mock("../api/feedModerationApi", () => ({
   getAdminFeed: jest.fn(),
   getAdminFeedReports: jest.fn(),
   moderateAdminFeed: jest.fn(),
-  feedPreviewImages: () => [],
+  feedPreviewImages: jest.requireActual("../api/feedModerationApi").feedPreviewImages,
 }));
 const feed = {
   feedId: 42,
@@ -73,4 +73,19 @@ test("recommend permission is independent of moderation permission", async () =>
   fireEvent.click(await screen.findByRole("button", { name: "피드 #42 검토" }));
   await screen.findByRole("button", { name: "추천 지정" });
   expect(screen.queryByRole("button", { name: "피드 숨김" })).not.toBeInTheDocument();
+});
+test("authorized preview images stay visible after changing moderation state", async () => {
+  const url = "https://media.example/preview.jpg?temporary=fixture";
+  getAdminFeed.mockResolvedValue({ ...feed, images: "20261013/photo.jpg", previewImages: [url] });
+  mount();
+  fireEvent.click(await screen.findByRole("button", { name: "피드 #42 검토" }));
+  expect(await screen.findByRole("img", { name: "피드 #42 사진" })).toHaveAttribute("src", url);
+  fireEvent.click(screen.getByRole("button", { name: "피드 숨김" }));
+  const dialog = screen.getByRole("dialog", { name: "피드 운영 조치" });
+  fireEvent.change(within(dialog).getByLabelText("처리 사유"), { target: { value: "미리보기 확인 후 숨김 처리합니다." } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "조치 저장" }));
+  await screen.findByRole("button", { name: "피드 복원" });
+  expect(screen.getByRole("img", { name: "피드 #42 사진" })).toHaveAttribute("src", url);
+  fireEvent.error(screen.getByRole("img", { name: "피드 #42 사진" }));
+  expect(screen.getByText("사진을 표시하지 못했습니다. 상세 새로고침으로 다시 확인해 주세요.")).toBeInTheDocument();
 });

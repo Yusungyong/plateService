@@ -125,6 +125,7 @@ function MenuTools({ scope, canWrite, shortcuts, initialTarget }) {
           type="button"
           className="admin-button admin-button--secondary"
           aria-expanded={open}
+          disabled={busy}
           onClick={() => {
             if (!open) load(target.trim() || "menu");
             setOpen(!open);
