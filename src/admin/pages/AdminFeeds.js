@@ -331,5 +331,5 @@ function FeedPreviewImage(props) {
   const [failed, setFailed] = useState(false);
   return failed ? (
     <p role="status">사진을 표시하지 못했습니다. 상세 새로고침으로 다시 확인해 주세요.</p>
-  ) : <img {...props} onError={() => setFailed(true)} />;
+  ) : <img {...props} alt={props.alt} onError={() => setFailed(true)} />;
 }
