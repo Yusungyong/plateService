@@ -31,6 +31,7 @@ import Login from "./pages/Login";
 import BusinessIntro from "./pages/BusinessIntro";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
+import CampaignLanding from "./pages/CampaignLanding";
 import "./App.css";
 import "./styles/brand.css";
 import "./styles/readiness.css";
@@ -54,7 +55,7 @@ function ApplicationShell({ children }) {
   const isAdminArea =
     location.pathname === "/admin" || location.pathname.startsWith("/admin/");
 
-  if (location.pathname === "/" || isLoginPage || isLegalPage) {
+  if (location.pathname === "/" || /^\/go\//.test(location.pathname) || isLoginPage || isLegalPage) {
     return children;
   }
 
@@ -92,6 +93,7 @@ function RoutedApp() {
           <Routes>
             <Route path="*" element={<NotFound />} />
             <Route path="/" element={<Home />} />
+            <Route path="/go/:code" element={<CampaignLanding />} />
             <Route path="/login" element={<Login />} />
             {accountPublicRoutes.map(({ path, component: Component }) => (
               <Route key={path} path={path} element={<Component />} />
