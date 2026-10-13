@@ -13,6 +13,22 @@ const snapshot = {declaredBaseline: {routes: [{id: "home", method: "GET", path: 
 beforeEach(() => {jest.clearAllMocks(); getApiRegistry.mockResolvedValue(snapshot);});
 afterEach(() => {jest.useRealTimers();});
 
+test.each([false,true])("login 401 has guidance while additional server failure keeps critical severity (mixed=%s)", async mixed => {
+  const route={method:"POST",path:"/api/auth/login",module:"account",menuIds:["app:Login"],surfaces:["app"]};
+  const errors={...socialError,...route,errorCount:mixed?2:1,http4xxCount:1,http5xxCount:mixed?1:0,networkCount:0,timeoutCount:0,clients:["IOS"],recent:[{kind:"HTTP",status:401,client:"IOS",count:1,lastSeenAt:stamp},...(mixed?[{kind:"HTTP",status:500,client:"IOS",count:1,lastSeenAt:stamp}]:[])]};
+  getApiRegistry.mockResolvedValue({...snapshot,activeRoutes:[route],declaredBaseline:{routes:[{...route,id:"login"}],menus:[{id:"app:Login",label:"로그인"}]},clientErrors:{...snapshot.clientErrors,rows:[errors]}});
+  render(<AdminApiRegistry />);
+  fireEvent.click(await screen.findByRole("checkbox",{name:"오류가 보고된 API만"}));
+  const button=screen.getByRole("button",{name:"POST /api/auth/login"});
+  expect(button.closest("tr")).toHaveAttribute("data-error-severity",mixed?"critical":"warning");
+  fireEvent.click(button);
+  const detail=screen.getByRole("region",{name:"API 오류 보고 상세"});
+  expect(within(detail).getByText(mixed?"서버·연결 오류 2건":"로그인 인증 거부 1건")).toBeInTheDocument();
+  expect(within(detail).getByText("로그인 인증 거부 · HTTP 401")).toBeInTheDocument();
+  expect(within(detail).getByText(/어느 항목이 원인인지는 수집 정보만으로 확정할 수 없습니다/)).toBeInTheDocument();
+  expect(within(detail).getByText(/이후 로그인에 성공해도 기존 기록이 즉시 삭제되지는 않습니다/)).toBeInTheDocument();
+});
+
 test("global error action reaches failures outside the default Home menu, highlights graph/list/menu and preserves compact columns and registration state", async () => {
   render(<AdminApiRegistry />);
   await screen.findByRole("button", {name: "GET /api/test/home"});

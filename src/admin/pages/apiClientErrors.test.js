@@ -1,9 +1,25 @@
-import {clientErrorState, clientErrorProperties, summarizeClientErrors} from "./apiClientErrors";
+import {clientErrorState, clientErrorProperties, summarizeClientErrors, loginAuthReport} from "./apiClientErrors";
 import {buildMenuRelations, filterRegistryRows, relationshipGraph} from "./apiRegistryModel";
 
 const window = {available: true, windowHours: 24, windowStart: "2026-10-07T07:00:00Z", windowEnd: "2026-10-08T06:28:00Z"};
 const report = (overrides = {}) => ({method: "POST", path: "/api/friends", errorCount: 3, http4xxCount: 1, http5xxCount: 1, networkCount: 1, timeoutCount: 0,
   lastSeenAt: "2026-10-08T06:20:00Z", clients: ["ANDROID", "WEB"], recent: [{kind: "HTTP", status: 500, client: "WEB", count: 1, lastSeenAt: "2026-10-08T06:20:00Z"}], ...overrides});
+const loginReport = report({path:"/api/auth/login",errorCount:1,http4xxCount:1,http5xxCount:0,networkCount:0,recent:[{kind:"HTTP",status:401,client:"IOS",count:1,lastSeenAt:window.windowEnd}]});
+test("only a fully accounted login 401 report receives the specific authentication label", () => {
+  expect(loginAuthReport(loginReport)).toEqual({reportedCount:1,complete:true});
+  expect(loginAuthReport({...loginReport,path:"/api/auth/refresh"})).toBeNull();
+  expect(loginAuthReport({...loginReport,method:"GET"})).toBeNull();
+  expect(loginAuthReport({...loginReport,recent:[]})).toBeNull();
+});
+test("partial recent groups and mixed failures retain their original aggregate counts and severity", () => {
+  const partial={...loginReport,errorCount:2,http4xxCount:2};
+  expect(loginAuthReport(partial)).toEqual({reportedCount:1,complete:false});
+  const mixed={...loginReport,errorCount:2,http5xxCount:1};
+  const state=clientErrorState({clientErrors:{...window,rows:[mixed]}});
+  expect(loginAuthReport(mixed)).toEqual({reportedCount:1,complete:false});
+  expect(clientErrorProperties(state,"POST","/api/auth/login")).toMatchObject({clientErrorCount:2,clientErrorSeverity:"critical"});
+  expect(loginAuthReport({...loginReport,recent:[{kind:"HTTP",status:401,count:2}]})).toBeNull();
+});
 test("client reports are separate from cumulative process metrics and preserve hourly scope", () => {
   const state = clientErrorState({clientErrors: {...window, rows: [report()]}, runtimeMetrics: [{requestCount: 999, errorCount: 99}]});
   expect(state).toMatchObject({available: true, errorCount: 3, affectedApiCount: 1, windowStart: window.windowStart, windowEnd: window.windowEnd});

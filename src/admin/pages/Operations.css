@@ -389,3 +389,5 @@
 .ops-row > strong {
   flex-shrink: 0;
 }
+.ops .login-failure-guidance {margin:12px 0; padding:12px; border-left:3px solid #b58c32; background:#fffaf0; color:#594820; font-size:12px; line-height:1.7;}
+.ops .login-failure-guidance p {margin:6px 0 0;}
