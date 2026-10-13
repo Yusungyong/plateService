@@ -189,6 +189,8 @@ button.api-map-node:hover, button.api-map-node.is-selected {border-color:var(--a
 .api-structure-links [data-error-severity='warning'] {border-left:3px solid #ac790d;}
 .api-error-details {border-top:1px solid var(--api-line); padding:14px 0;}
 .api-error-details h3 {margin:0 0 8px; font-size:13px;}
+.login-failure-guidance {margin:12px 0; padding:12px; border-left:3px solid #b58c32; background:#fffaf0; color:#594820; font-size:12px; line-height:1.7;}
+.login-failure-guidance p {margin:6px 0 0;}
 .api-error-details > p {font-size:12px; color:var(--api-muted); line-height:1.7;}
 .api-error-counts {display:flex; flex-wrap:wrap; gap:14px 24px; margin:12px 0;}
 .api-error-counts > div {display:flex; gap:8px; font-size:12px;}

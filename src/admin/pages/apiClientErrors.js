@@ -3,6 +3,18 @@ const count = value => Number.isSafeInteger(value) && value >= 0;
 const timestamp = value => typeof value === "string" && /^\d{4}-\d\d-\d\dT/.test(value) && Number.isFinite(Date.parse(value));
 const fields = ["errorCount", "http4xxCount", "http5xxCount", "networkCount", "timeoutCount"];
 
+// Recent groups are capped. Only label the whole API when every report is accounted for.
+export function loginAuthReport(report) {
+  if (report?.method !== "POST" || report.path !== "/api/auth/login"
+      || !fields.every(field => count(report[field])) || !Array.isArray(report.recent)) return null;
+  const groups = report.recent.filter(item => item?.kind === "HTTP" && item.status === 401 && count(item.count));
+  const reportedCount = groups.reduce((total, item) => total + item.count, 0);
+  if (!count(reportedCount) || reportedCount === 0 || reportedCount > report.http4xxCount) return null;
+  return {reportedCount, complete: reportedCount === report.errorCount
+    && report.errorCount === report.http4xxCount && report.http5xxCount === 0
+    && report.networkCount === 0 && report.timeoutCount === 0};
+}
+
 export function clientErrorState(snapshot) {
   const report = snapshot?.clientErrors;
   const unavailable = {available: false, rows: new Map(), errorCount: null, affectedApiCount: null};

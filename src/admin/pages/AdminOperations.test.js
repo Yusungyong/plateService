@@ -78,6 +78,16 @@ test("API and push diagnostics have independent empty states", async () => {
   await screen.findByText("최근 24시간 전송 시도 기록이 없습니다.");
   expect(screen.getByText("관측된 생략 기록 없음")).toBeInTheDocument();
 });
+test.each([false,true])("login diagnosis distinguishes authentication denial and preserves server failure (mixed=%s)", async mixed => {
+  const stamp="2026-10-12T10:13:36Z";
+  const report={method:"POST",path:"/api/auth/login",errorCount:mixed?2:1,http4xxCount:1,http5xxCount:mixed?1:0,networkCount:0,timeoutCount:0,lastSeenAt:stamp,clients:["IOS"],recent:[{kind:"HTTP",status:401,client:"IOS",count:1,lastSeenAt:stamp},...(mixed?[{kind:"HTTP",status:500,client:"IOS",count:1,lastSeenAt:stamp}]:[])]};
+  getOperationsSnapshot.mockResolvedValue({...snapshot,api:{clientErrors:{available:true,windowHours:24,windowStart:"2026-10-12T00:00:00Z",windowEnd:stamp,rows:[report]}}});
+  mount(AdminOperationsIncidents,"/admin/operations/incidents");
+  await screen.findByText("로그인 인증 거부 · HTTP 401");
+  const flow=screen.getByRole("list",{name:"메뉴와 API 오류 관계"});
+  expect(flow.querySelectorAll(".ops-node--bad")).toHaveLength(mixed?2:0);
+  expect(screen.getByRole("link",{name:"API 관계도에서 보기 →"})).toHaveAttribute("href","/admin/api-registry?api=POST%20%2Fapi%2Fauth%2Flogin");
+});
 test("a successful provider attempt still shows missing receipt as unknown", async () => {
   getOperationsSnapshot.mockResolvedValue({
     ...snapshot,

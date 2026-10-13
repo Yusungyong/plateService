@@ -4,6 +4,8 @@ import OperationsShared, { Flow, State } from "./OperationsShared";
 import useOperationsSnapshot from "./useOperationsSnapshot";
 import { operationsModel, pushStages, time } from "./operationsModel";
 import { getPushAttempt } from "../api/operationsApi";
+import LoginFailureGuidance from "../components/LoginFailureGuidance";
+import { loginAuthReport } from "./apiClientErrors";
 import "./Operations.css";
 export default function AdminOperationsIncidents() {
   const data = useOperationsSnapshot(),
@@ -72,8 +74,9 @@ export default function AdminOperationsIncidents() {
         },
         {
           title: "오류 유형",
-          state: "bad",
-          detail: `서버 ${error.http5xxCount} · HTTP 4xx ${error.http4xxCount} · 네트워크 ${error.networkCount} · 시간초과 ${error.timeoutCount}`,
+          state: error.severity === "critical" ? "bad" : "warning",
+          detail: loginAuthReport(error)?.complete ? `로그인 인증 거부 (HTTP 401) ${error.errorCount}건`
+            : `서버 ${error.http5xxCount} · HTTP 4xx ${error.http4xxCount} · 네트워크 ${error.networkCount} · 시간초과 ${error.timeoutCount}`,
         },
       ]
     : [];
@@ -289,6 +292,7 @@ export default function AdminOperationsIncidents() {
                     <dt>앱 버전·영향 사용자 수</dt>
                     <dd>미수집</dd>
                   </dl>
+                  <LoginFailureGuidance report={error} />
                   <Link
                     to={
                       "/admin/api-registry?api=" +
