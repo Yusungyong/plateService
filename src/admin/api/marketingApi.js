@@ -11,6 +11,6 @@ export const getMarketingPreview=async (creative,variant,options)=>{
  return blob;
 };
 export async function marketingAction(path,body,method='POST',options={}){
- if(!/^\/(campaigns|control|jobs|schedules|reconcile|creatives|links|measurement|publishing|console)(\/|$)/.test(path))throw Error('지원하지 않는 마케팅 작업입니다.');
+ if(!/^\/(worker-credentials|campaigns|control|jobs|schedules|reconcile|creatives|links|measurement|publishing|console)(\/|$)/.test(path))throw Error('지원하지 않는 마케팅 작업입니다.');
  return unwrapAdminResponse(await apiClient.request(ROOT+path,{...options,body,method}));
 }
