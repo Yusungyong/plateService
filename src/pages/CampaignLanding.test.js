@@ -9,6 +9,8 @@ beforeEach(()=>{global.fetch=jest.fn(url=>reply(url.endsWith('/capabilities')?{e
 test('opening the landing fetches only public metadata, without tracking or credentials',async()=>{
  show();await screen.findByText('12자리 캠페인 코드',{exact:false}).catch(()=>{});await screen.findByText(code);
  expect(fetch).toHaveBeenCalledTimes(2);expect(fetch.mock.calls[0][1]).toMatchObject({method:'GET',credentials:'omit',referrerPolicy:'no-referrer'});
+ expect(screen.getByRole('link',{name:'App Store에서 설치하기 ↗'})).toHaveAttribute('href','https://apps.apple.com/kr/app/id6759185760');
+ expect(screen.getByRole('link',{name:'Google Play에서 설치하기 ↗'})).toHaveAttribute('href','https://play.google.com/store/apps/details?id=com.plateappnew');
  expect(screen.getByRole('checkbox')).not.toBeChecked();expect(screen.getByRole('button',{name:'동의하고 앱 연결 준비하기'})).toBeDisabled();expect(screen.getByRole('link',{name:'접시 앱 열기'})).toHaveAttribute('href',`plate://campaign?code=${code}`);
 });
 test('explicit opt-in creates one visit and supplies the verified token for the app',async()=>{

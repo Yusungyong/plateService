@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { APP_DOWNLOADS } from "../config/appDownloads";
 import home400 from "../assets/home/app-home-400.webp";
@@ -36,12 +36,10 @@ function StoreIcon({ platform }) {
   );
 }
 
-function StoreButtons({ onUnavailable }) {
+function StoreButtons() {
   return <div className="home-store-buttons">{Object.entries(APP_DOWNLOADS).map(([platform, store]) => {
-    const content = <><StoreIcon platform={platform} /><span><strong>{store.name}</strong><small>{store.url ? "다운로드하기" : "설치 안내"}</small></span></>;
-    return store.url
-      ? <a className="home-store-button" key={platform} href={store.url} target="_blank" rel="noopener noreferrer" aria-label={`${store.name}에서 접시 다운로드 (새 창)`}>{content}</a>
-      : <button className="home-store-button" key={platform} type="button" onClick={() => onUnavailable(platform)} aria-label={`${store.name} 설치 안내`}>{content}</button>;
+    const content = <><StoreIcon platform={platform} /><span><strong>{store.name}</strong><small>다운로드하기</small></span></>;
+    return <a className="home-store-button" key={platform} href={store.url} target="_blank" rel="noopener noreferrer" aria-label={`${store.name}에서 접시 다운로드 (새 창)`}>{content}</a>;
   })}</div>;
 }
 
@@ -52,27 +50,8 @@ function Phone({ screen, className, label }) {
   </figure>;
 }
 
-function DownloadDialog({ platform, onClose }) {
-  const ref = useRef(null);
-  const id = useId();
-  useEffect(() => {
-    const dialog = ref.current;
-    if (dialog.showModal) dialog.showModal();
-    else dialog.setAttribute("open", "");
-    return () => { if (dialog.open && dialog.close) dialog.close(); };
-  }, []);
-  return <dialog ref={ref} className="home-download-dialog" aria-labelledby={id} onCancel={onClose} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <button type="button" className="home-dialog-close" aria-label="설치 안내 닫기" onClick={onClose}>×</button>
-    <img src={`${ASSETS}/plate-mascot.png`} alt="" width="100" height="100" />
-    <h2 id={id}>{platform === "android" ? "Android" : "iPhone"} 설치 안내</h2>
-    <p>공식 다운로드 링크는 준비 중이에요.<br />설치 관련 문의는 아래 이메일로 보내 주세요.</p>
-    <a href="mailto:su12ng@gmail.com?subject=%EC%A0%91%EC%8B%9C%20%EC%95%B1%20%EC%84%A4%EC%B9%98%20%EB%AC%B8%EC%9D%98">su12ng@gmail.com <span aria-hidden="true">↗</span></a>
-  </dialog>;
-}
-
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [platform, setPlatform] = useState(null);
   useEffect(() => {
     const previous = document.title;
     document.title = "접시 — 오늘의 맛있는 발견";
@@ -102,7 +81,7 @@ export default function Home() {
           <Link to="/faq" onClick={closeMenu}>고객지원</Link>
           <Link to="/business" onClick={closeMenu}>식당 비즈니스</Link>
         </nav>
-        <a href="#download" className="home-download-link" onClick={closeMenu}>앱 설치 안내 <span aria-hidden="true">↗</span></a>
+        <a href="#download" className="home-download-link" onClick={closeMenu}>앱 다운로드 <span aria-hidden="true">↗</span></a>
         <button type="button" className="home-menu-toggle" aria-label={menuOpen ? "메뉴 닫기" : "메뉴 열기"} aria-expanded={menuOpen} aria-controls="home-navigation" onClick={() => setMenuOpen(!menuOpen)}><span /><span /></button>
       </div>
     </header>
@@ -114,8 +93,8 @@ export default function Home() {
             <p className="home-eyebrow">음식으로 연결되는 일상, 접시</p>
             <h1 id="home-title">오늘의 맛있는 발견,<br />접시에 담아보세요<span className="home-title-dot">.</span></h1>
             <p className="home-hero-description">음식 사진으로 발견하고, 지도로 찾아보고.<br />다시 만나고 싶은 맛을 나만의 기록으로 남겨요.</p>
-            <StoreButtons onUnavailable={setPlatform} />
-            <p className="home-availability">공식 스토어 링크는 준비 중입니다.</p>
+            <StoreButtons />
+            <p className="home-availability">iPhone과 Android에서 지금 만나보세요.</p>
             <a className="home-explore" href="#features">접시는 어떻게 쓰나요? <span aria-hidden="true">↓</span></a>
           </div>
           <div className="home-hero-visual">
@@ -139,13 +118,12 @@ export default function Home() {
 
       <section className="home-journey home-container" aria-labelledby="home-journey-title"><h2 id="home-journey-title">오늘의 한 끼, 이렇게 찾아보세요</h2><ol><li><span>01</span><div><h3>점심 메뉴가 고민될 때</h3><p>콘텐츠 홈에서 사진과 영상을 둘러봐요.</p></div></li><li><span>02</span><div><h3>낯선 동네에서 식당 찾기</h3><p>내 주변 지도에서 음식점을 찾아봐요.</p></div></li><li><span>03</span><div><h3>다시 먹고 싶은 음식 기록</h3><p>좋아요한 음식과 내 콘텐츠를 다시 봐요.</p></div></li></ol></section>
 
-      <section className="home-install home-container" id="download" tabIndex={-1} aria-labelledby="home-download-title"><div className="home-install-panel"><div><p className="home-section-kicker">MEET PLATE</p><h2 id="home-download-title">다음 한 끼의 발견을<br />접시와 함께하세요.</h2><p>공식 App Store·Google Play 링크는 준비 중입니다.<br />버튼을 누르면 설치 문의 방법을 안내해 드려요.</p></div><StoreButtons onUnavailable={setPlatform} /></div></section>
+      <section className="home-install home-container" id="download" tabIndex={-1} aria-labelledby="home-download-title"><div className="home-install-panel"><div><p className="home-section-kicker">MEET PLATE</p><h2 id="home-download-title">다음 한 끼의 발견을<br />접시와 함께하세요.</h2><p>App Store와 Google Play에서 접시를 다운로드하세요.<br />사용하는 기기에 맞는 스토어를 선택해 주세요.</p></div><StoreButtons /></div></section>
 
       <section className="home-support home-container" id="services" tabIndex={-1} aria-labelledby="home-services-title"><div className="home-support-main"><p className="home-section-kicker">SUPPORT</p><h2 id="home-services-title">도움이 필요하신가요?</h2><p>궁금한 점을 확인하고, 필요한 도움을 받아보세요.</p><nav aria-label="서비스 바로가기"><Link to="/faq">자주 묻는 질문 <span aria-hidden="true">↗</span></Link><Link to="/qna">공개 질문·답변 <span aria-hidden="true">↗</span></Link><Link to="/qna/private">비공개 1:1 문의 <span aria-hidden="true">↗</span></Link></nav><div className="home-support-account"><Link to="/login">로그인</Link><Link to="/signup">회원가입</Link></div></div><aside className="home-partner"><p className="home-section-kicker">FOR YOUR BUSINESS</p><h2>우리 식당도<br />접시와 함께</h2><p>로그인 후 입점 신청부터<br />신청 현황 확인·매장 관리까지 한곳에서.</p><Link to="/business">식당 비즈니스 시작하기 <span aria-hidden="true">→</span></Link></aside></section>
 
     </main>
 
     <footer className="home-footer home-container"><div className="home-footer-top"><Link className="home-brand home-brand--footer" to="/" aria-label="접시 홈"><img src={`${ASSETS}/plate-mascot.png`} alt="" width="56" height="56" /><span>접시</span></Link><nav aria-label="하단 메뉴"><Link to="/faq">고객지원</Link><Link to="/terms-of-service">이용약관</Link><Link to="/privacy-policy">개인정보 처리방침</Link><a href="mailto:su12ng@gmail.com">문의 <span>su12ng@gmail.com</span></a></nav></div><div className="home-footer-bottom"><p>© {new Date().getFullYear()} 접시 · 운영자 유성용</p><Link to="/admin">관리자 로그인 <span aria-hidden="true">↗</span></Link></div></footer>
-    {platform && <DownloadDialog platform={platform} onClose={() => setPlatform(null)} />}
   </div>;
 }
