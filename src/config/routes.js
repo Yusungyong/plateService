@@ -1,4 +1,5 @@
 import AdminOperationsHome from "../admin/pages/AdminOperationsHome";
+import AdminMarketing from "../admin/pages/AdminMarketing";
 import AdminOperationsIncidents from "../admin/pages/AdminOperationsIncidents";
 import AdminOperationsReleases from "../admin/pages/AdminOperationsReleases";
 import AdminApiRegistry from "../admin/pages/AdminApiRegistry";
@@ -49,6 +50,7 @@ export const adminNavigationItems = [
     group: "운영",
   },
   {path: "/admin/api-registry", label: "API 구조 관리", icon: "dashboard", permission: ADMIN_PERMISSIONS.DASHBOARD_READ, operatorOnly: true, group: "운영"},
+  {path:"/admin/marketing",label:"마케팅 운영",icon:"feed",permission:ADMIN_PERMISSIONS.DASHBOARD_READ,operatorOnly:true,group:"서비스 운영"},
   {
     path: "/admin/store-approvals",
     label: "입점 신청 심사",
@@ -162,6 +164,7 @@ export const businessOwnerRoutes = [
 ];
 
 export const adminRoutes = [
+  {path:"/admin/marketing",component:AdminMarketing,permission:ADMIN_PERMISSIONS.DASHBOARD_READ,operatorOnly:true},
   {path:"/admin/operations",component:AdminOperationsHome,permission:ADMIN_PERMISSIONS.DASHBOARD_READ,operatorOnly:true},
   {path:"/admin/operations/incidents",component:AdminOperationsIncidents,permission:ADMIN_PERMISSIONS.DASHBOARD_READ,operatorOnly:true},
   {path:"/admin/operations/releases",component:AdminOperationsReleases,permission:ADMIN_PERMISSIONS.DASHBOARD_READ,operatorOnly:true},

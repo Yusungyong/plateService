@@ -1,0 +1,227 @@
+{
+  "evidence": "LOCAL_REFERENCE_ONLY",
+  "campaign": {
+    "schemaVersion": 1,
+    "id": "plate-national-howto-v1",
+    "revision": 5,
+    "name": "접시 전국 앱 사용법 홍보",
+    "status": "DRAFT",
+    "region": {
+      "scope": "NATIONWIDE",
+      "country": "KR"
+    },
+    "channels": [
+      "WEBSITE",
+      "INSTAGRAM"
+    ],
+    "audience": {
+      "primary": "음식 사진을 찍고 다녀온 식당을 다시 찾고 싶은 사람",
+      "secondary": "친구와 함께 갈 식당을 고르고 맛집 기록을 공유하는 사람",
+      "basis": "INITIAL_HYPOTHESIS"
+    },
+    "messages": [
+      {
+        "id": "record",
+        "text": "사진첩에 묻힌 맛집을 기록하고 다시 찾아보세요."
+      },
+      {
+        "id": "share",
+        "text": "친구와 맛집 기록을 나눠보세요."
+      },
+      {
+        "id": "together",
+        "text": "다음에 같이 갈 식당을 접시에서 골라보세요."
+      }
+    ],
+    "contentTypes": [
+      "APP_HOW_TO",
+      "PRODUCT_DEMO"
+    ],
+    "schedule": {
+      "timezone": "Asia/Seoul",
+      "postLimitScope": "PER_CHANNEL",
+      "startAt": null,
+      "experimentDays": 28,
+      "maxDraftsPerDay": 2,
+      "maxDraftsPerWeek": 12,
+      "maxPostsPerDay": 1,
+      "maxPostsPerWeek": 4,
+      "publishWeekdays": [
+        2,
+        4,
+        6,
+        7
+      ],
+      "publishTime": "19:30",
+      "dailyReviewTime": "09:00",
+      "weeklyReviewWeekday": 1,
+      "weeklyReviewTime": "10:00",
+      "basis": "PROPOSED_NOT_SCHEDULED"
+    },
+    "costPolicy": {
+      "currency": "KRW",
+      "maxAdditionalMonthlyKrw": 0,
+      "modelExecution": "CODEX_PLAN_ONLY",
+      "paidModelApiEnabled": false,
+      "paidAdvertisingEnabled": false,
+      "paidImageGenerationEnabled": false,
+      "newPaidInfrastructureEnabled": false
+    },
+    "execution": {
+      "automaticGenerationEnabled": false,
+      "websitePublishingEnabled": false,
+      "instagramPublishingEnabled": false
+    },
+    "connections": {
+      "website": {
+        "url": "https://plate-service.com",
+        "marketingPublishingReady": false
+      },
+      "instagram": {
+        "handle": null,
+        "state": "NOT_CONNECTED"
+      },
+      "executor": {
+        "state": "LOCAL_TRIAL_VERIFIED"
+      },
+      "measurement": {
+        "state": "NOT_CONNECTED"
+      }
+    },
+    "measurement": {
+      "primaryMetric": "FIRST_RECORD_WITHIN_7_DAYS",
+      "funnel": [
+        "CAMPAIGN_LINK_CLICK",
+        "SIGNUP",
+        "FIRST_RECORD",
+        "FRIEND_INVITE",
+        "CONTENT_SHARE",
+        "RETURN_DAY_7"
+      ],
+      "storeDownloadsSource": "STORE_ANALYTICS",
+      "numericTarget": null,
+      "baseline": null,
+      "attributionState": "NOT_CONNECTED",
+      "minimumUsersPerVariantForExploratoryComparison": 20,
+      "minimumUsersIsStatisticalSignificance": false
+    },
+    "decisionBasis": {
+      "userConfirmedOn": "2026-10-13",
+      "userConfirmedFields": [
+        "region",
+        "channels",
+        "costPolicy",
+        "brandProfile.voice",
+        "assetLibrary.scope",
+        "assetLibrary.screens-20261013.usage",
+        "executorProfile.environment.CURRENT_MAC"
+      ],
+      "proposedFields": [
+        "audience",
+        "messages",
+        "schedule",
+        "measurement"
+      ],
+      "pendingSetup": [
+        "AUTOMATION_ACTIVATION_STAGE_10",
+        "INSTAGRAM_ACCOUNT",
+        "MEASUREMENT_CONNECTION"
+      ]
+    },
+    "brandProfile": {
+      "id": "plate-light-witty-v1",
+      "revision": 1
+    },
+    "updatedAt": "2026-10-13T13:15:52.838Z",
+    "assetLibrary": {
+      "id": "plate-national-assets-v1"
+    },
+    "executorProfile": {
+      "id": "plate-codex-local-v1",
+      "revision": 1
+    }
+  },
+  "assets": [
+    {
+      "id": "brand-plate-mascot",
+      "title": "접시 로고·캐릭터",
+      "kind": "BRAND",
+      "revision": 1,
+      "permission": "APPROVED",
+      "privacy": "CLEAR"
+    },
+    {
+      "id": "app-image-editor-previous",
+      "title": "사진 등록 화면 · 이전 캡처",
+      "kind": "APP_SCREEN",
+      "revision": 1,
+      "permission": "PENDING",
+      "privacy": "CLEAR"
+    },
+    {
+      "id": "promo-home-20261002",
+      "title": "이전 스토어 홈 홍보 이미지",
+      "kind": "PROMO_COMPOSITE",
+      "revision": 1,
+      "permission": "REFERENCE_ONLY",
+      "privacy": "PENDING"
+    },
+    {
+      "id": "promo-upload-20261002",
+      "title": "이전 스토어 등록 홍보 이미지",
+      "kind": "PROMO_COMPOSITE",
+      "revision": 1,
+      "permission": "REFERENCE_ONLY",
+      "privacy": "PENDING"
+    },
+    {
+      "id": "art-header-20261010",
+      "title": "스토어 헤더 · 생성 이미지",
+      "kind": "GENERATED_ARTWORK",
+      "revision": 1,
+      "permission": "REFERENCE_ONLY",
+      "privacy": "PENDING"
+    },
+    {
+      "id": "art-search-20261010",
+      "title": "스토어 검색 결과 · 생성 이미지",
+      "kind": "GENERATED_ARTWORK",
+      "revision": 1,
+      "permission": "REFERENCE_ONLY",
+      "privacy": "PENDING"
+    },
+    {
+      "id": "feature-notes-internal",
+      "title": "기록·공유·채팅 기능 소스 참조",
+      "kind": "FEATURE_NOTE",
+      "revision": 1,
+      "permission": "REFERENCE_ONLY",
+      "privacy": "PENDING"
+    },
+    {
+      "id": "app-record-20261013",
+      "title": "사진·식당 기록 · 최신 화면",
+      "kind": "APP_SCREEN",
+      "revision": 3,
+      "permission": "APPROVED",
+      "privacy": "PERSONAL_DATA"
+    },
+    {
+      "id": "app-share-20261013",
+      "title": "친구에게 보내기 · 최신 화면",
+      "kind": "APP_SCREEN",
+      "revision": 3,
+      "permission": "APPROVED",
+      "privacy": "PERSONAL_DATA"
+    },
+    {
+      "id": "app-chat-card-20261013",
+      "title": "채팅 공유 카드 · 최신 화면",
+      "kind": "APP_SCREEN",
+      "revision": 2,
+      "permission": "APPROVED",
+      "privacy": "PERSONAL_DATA"
+    }
+  ],
+  "expectedInstagramUsername": "plate_service_2026"
+}
