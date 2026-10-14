@@ -1,0 +1,11 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; base-uri 'none'; form-action 'none'"><title>접시 · 인스타그램 연결</title><script>
+const query=new URLSearchParams(location.search),redirectUri=location.origin+location.pathname,code=query.get('code'),state=query.get('state');
+history.replaceState(null,'',location.pathname);
+const valid=redirectUri==='https://plate-service.com/marketing/instagram/callback/'&&query.getAll('code').length===1&&query.getAll('state').length===1&&/^[A-Za-z0-9._-]{10,4096}$/.test(code||'')&&/^[a-f0-9]{64}$/.test(state||'')&&!query.has('error');
+const callback=valid?JSON.stringify({redirectUri,code,state},null,2):null;
+</script><style>body{margin:0;background:#fff8f2;color:#222;font:16px/1.7 -apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif}main{max-width:560px;margin:10vh auto;padding:28px}h1{font-size:30px;line-height:1.35}button{padding:14px 20px;border:0;border-radius:12px;background:#ff7f50;font:inherit;font-weight:700;cursor:pointer}p{color:#665b54}button[hidden]{display:none}</style></head><body><main><p>접시 · 인스타그램 연결</p><h1 id="title">연결 결과를 확인하고 있어요.</h1><p id="description"></p><button id="download" hidden>연결 파일 저장</button><p>저장한 파일을 현재 Mac의 연결 도구에서 확인하면 계정 연결이 완료돼요.</p></main><script>
+const title=document.getElementById('title'),description=document.getElementById('description'),download=document.getElementById('download');
+title.textContent=callback?'Mac에서 연결을 마무리해요.':'연결을 완료하지 못했어요.';
+description.textContent=callback?'연결 파일을 저장하고 Mac의 마케팅 연결 도구로 가져와 주세요. 파일의 정보는 이 화면에서 외부로 전송하지 않아요.':'Mac에서 연결을 다시 시작해 주세요. 취소하거나 잘못된 주소로 돌아온 경우에는 연결 파일을 만들지 않아요.';
+if(callback){download.hidden=false;download.onclick=()=>{const url=URL.createObjectURL(new Blob([callback],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='plate-instagram-callback.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};}
+</script></body></html>
