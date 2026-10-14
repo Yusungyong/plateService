@@ -56,7 +56,6 @@ function handler(event) {
   var result = routeLegal(event);
   if (result.statusCode) return result;
   var uri = result.uri;
-  if (uri === '/marketing/instagram/callback/' || uri === '/marketing/instagram/callback/index.html') { result.uri = '/marketing/instagram/callback/index.html'; return result; }
   if (/^\\/(legal|terms-of-service|privacy-policy|location-terms|account-deletion|child-safety)(\\/|$)/.test(uri)) return result;
   if (/^\\/(static|images)(\\/|$)/.test(uri) || /^\\/(index\\.html|robots\\.txt|sitemap\\.xml|favicon\\.ico|manifest\\.json|logo192\\.png|logo512\\.png)$/.test(uri)) return result;
   var routes = ${JSON.stringify(expressions)};
