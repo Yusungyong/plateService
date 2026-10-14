@@ -49,13 +49,14 @@ if (process.argv.includes("--build")) {
   // Complete website router: legal artifacts must return before the SPA fallback.
   const routeSource = fs.readFileSync(path.join(root, 'src/config/routes.js'), 'utf8');
   const spaRoutes = [...new Set([...routeSource.matchAll(/path:\s*"([^"]+)"/g)].map(match => match[1])
-    .filter(uri => !uri.includes('*')).concat(['/', '/login', '/business', '/business/stores/new', '/admin']))];
+    .filter(uri => !uri.includes('*')).concat(['/', '/login', '/business', '/business/stores/new', '/admin', '/go/:code', '/how-to', '/how-to/:id']))];
   const expressions = spaRoutes.map(uri => '^' + uri.split('/').map(part => part.startsWith(':') ? '[^/]+' : part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('/') + '$');
   const complete = fn.replace('function handler(event)', 'function routeLegal(event)') + `
 function handler(event) {
   var result = routeLegal(event);
   if (result.statusCode) return result;
   var uri = result.uri;
+  if (uri === '/marketing/instagram/callback/' || uri === '/marketing/instagram/callback/index.html') { result.uri = '/marketing/instagram/callback/index.html'; return result; }
   if (/^\\/(legal|terms-of-service|privacy-policy|location-terms|account-deletion|child-safety)(\\/|$)/.test(uri)) return result;
   if (/^\\/(static|images)(\\/|$)/.test(uri) || /^\\/(index\\.html|robots\\.txt|sitemap\\.xml|favicon\\.ico|manifest\\.json|logo192\\.png|logo512\\.png)$/.test(uri)) return result;
   var routes = ${JSON.stringify(expressions)};
@@ -67,7 +68,7 @@ function handler(event) {
 }
 `;
   fs.writeFileSync(path.join(root, '.legal-preview/cloudfront-viewer-request.js'), complete);
-  const sitemapRoutes = ['/', '/faq', ...manifest.documents.filter(doc => doc.currentVersion).map(doc => '/' + doc.slug)];
+  const sitemapRoutes = ['/', '/faq', '/how-to', ...manifest.documents.filter(doc => doc.currentVersion).map(doc => '/' + doc.slug)];
   fs.writeFileSync(path.join(root, 'build/sitemap.xml'), '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + sitemapRoutes.map(uri => `<url><loc>https://plate-service.com${uri}</loc></url>`).join('\n') + '\n</urlset>\n');
 }
 console.log(`Legal: ${Object.keys(pages).length} public pages; drafts excluded.`);
