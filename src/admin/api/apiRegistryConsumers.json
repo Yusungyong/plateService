@@ -1,6 +1,6 @@
 {
-  "analyzedAt": "2026-10-12",
-  "sourceEvidence": "Reviewed app source and server PR #149 (44bf85701ec16e8fbb299269a30cc2330c97cf62). Additive consumer links; explicit replace only for retired UI consumers. Runtime registration remains authoritative. Operations console server PR #153 and web PR #38 are deployed (2026-10-13). Admin actions server PR #155/#157/#159 deployed and verified (2026-10-13, main 2a62453731c20aa47a4f81a23d9517ad7941ba1c).",
+  "analyzedAt": "2026-10-14",
+  "sourceEvidence": "Reviewed app source and server PR #149 (44bf85701ec16e8fbb299269a30cc2330c97cf62). Additive consumer links; explicit replace only for retired UI consumers. Runtime registration remains authoritative. Operations console server PR #153 and web PR #38 are deployed (2026-10-13). Admin actions server PR #155/#157/#159 deployed and verified (2026-10-13, main 2a62453731c20aa47a4f81a23d9517ad7941ba1c). Marketing stage9 is locally implemented on server #164 and web #45; not deployed.",
   "appSourceHashes": {
     "docs/code-optimization-2026-10-11.md": "fcc8f29ba122b98c85004691ba22b1e95314a5848c4309ea42e7b6c43509f44c",
     "output/db-performance-implementation-2026-10-10/README.txt": "dc63c206cd37fa413c45e8137742a3c30d8c75e6fc86816ba45873eb882c10ea",
@@ -393,6 +393,44 @@
       "isGrouping": true,
       "source": "src/admin/components/AdminMenuTools.js",
       "sourceLine": 1
+    },
+    {
+      "id": "admin:/admin/marketing",
+      "label": "운영 > 마케팅 운영",
+      "surface": "admin",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1,
+      "route": "/admin/marketing",
+      "apiIds": [
+        "api_595b47bd10e05865",
+        "api_4035b252dbe630cf",
+        "api_4ef98e6055634bcb",
+        "api_5268b921404407e6",
+        "api_b40444cd62ec1272",
+        "api_203ab8508c6170ba",
+        "api_d80f6dd4137f246b",
+        "api_1c87d8be5b03b799",
+        "api_fb301bd91a979e48",
+        "api_7dccd7f30642aa96",
+        "api_4e00166c9c17209e",
+        "api_89175db64382c88c",
+        "api_73f1e1b5c3cc5efc",
+        "api_2cd6179297c88bbc",
+        "api_ef4fe8dcbd7b0501",
+        "api_ac2ce210b0fc1d29",
+        "api_fc2f25733018e671",
+        "api_bf892b1ddc60793a",
+        "api_5e57a057a48edc2f",
+        "api_e2eea410dfb98daa",
+        "api_dfd1adb373712282",
+        "api_7cf70bdc11753097",
+        "api_553ea7494184dd28",
+        "api_6433bc68e87ade5e",
+        "api_16499cc39315aaf1",
+        "api_e17d566b189ede22"
+      ],
+      "apiCount": 26,
+      "missingCalls": []
     }
   ],
   "routes": [
@@ -2364,6 +2402,813 @@
       "implementationStage": "reviewed_source",
       "source": "src/admin/pages/AdminFeeds.js",
       "sourceLine": 1
+    },
+    {
+      "id": "api_595b47bd10e05865",
+      "method": "PUT",
+      "path": "/api/admin/marketing/campaigns/{id}",
+      "module": "platform",
+      "capability": "marketing-work-queue",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "no_frontend_reference",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "5단계 서버/수동 Mac 도구 구현. 관리 UI는9단계 예정, 운영 미배포·반복예약/SNS게시 비활성.",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_4035b252dbe630cf",
+      "method": "POST",
+      "path": "/api/admin/marketing/jobs",
+      "module": "platform",
+      "capability": "marketing-work-queue",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "no_frontend_reference",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "5단계 서버/수동 Mac 도구 구현. 관리 UI는9단계 예정, 운영 미배포·반복예약/SNS게시 비활성.",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_4ef98e6055634bcb",
+      "method": "POST",
+      "path": "/api/admin/marketing/schedules",
+      "module": "platform",
+      "capability": "marketing-work-queue",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "no_frontend_reference",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "5단계 서버/수동 Mac 도구 구현. 관리 UI는9단계 예정, 운영 미배포·반복예약/SNS게시 비활성.",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_5268b921404407e6",
+      "method": "POST",
+      "path": "/api/admin/marketing/control",
+      "module": "platform",
+      "capability": "marketing-work-queue",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "no_frontend_reference",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "5단계 서버/수동 Mac 도구 구현. 관리 UI는9단계 예정, 운영 미배포·반복예약/SNS게시 비활성.",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_b40444cd62ec1272",
+      "method": "POST",
+      "path": "/api/admin/marketing/campaigns/{id}/control",
+      "module": "platform",
+      "capability": "marketing-work-queue",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "no_frontend_reference",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "5단계 서버/수동 Mac 도구 구현. 관리 UI는9단계 예정, 운영 미배포·반복예약/SNS게시 비활성.",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_203ab8508c6170ba",
+      "method": "POST",
+      "path": "/api/admin/marketing/jobs/{id}/cancel",
+      "module": "platform",
+      "capability": "marketing-work-queue",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "no_frontend_reference",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "5단계 서버/수동 Mac 도구 구현. 관리 UI는9단계 예정, 운영 미배포·반복예약/SNS게시 비활성.",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_d80f6dd4137f246b",
+      "method": "POST",
+      "path": "/api/admin/marketing/jobs/{id}/resolve",
+      "module": "platform",
+      "capability": "marketing-work-queue",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "no_frontend_reference",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "5단계 서버/수동 Mac 도구 구현. 관리 UI는9단계 예정, 운영 미배포·반복예약/SNS게시 비활성.",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_1c87d8be5b03b799",
+      "method": "POST",
+      "path": "/api/admin/marketing/schedules/{id}/dispatch",
+      "module": "platform",
+      "capability": "marketing-work-queue",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "no_frontend_reference",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "5단계 서버/수동 Mac 도구 구현. 관리 UI는9단계 예정, 운영 미배포·반복예약/SNS게시 비활성.",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_fb301bd91a979e48",
+      "method": "POST",
+      "path": "/api/admin/marketing/reconcile",
+      "module": "platform",
+      "capability": "marketing-work-queue",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "no_frontend_reference",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "5단계 서버/수동 Mac 도구 구현. 관리 UI는9단계 예정, 운영 미배포·반복예약/SNS게시 비활성.",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_7dccd7f30642aa96",
+      "method": "POST",
+      "path": "/api/admin/marketing/links",
+      "module": "platform",
+      "capability": "marketing-measurement",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "6단계 로컬 연동. 측정/운영 배포 기본 비활성. 설치수 미연결, 원문·광고ID 수집 없음.",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_4e00166c9c17209e",
+      "method": "PATCH",
+      "path": "/api/admin/marketing/links/{code}",
+      "module": "platform",
+      "capability": "marketing-measurement",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "6단계 로컬 연동. 측정/운영 배포 기본 비활성. 설치수 미연결, 원문·광고ID 수집 없음.",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_89175db64382c88c",
+      "method": "GET",
+      "path": "/api/admin/marketing/measurement/{campaignId}",
+      "module": "platform",
+      "capability": "marketing-measurement",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "6단계 로컬 연동. 측정/운영 배포 기본 비활성. 설치수 미연결, 원문·광고ID 수집 없음.",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_73f1e1b5c3cc5efc",
+      "method": "GET",
+      "path": "/api/admin/marketing/creatives/{id}/production",
+      "module": "platform",
+      "capability": "marketing-production",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "7단계 로컬 수동 제작·검토. 실제 게시 비활성, 관리 UI는9단계.",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_2cd6179297c88bbc",
+      "method": "POST",
+      "path": "/api/admin/marketing/creatives/{id}/production/reviews",
+      "module": "platform",
+      "capability": "marketing-production",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "7단계 로컬 수동 제작·검토. 실제 게시 비활성, 관리 UI는9단계.",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_ef4fe8dcbd7b0501",
+      "method": "POST",
+      "path": "/api/admin/marketing/publishing/control",
+      "module": "platform",
+      "capability": "marketing-publishing",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "8단계 로컬구현. 실제 계정/운영 게시 비활성, callback은API아님.",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_ac2ce210b0fc1d29",
+      "method": "POST",
+      "path": "/api/admin/marketing/publishing/posts",
+      "module": "platform",
+      "capability": "marketing-publishing",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "8단계 로컬구현. 실제 계정/운영 게시 비활성, callback은API아님.",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_fc2f25733018e671",
+      "method": "POST",
+      "path": "/api/admin/marketing/publishing/posts/{id}/cancel",
+      "module": "platform",
+      "capability": "marketing-publishing",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "8단계 로컬구현. 실제 계정/운영 게시 비활성, callback은API아님.",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_bf892b1ddc60793a",
+      "method": "POST",
+      "path": "/api/admin/marketing/publishing/posts/{id}/resolve",
+      "module": "platform",
+      "capability": "marketing-publishing",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "8단계 로컬구현. 실제 계정/운영 게시 비활성, callback은API아님.",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_5e57a057a48edc2f",
+      "method": "POST",
+      "path": "/api/admin/marketing/publishing/reconcile",
+      "module": "platform",
+      "capability": "marketing-publishing",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "8단계 로컬구현. 실제 계정/운영 게시 비활성, callback은API아님.",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_e2eea410dfb98daa",
+      "method": "POST",
+      "path": "/api/admin/marketing/publishing/media",
+      "module": "platform",
+      "capability": "marketing-publishing",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "multipart/form-data"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "8단계 로컬구현. 실제 계정/운영 게시 비활성, callback은API아님.",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_dfd1adb373712282",
+      "method": "DELETE",
+      "path": "/api/admin/marketing/publishing/posts/{id}/public",
+      "module": "platform",
+      "capability": "marketing-publishing",
+      "commonizationGroup": null,
+      "authorization": "su12ng + DASHBOARD_READ + SETTING_MANAGE",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "usageNote": "8단계 로컬구현. 실제 계정/운영 게시 비활성, callback은API아님.",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1
+    },
+    {
+      "id": "api_7cf70bdc11753097",
+      "method": "GET",
+      "path": "/api/admin/marketing/console",
+      "module": "platform",
+      "capability": "marketing-console",
+      "commonizationGroup": null,
+      "authorization": "su12ng + ADMIN_ACCESS + DASHBOARD_READ; 변경 SETTING_MANAGE",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1,
+      "implementationStage": "reviewed_source"
+    },
+    {
+      "id": "api_553ea7494184dd28",
+      "method": "POST",
+      "path": "/api/admin/marketing/creatives/{id}/production/content-requests",
+      "module": "platform",
+      "capability": "marketing-console",
+      "commonizationGroup": null,
+      "authorization": "su12ng + ADMIN_ACCESS + DASHBOARD_READ; 변경 SETTING_MANAGE",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1,
+      "implementationStage": "reviewed_source"
+    },
+    {
+      "id": "api_6433bc68e87ade5e",
+      "method": "GET",
+      "path": "/api/admin/marketing/console/creatives/{id}/previews/{variant}",
+      "module": "platform",
+      "capability": "marketing-console",
+      "commonizationGroup": null,
+      "authorization": "su12ng + ADMIN_ACCESS + DASHBOARD_READ; 변경 SETTING_MANAGE",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [],
+          "produces": [
+            "image/jpeg"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1,
+      "implementationStage": "reviewed_source"
+    },
+    {
+      "id": "api_16499cc39315aaf1",
+      "method": "PATCH",
+      "path": "/api/admin/marketing/console/schedules/{id}",
+      "module": "platform",
+      "capability": "marketing-console",
+      "commonizationGroup": null,
+      "authorization": "su12ng + ADMIN_ACCESS + DASHBOARD_READ; 변경 SETTING_MANAGE",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1,
+      "implementationStage": "reviewed_source"
+    },
+    {
+      "id": "api_e17d566b189ede22",
+      "method": "PATCH",
+      "path": "/api/admin/marketing/console/posts/{id}/schedule",
+      "module": "platform",
+      "capability": "marketing-console",
+      "commonizationGroup": null,
+      "authorization": "su12ng + ADMIN_ACCESS + DASHBOARD_READ; 변경 SETTING_MANAGE",
+      "usageStatus": "connected_in_source",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/marketing"
+      ],
+      "variantContracts": [
+        {
+          "consumes": [
+            "application/json"
+          ],
+          "produces": [
+            "application/json"
+          ],
+          "params": [],
+          "headers": []
+        }
+      ],
+      "source": "src/admin/pages/AdminMarketing.js",
+      "sourceLine": 1,
+      "implementationStage": "reviewed_source"
     }
   ],
   "reviewNotes": "2026-10-13: operations console and admin actions server deployed; actual local/public read verification passed across30 routes, all12 review scopes and private photo preview. Web implementation and isolated write verification are linked under web#39/PR40. Runtime registration remains authoritative; native app changes and unmerged chat follow-ups retain their separate status."

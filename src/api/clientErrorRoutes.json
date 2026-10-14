@@ -157,6 +157,22 @@
   },
   {
     "method": "GET",
+    "path": "/api/admin/marketing/console"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/marketing/console/creatives/{id}/previews/{variant}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/marketing/creatives/{id}/production"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/marketing/measurement/{campaignId}"
+  },
+  {
+    "method": "GET",
     "path": "/api/admin/marketing/publishing"
   },
   {
@@ -765,6 +781,18 @@
   },
   {
     "method": "PATCH",
+    "path": "/api/admin/marketing/console/posts/{id}/schedule"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/admin/marketing/console/schedules/{id}"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/admin/marketing/links/{code}"
+  },
+  {
+    "method": "PATCH",
     "path": "/api/admin/qna/{qnaId}"
   },
   {
@@ -877,6 +905,46 @@
   },
   {
     "method": "POST",
+    "path": "/api/admin/marketing/campaigns/{id}/control"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/marketing/console/creatives/{id}/previews"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/marketing/console/worker-status"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/marketing/control"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/marketing/creatives/{id}/production/content-requests"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/marketing/creatives/{id}/production/reviews"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/marketing/jobs"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/marketing/jobs/{id}/cancel"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/marketing/jobs/{id}/resolve"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/marketing/links"
+  },
+  {
+    "method": "POST",
     "path": "/api/admin/marketing/publishing/control"
   },
   {
@@ -910,6 +978,18 @@
   {
     "method": "POST",
     "path": "/api/admin/marketing/publishing/worker/posts/{id}/step"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/marketing/reconcile"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/marketing/schedules"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/marketing/schedules/{id}/dispatch"
   },
   {
     "method": "POST",
@@ -1230,6 +1310,10 @@
   {
     "method": "POST",
     "path": "/api/videos/{storeId}/watch/start"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/admin/marketing/campaigns/{id}"
   },
   {
     "method": "PUT",
