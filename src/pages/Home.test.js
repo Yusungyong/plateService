@@ -24,13 +24,19 @@ test("the root route shows the app homepage and keeps support, admin and policy 
   expect(screen.queryByRole("heading", { name: "고객 지원 센터" })).not.toBeInTheDocument();
 });
 
-test.each(["App Store", "Google Play"])("unconfigured %s button provides working installation help", (store) => {
+test.each([
+  ["App Store", "https://apps.apple.com/kr/app/id6759185760"],
+  ["Google Play", "https://play.google.com/store/apps/details?id=com.plateappnew"],
+])("%s links open the production listing from both download sections", (store, url) => {
   render(<MemoryRouter><Home /></MemoryRouter>);
-  fireEvent.click(screen.getAllByRole("button", { name: `${store} 설치 안내` })[0]);
-  expect(screen.getByRole("dialog")).toBeInTheDocument();
-  expect(within(screen.getByRole("dialog")).getByRole("link", { name: "su12ng@gmail.com" })).toHaveAttribute("href", expect.stringContaining("mailto:su12ng@gmail.com"));
-  fireEvent.click(screen.getByRole("button", { name: "설치 안내 닫기" }));
-  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  const links = screen.getAllByRole("link", { name: `${store}에서 접시 다운로드 (새 창)` });
+  expect(links).toHaveLength(2);
+  links.forEach(link => {
+    expect(link).toHaveAttribute("href", url);
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
+  expect(screen.queryByText(/준비 중/)).not.toBeInTheDocument();
 });
 
 test("mobile menu exposes navigation and closes when selecting a section", () => {

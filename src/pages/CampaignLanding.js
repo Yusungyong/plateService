@@ -6,7 +6,6 @@ import './CampaignLanding.css';
 export const CAMPAIGN_CONSENT_VERSION = 'marketing-measurement-v1';
 const CODE = /^[A-Z2-9]{12}$/;
 const TOKEN = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
-const DOWNLOADS = { ...APP_DOWNLOADS, android: { ...APP_DOWNLOADS.android, url: APP_DOWNLOADS.android.url || 'https://play.google.com/store/apps/details?id=com.plateappnew' } };
 const STORIES = {
  record: { title: '사진은 찍었는데,\n식당 이름은 어디 갔지?', description: '음식 사진에 식당 정보를 함께 남겨요.', steps: ['사진 등록 화면에서 음식 사진 선택하기', '식당 이름과 주소 확인하기', '내용을 적고 미리보기에서 등록하기'] },
  share: { title: '“여기 또 가볼까?”\n사진 한 장이면 충분해요.', description: '마음에 든 맛집 기록을 친구에게 보내요.', steps: ['콘텐츠에서 공유 아이콘 누르기', '보낼 친구를 고르고 메시지 적기', '채팅에서 공유한 콘텐츠 함께 보기'] },
@@ -56,7 +55,7 @@ export default function CampaignLanding() {
     {!measurementEnabled ? <p>별도의 성과 측정 없이 앱을 이용할 수 있어요.</p> : !visit ? <div className="campaign-choice"><label><input type="checkbox" checked={consent} disabled={busy} onChange={e => setConsent(e.target.checked)} />선택: 캠페인 성과 측정에 동의해요</label><p>캠페인 링크 이용 기록을 최대30일 보관해요. 앱에서도 동의한 경우 계정의 가입·첫 기록·친구 요청·콘텐츠 공유·앱 열기와 연결해 집계해요. 설치 여부나 서로 다른 기기의 동일 사용자를 자동으로 확인하지 않아요. 동의하지 않아도 앱을 열거나 설치할 수 있어요.</p><button type="button" disabled={!consent || busy} onClick={connect}>{busy ? '연결 확인 중…' : '동의하고 앱 연결 준비하기'}</button></div> : <p role="status">연결을 준비했어요. 위의 ‘접시 앱 열기’를 누른 뒤 앱에서 참여를 확인해 주세요.</p>}
     {!!error && <p role="alert">{error}</p>}
    </section>}
-   <section className="campaign-downloads" aria-label="앱 설치">{Object.entries(DOWNLOADS).map(([platform, store]) => /^https:\/\//.test(store.url) ? <a key={platform} href={store.url} rel="noreferrer">{store.name}에서 설치하기 ↗</a> : <span key={platform}>{store.name}에서 ‘접시’를 찾아보세요.</span>)}</section>
+   <section className="campaign-downloads" aria-label="앱 설치">{Object.entries(APP_DOWNLOADS).map(([platform, store]) => /^https:\/\//.test(store.url) ? <a key={platform} href={store.url} rel="noreferrer">{store.name}에서 설치하기 ↗</a> : <span key={platform}>{store.name}에서 ‘접시’를 찾아보세요.</span>)}</section>
    <p className="campaign-footnote">앱 열기가 동작하지 않으면 설치 여부와 최신 버전을 확인해 주세요. 설치 뒤에는 이 페이지로 돌아와 앱을 열거나 캠페인 코드를 입력할 수 있어요.</p>
   </main><footer className="campaign-footer"><Link to="/terms-of-service">이용약관</Link><Link to="/privacy-policy">개인정보 처리방침</Link></footer>
  </div>;
