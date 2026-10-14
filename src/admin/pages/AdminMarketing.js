@@ -9,6 +9,7 @@ import {getMarketingProduction,getMarketingPreview,getMarketingMeasurement,marke
 import bootstrap from '../api/marketingBootstrap.json';
 import useMarketingConsole from './useMarketingConsole';
 import MarketingDialog from './MarketingDialog';
+import {downloadMarketingSession} from './marketingSession';
 import {makeDialog,buildRequest} from './marketingActions';
 import {TABS,label,time,summarize,safeRetry,healthyAccount,errorMessage,datetime,workerReason} from './marketingModel';
 import './Marketing.css';
@@ -24,7 +25,7 @@ function storageGet(key){try{const text=sessionStorage.getItem(key);if(!text)ret
 function storageSet(key,value){try{if(value)sessionStorage.setItem(key,JSON.stringify(value));else sessionStorage.removeItem(key);}catch{throw Error('이 브라우저에서 요청 복구 기록을 저장할 수 없어요. 저장소 설정을 확인해 주세요.');}}
 
 export default function AdminMarketing(){
- const {user,canAdmin}=useAuth(),allowed=userCanViewApiRegistry(user),scope=JSON.stringify([user?.accountSubject,user?.roles,user?.permissions]);
+ const {user,canAdmin,accessToken}=useAuth(),allowed=userCanViewApiRegistry(user),scope=JSON.stringify([user?.accountSubject,user?.roles,user?.permissions]);
  const result=useMarketingConsole(allowed,scope),data=result.snapshot||EMPTY;
  const [params,setParams]=useSearchParams();const tab=TABS.some(([key])=>key===params.get('tab'))?params.get('tab'):'overview';
  const [dialog,setDialog]=useState(null),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[pending,setPending]=useState(null),[selectedId,setSelectedId]=useState(''),[detail,setDetail]=useState({state:'idle',production:null,previews:{}}),[measurement,setMeasurement]=useState({state:'idle',data:null,error:''}),[measureCampaign,setMeasureCampaign]=useState('');
@@ -55,6 +56,7 @@ export default function AdminMarketing(){
  },[allowed,scope,tab,measureCampaign,result.snapshot?.observedAt,data.queue.campaigns]);
  function open(kind,target,extra={}){if(!canWrite)return;setNotice('');setDialog(makeDialog(kind,target,data,extra));}
  function close(){if(busy)return;if(dialog&&['edit','campaign'].includes(dialog.kind)&&!window.confirm('입력한 내용을 저장하지 않고 닫을까요?'))return;setDialog(null);}
+ function saveMacSession(){if(!canWrite)return;try{const saved=downloadMarketingSession(user,accessToken);setNotice('Mac 연결파일을 저장했어요. 로그인 만료: '+new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',dateStyle:'short',timeStyle:'short'}).format(new Date(saved.expiresAt))+'. 만료되면 새 파일을 저장해 주세요.');}catch(error){setNotice(error.message);}}
  async function run(request){
   if(!writeAllowed||busyRef.current)throw Error('현재 권한과 요청 상태를 확인해 주세요.');busyRef.current=true;setBusy(true);const startScope=scope,controller=new AbortController();mutation.current=controller;
   try{storageSet(intentKey,request);setPending(request);let body=request.body;
@@ -70,7 +72,7 @@ export default function AdminMarketing(){
  const button=(text,fn,disabled=false)=><button type="button" className="mk-action" disabled={!canWrite||disabled} onClick={fn}>{text}</button>;
  const control=(text,target,path,revision,paused,disabled=false)=>button(text,()=>open('control',target,{path,revision,paused,description:paused?'생성·게시 실행을 중단하고 진행 중인 작업도 다음 확인 지점에서 멈춰요.':'미확인 결과가 없을 때 실행을 재개해요. 반복 실행이나 SNS 연결을 활성화하는 버튼은 아니에요.'}),disabled);
  if(!allowed)return <div role="alert">이 메뉴는 su12ng 운영자만 확인할 수 있어요.</div>;
- return <div className="mk-page"><AdminPageHeader eyebrow="접시 · 마케팅 운영" title="작게 실험하고, 반응을 확인해요." description="제작부터 게시 결과까지 한 곳에서 확인하고 조치하세요." actions={<button className="mk-action" disabled={result.loading||busy||Boolean(dialog)} onClick={()=>result.load()}>상태 새로고침</button>}/>
+ return <div className="mk-page"><AdminPageHeader eyebrow="접시 · 마케팅 운영" title="작게 실험하고, 반응을 확인해요." description="제작부터 게시 결과까지 한 곳에서 확인하고 조치하세요." actions={<div className="mk-toolbar">{button('Mac 연결파일 저장',saveMacSession,!accessToken||Boolean(dialog))}<button className="mk-action" disabled={result.loading||busy||Boolean(dialog)} onClick={()=>result.load()}>상태 새로고침</button></div>}/>
  {!canAdmin(ADMIN_PERMISSIONS.SETTING_MANAGE)&&<p className="mk-alert">조회 권한으로 접속했어요. 설정 변경과 작업 등록은 할 수 없어요.</p>}
  {result.error&&<div role="alert" className="mk-alert"><strong>현재 서버 상태를 확인하지 못했어요.</strong><p>{result.error}</p><p>표시된 이전 정보로 작업을 실행하지 않아요.</p></div>}
  {notice&&<p role="status" className="mk-notice">{notice}</p>}
