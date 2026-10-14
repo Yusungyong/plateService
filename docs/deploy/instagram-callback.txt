@@ -1,0 +1,24 @@
+Instagram Login callback deployment (AWS Amplify)
+
+Related issue: Yusungyong/plateService#44. This is the callback portion only.
+
+Deploy public/marketing/instagram/callback/index.html through the existing main branch hosting build.
+Amplify Hosting > Rewrites and redirects needs a 200 rewrite before the SPA rules:
+source /marketing/instagram/callback/
+target /marketing/instagram/callback/index.html
+
+Keep the existing two rules: /<*> 404-200 fallback and the existing SPA extension regex 200 rewrite.
+The operator reports the additive rule was saved on 2026-10-14. Actual hosted output must be checked.
+
+The callback document is standalone and does not load React, user sessions or external resources.
+It immediately clears code/state from the visible URL, validates a single code/state and the exact
+registered HTTPS origin/path, and offers a local JSON download for the Mac connection tool.
+App Secret and access tokens remain in private Mac files and are never embedded in this page.
+
+Before starting a real OAuth session, verify the public URL returns the exact callback HTML,
+then check synthetic success/cancel/duplicate-query handling and no external browser requests.
+A plain URL visit displays the unsuccessful-connection message because no code/state is present.
+Production rollout of other marketing UI/API features and real social publication are separate.
+
+Validation: existing legal/router13 tests, production build and isolated Chrome3 synthetic cases.
+This PR does not claim a completed real Meta login or an authenticated-account test.
