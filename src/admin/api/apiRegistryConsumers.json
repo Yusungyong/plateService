@@ -1,6 +1,6 @@
 {
   "analyzedAt": "2026-10-14",
-  "sourceEvidence": "Reviewed app source and server PR #149 (44bf85701ec16e8fbb299269a30cc2330c97cf62). Additive consumer links; explicit replace only for retired UI consumers. Runtime registration remains authoritative. Operations console server PR #153 and web PR #38 are deployed (2026-10-13). Admin actions server PR #155/#157/#159 deployed and verified (2026-10-13, main 2a62453731c20aa47a4f81a23d9517ad7941ba1c). Marketing stage9 is locally implemented on server #164 and web #45; not deployed.",
+  "sourceEvidence": "Reviewed app source and server PR #149 (44bf85701ec16e8fbb299269a30cc2330c97cf62). Additive consumer links; explicit replace only for retired UI consumers. Runtime registration remains authoritative. Operations console server PR #153 and web PR #38 are deployed (2026-10-13). Admin actions server PR #155/#157/#159 deployed and verified (2026-10-13, main 2a62453731c20aa47a4f81a23d9517ad7941ba1c). Marketing stages 5–9: server PR #165 deployed and production-verified on 2026-10-14 (main f06fdf2dbecee78d02e215d43759e29ede1973fb, Flyway V52). Web consumer links and management UI are included in this release (PR #47; issues server #164 and web #45).",
   "appSourceHashes": {
     "docs/code-optimization-2026-10-11.md": "fcc8f29ba122b98c85004691ba22b1e95314a5848c4309ea42e7b6c43509f44c",
     "output/db-performance-implementation-2026-10-10/README.txt": "dc63c206cd37fa413c45e8137742a3c30d8c75e6fc86816ba45873eb882c10ea",
