@@ -95,6 +95,8 @@ export function normalizeDashboardData({
     })),
     recentActivities: (activities.content || []).map((item) => ({
       id: item.id,
+      resourceType: item.resourceType,
+      resourceId: item.resourceId,
       occurredAt: item.occurredAt,
       storeName:
         item.storeName ||

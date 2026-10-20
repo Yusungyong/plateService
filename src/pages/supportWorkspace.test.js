@@ -1,6 +1,6 @@
 import React from 'react';
 import {act,fireEvent,render,screen,waitFor,within} from '@testing-library/react';
-import {MemoryRouter} from 'react-router-dom';
+import {MemoryRouter,createMemoryRouter,RouterProvider} from 'react-router-dom';
 import QnA from './QnA';
 import FAQ from './FAQ';
 import {fetchQna,updateQna} from '../api/qnaApi';
@@ -89,4 +89,40 @@ test('FAQ default selection, new writing and editing move focus into the matchin
 test('Q&A default selection and another inquiry both move keyboard focus to the detail heading',async()=>{
  show(QnA);await screen.findByRole('button',{name:/첫 번째 합성 문의/});fireEvent.click(screen.getByRole('button',{name:/첫 번째 합성 문의/}));await waitFor(()=>expect(screen.getByRole('heading',{name:'문의 상세'})).toHaveFocus());
  fireEvent.click(screen.getByRole('button',{name:/두 번째 합성 문의/}));await waitFor(()=>expect(screen.getByLabelText('답변 내용')).toHaveValue('기존 답변'));await waitFor(()=>expect(screen.getByRole('heading',{name:'문의 상세'})).toHaveFocus());expect(updateQna).not.toHaveBeenCalled();
+});
+
+function showAt(Component,path){const router=createMemoryRouter([{path:'*',element:<Component adminMode/>}],{initialEntries:[path]});render(<RouterProvider router={router}/>);return router;}
+
+test('Q&A deep links apply server status and explicit loaded search, including browser history',async()=>{
+ const router=showAt(QnA,'/admin/qna?statusCode=received&keyword=첫');
+ await screen.findByRole('button',{name:/첫 번째 합성 문의/});expect(fetchQna).toHaveBeenLastCalledWith(expect.objectContaining({statusCode:'received',adminMode:true}));
+ expect(within(screen.getByRole('region',{name:'문의 목록'})).queryByRole('button',{name:/두 번째 합성 문의/})).not.toBeInTheDocument();
+ expect(screen.getByLabelText('적용된 문의 조건')).toHaveTextContent('불러온 목록 검색: 첫');
+ fireEvent.click(screen.getByRole('button',{name:'답변 완료',exact:true}));await waitFor(()=>expect(new URLSearchParams(router.state.location.search).get('statusCode')).toBe('answered'));
+ await act(async()=>router.navigate(-1));await waitFor(()=>expect(fetchQna).toHaveBeenLastCalledWith(expect.objectContaining({statusCode:'received'})));
+ expect(screen.getByLabelText('불러온 문의에서 검색')).toHaveValue('첫');expect(updateQna).not.toHaveBeenCalled();
+});
+
+test('Q&A dirty drafts block URL navigation and approved status drilldown asks only once',async()=>{
+ const router=showAt(QnA,'/admin/qna?statusCode=received');await screen.findByLabelText('답변 내용');fireEvent.change(screen.getByLabelText('답변 내용'),{target:{value:'보존할 답변'}});window.confirm.mockReturnValue(false);
+ await act(async()=>router.navigate('/admin/qna?statusCode=answered'));expect(router.state.location.search).toBe('?statusCode=received');expect(screen.getByLabelText('답변 내용')).toHaveValue('보존할 답변');
+ window.confirm.mockClear();window.confirm.mockReturnValue(true);fireEvent.click(screen.getByRole('button',{name:'답변 완료',exact:true}));
+ await waitFor(()=>expect(new URLSearchParams(router.state.location.search).get('statusCode')).toBe('answered'));expect(window.confirm).toHaveBeenCalledTimes(1);expect(updateQna).not.toHaveBeenCalled();
+});
+
+test('FAQ deep-linked status filters only loaded rows and browser back restores the condition',async()=>{
+ const router=showAt(FAQ,'/admin/faq?status=review&category=account&keyword=FAQ');
+ expect(await screen.findByRole('heading',{name:'검토할 FAQ 제목'})).toBeInTheDocument();
+ expect(fetchFaqs).toHaveBeenLastCalledWith(expect.objectContaining({category:'account',keyword:'FAQ'}));expect(fetchFaqs.mock.calls[0][0]).not.toHaveProperty('status');
+ expect(screen.getByLabelText('적용된 FAQ 조건')).toHaveTextContent('불러온 목록 상태: 검토 중');
+ fireEvent.click(screen.getByRole('button',{name:'게시 중',exact:true}));expect(fetchFaqs).toHaveBeenCalledTimes(1);
+ await act(async()=>router.navigate(-1));expect(screen.getByRole('button',{name:'검토 중',exact:true})).toHaveAttribute('aria-pressed','true');expect(fetchFaqs).toHaveBeenCalledTimes(1);
+ fireEvent.click(screen.getByRole('button',{name:'조회 결과 2건 FAQ 목록 보기'}));await waitFor(()=>expect(screen.getByRole('heading',{name:'안내 목록'})).toHaveFocus());expect(updateFaq).not.toHaveBeenCalled();
+});
+
+test('FAQ filtered navigation protects edits and never saves when following a status',async()=>{
+ const router=showAt(FAQ,'/admin/faq');await waitFor(()=>expect(screen.getByRole('button',{name:'내용 편집'})).toBeEnabled());fireEvent.click(screen.getByRole('button',{name:'내용 편집'}));fireEvent.change(screen.getByLabelText('제목'),{target:{value:'보존할 제목'}});
+ window.confirm.mockReturnValue(false);fireEvent.click(screen.getByRole('button',{name:'검토 중',exact:true}));expect(router.state.location.search).toBe('');expect(screen.getByLabelText('제목')).toHaveValue('보존할 제목');
+ window.confirm.mockClear();window.confirm.mockReturnValue(true);fireEvent.click(screen.getByRole('button',{name:'검토 중',exact:true}));await waitFor(()=>expect(router.state.location.search).toBe('?status=review'));expect(window.confirm).toHaveBeenCalledTimes(1);
+ expect(updateFaq).not.toHaveBeenCalled();expect(createFaq).not.toHaveBeenCalled();expect(deleteFaq).not.toHaveBeenCalled();
 });

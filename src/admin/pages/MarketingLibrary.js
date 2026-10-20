@@ -1,9 +1,10 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import {creativeDate, creativeCampaign, filterCreatives, label, time} from './marketingModel';
 
-export default function MarketingLibrary({creatives, campaigns, selectedId, onSelect, children, initialFilter='all', locked=false}) {
+export default function MarketingLibrary({creatives, campaigns, selectedId, onSelect, children, initialFilter='all', filterValue,onFilterChange,locked=false}) {
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState(initialFilter);
+  const [localFilter, setFilter] = useState(initialFilter);
+  const filter=filterValue??localFilter;
   const visible = useMemo(() => filterCreatives(creatives,campaigns,query,filter), [creatives,campaigns,query,filter]);
   const selectedVisible = visible.some(item => item.id === selectedId);
   useEffect(() => {
@@ -14,7 +15,7 @@ export default function MarketingLibrary({creatives, campaigns, selectedId, onSe
       <div className="mk-library-heading"><h3>제작물 보관함</h3><span>{creatives.length}개</span></div>
       <label className="mk-library-search"><span>제작물 검색</span><input type="search" value={query} disabled={locked}
         placeholder="날짜, 캠페인, 상태 검색" onChange={e => setQuery(e.target.value)}/></label>
-      <label className="mk-library-filter"><span>제작 상태</span><select value={filter} disabled={locked} onChange={e => setFilter(e.target.value)}>
+      <label className="mk-library-filter"><span>제작 상태</span><select value={filter} disabled={locked} onChange={e => {setFilter(e.target.value);onFilterChange?.(e.target.value);}}>
         <option value="all">전체 제작물</option><option value="review">검토할 제작물</option><option value="ready">검토 완료</option><option value="waiting">카드 제작 대기</option>
       </select></label>
       <p className="mk-library-count" role="status">{visible.length}개 표시 · 최근 목록 기준</p>

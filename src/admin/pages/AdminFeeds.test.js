@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent, within, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, createMemoryRouter, RouterProvider } from "react-router-dom";
 import AdminFeeds from "./AdminFeeds";
 import { useAuth } from "../../auth/AuthContext";
 import {
@@ -62,7 +62,7 @@ test("read-only feed access cannot moderate or read reports without permission",
   useAuth.mockReturnValue({ canAdmin: (p) => p === "FEED_READ" });
   mount();
   fireEvent.click(await screen.findByRole("button", { name: "피드 #42 검토" }));
-  await screen.findByText("점검할 사진 콘텐츠");
+  await within(screen.getByRole("dialog", {name:"피드 #42"})).findByText("점검할 사진 콘텐츠");
   expect(screen.queryByRole("button", { name: "피드 숨김" })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "추천 지정" })).not.toBeInTheDocument();
   expect(getAdminFeedReports).not.toHaveBeenCalled();
@@ -90,16 +90,36 @@ test("authorized preview images stay visible after changing moderation state", a
   expect(screen.getByText("사진을 표시하지 못했습니다. 상세 새로고침으로 다시 확인해 주세요.")).toBeInTheDocument();
 });
 
-test("visibility shortcuts query the server; report filter is explicitly scoped to the loaded page", async () => {
-  getAdminFeeds.mockResolvedValue({content:[feed, {...feed,feedId:43,reportCount:0}],hasNext:true});
+test("report and visibility filters query the whole server collection without moderation", async () => {
   mount();
-  await screen.findByRole("button", {name:"피드 #43 검토"});
-  fireEvent.click(screen.getByRole("checkbox", {name:"이 페이지에서 신고 있는 항목만"}));
-  expect(screen.queryByRole("button", {name:"피드 #43 검토"})).not.toBeInTheDocument();
-  expect(screen.getByRole("button", {name:"피드 #42 검토"})).toBeInTheDocument();
+  await screen.findByRole("button", {name:"피드 #42 검토"});
+  fireEvent.click(screen.getByRole("checkbox", {name:"신고 있는 사진 전체"}));
+  await waitFor(()=>expect(getAdminFeeds).toHaveBeenLastCalledWith({keyword:"",visibility:"",reported:true,page:0},expect.objectContaining({signal:expect.anything()})));
   fireEvent.click(screen.getByRole("button", {name:"숨김",exact:true}));
   await waitFor(() => expect(getAdminFeeds).toHaveBeenLastCalledWith(
-    {keyword:"",visibility:"hidden",page:0}, expect.objectContaining({signal:expect.anything()})
+    {keyword:"",visibility:"hidden",reported:true,page:0}, expect.objectContaining({signal:expect.anything()})
   ));
   expect(moderateAdminFeed).not.toHaveBeenCalled();
+});
+test("direct dashboard and member links retain exact author, dates and region", async()=>{
+  render(<MemoryRouter initialEntries={["/admin/feeds?author=alice&from=2026-10-01&to=2026-10-20&region=서울&located=1&feed=42"]}><AdminFeeds/></MemoryRouter>);
+  await screen.findByRole("button",{name:"피드 숨김"});
+  expect(getAdminFeeds).toHaveBeenCalledWith(expect.objectContaining({author:"alice",from:"2026-10-01",to:"2026-10-20",region:"서울",located:true}),expect.anything());
+  fireEvent.click(screen.getByRole("button",{name:"닫기",exact:true}));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(screen.getByRole("button",{name:"작성자: alice ×"})).toBeInTheDocument();
+  expect(moderateAdminFeed).not.toHaveBeenCalled();
+});
+
+test("discarding a feed action on browser back closes the reason dialog without sending to another target",async()=>{
+  const confirm=jest.spyOn(window,"confirm").mockReturnValue(true);
+  const router=createMemoryRouter([{path:"/admin/feeds",element:<AdminFeeds/>}],{initialEntries:["/admin/feeds?reported=1","/admin/feeds?reported=1&feed=42"]});
+  render(<RouterProvider router={router}/>);
+  fireEvent.click(await screen.findByRole("button",{name:"피드 숨김"}));
+  fireEvent.change(screen.getByLabelText("처리 사유"),{target:{value:"이동하며 폐기할 사유"}});
+  await React.act(async()=>{await router.navigate(-1);});
+  await waitFor(()=>expect(screen.queryByRole("dialog",{name:"피드 운영 조치"})).not.toBeInTheDocument());
+  expect(confirm).toHaveBeenCalled();
+  expect(router.state.location.search).toBe("?reported=1");
+  expect(moderateAdminFeed).not.toHaveBeenCalled();confirm.mockRestore();
 });

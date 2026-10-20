@@ -2,7 +2,7 @@ import React, {useId, useMemo, useState} from "react";
 import {moduleDetails} from "../pages/apiRegistryModel";
 import ApiClientErrorBadge from "./ApiClientErrorBadge";
 
-export default function ApiModuleStructure({architecture, moduleSummaries = []}) {
+export default function ApiModuleStructure({architecture, moduleSummaries = [],onSelectModule}) {
   const modules = architecture?.modules || [];
   const selectionId = useId();
   const [selectedId, setSelectedId] = useState(modules[0]?.id || "");
@@ -17,7 +17,7 @@ export default function ApiModuleStructure({architecture, moduleSummaries = []})
     <p className="api-registry-note">서비스 생성자의 참조 관계를 보여줍니다. 실제 호출 흐름이나 횟수는 표시하지 않습니다.</p>
     <div className="api-structure-links">
       <div><h3>이 업무를 참조하는 업무</h3>{incoming.length ? incoming.map(edge => <button type="button" key={`${edge.fromModule}-${edge.toModule}`} data-error-severity={errors(edge.fromModule)?.clientErrorSeverity} onClick={() => setSelectedId(edge.fromModule)}><strong>{moduleDetails(edge.fromModule).label}</strong><span>참조 {edge.dependencyCount}개 →</span><ApiClientErrorBadge row={errors(edge.fromModule)} compact /></button>) : <p>소스에서 확인된 참조 없음</p>}</div>
-      <div className="api-structure-focus" data-error-severity={errors(selected.id)?.clientErrorSeverity}><span className="api-info-text">선택한 업무</span><h3>{moduleDetails(selected.id).label}</h3><p>{selected.portCount}개 인터페이스</p><small>명령 {selected.commandMethodCount} · 조회 {selected.queryMethodCount}</small><ApiClientErrorBadge row={errors(selected.id)} compact /></div>
+      <div className="api-structure-focus" data-error-severity={errors(selected.id)?.clientErrorSeverity}><span className="api-info-text">선택한 업무</span><h3>{moduleDetails(selected.id).label}</h3><p>{selected.portCount}개 인터페이스</p><small>명령 {selected.commandMethodCount} · 조회 {selected.queryMethodCount}</small><ApiClientErrorBadge row={errors(selected.id)} compact />{onSelectModule&&<button type="button" className="api-text-button" onClick={()=>onSelectModule(selected.id)}>이 업무의 API {errors(selected.id)?.apiCount??0}개 보기 →</button>}</div>
       <div><h3>이 업무가 참조하는 업무</h3>{outgoing.length ? outgoing.map(edge => <button type="button" key={`${edge.fromModule}-${edge.toModule}`} data-error-severity={errors(edge.toModule)?.clientErrorSeverity} onClick={() => setSelectedId(edge.toModule)}><strong>→ {moduleDetails(edge.toModule).label}</strong><span>참조 {edge.dependencyCount}개</span><ApiClientErrorBadge row={errors(edge.toModule)} compact /></button>) : <p>소스에서 확인된 참조 없음</p>}</div>
     </div>
     <p className="api-registry-note">오류 표시는 각 업무의 HTTP API에 보고된 실패 합계입니다. 업무 참조 관계만으로 장애 전파나 원인을 판단하지 않습니다.</p>

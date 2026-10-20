@@ -32,3 +32,7 @@ export async function getMonitoredMember(username,options={}) {
 export async function revokeMemberSessions(username,value,options={}) {
  const response=await apiClient.post("/api/admin/member-monitoring/members/"+encodeURIComponent(username)+"/revoke-sessions",value,options);return unwrapAdminResponse(response);
 }
+
+export async function fetchMemberMetricDetails({metric,page=0,size=20},options={}) {
+ return unwrapAdminResponse(await apiClient.get("/api/admin/member-monitoring/metric-details",{...options,query:{metric,page,size}}));
+}

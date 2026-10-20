@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, createMemoryRouter, RouterProvider } from "react-router-dom";
 import AdminStoreApprovals from "./AdminStoreApprovals";
 import { approveStore, getStoreApprovalDetail, getStoreApprovals } from "../api/storeApprovalApi";
 
@@ -138,4 +138,33 @@ test("keeps an in-flight approval visible and shows a failure inside its drawer"
   expect(within(drawer).getByRole("button", { name: "승인" })).toBeEnabled();
   fireEvent.click(within(drawer).getByRole("button", { name: "닫기" }));
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+test("approval deep links preserve dates and status through URL history and reset", async () => {
+  const router = createMemoryRouter([{path: "*", element: <AdminStoreApprovals />}], {initialEntries: ["/admin/store-approvals?status=pending&keyword=모닝&appliedFrom=2026-10-01&appliedTo=2026-10-20"]});
+  render(<RouterProvider router={router} />);
+  await screen.findByRole("button", {name: "검토"});
+  expect(getStoreApprovals).toHaveBeenLastCalledWith(expect.objectContaining({status: "pending", keyword: "모닝", appliedFrom: "2026-10-01", appliedTo: "2026-10-20"}));
+  expect(screen.getByLabelText("적용된 신청 조건")).toHaveTextContent("신청일 시작: 2026-10-01");
+  fireEvent.click(within(screen.getByRole("group", {name: "승인 상태 빠른 필터"})).getByRole("button", {name: "보류"}));
+  await waitFor(() => expect(new URLSearchParams(router.state.location.search).get("status")).toBe("on_hold"));
+  await act(async () => router.navigate(-1));
+  await waitFor(() => expect(getStoreApprovals).toHaveBeenLastCalledWith(expect.objectContaining({status: "pending", appliedFrom: "2026-10-01"})));
+  fireEvent.click(screen.getByRole("button", {name: "조회 결과 1건 신청 목록 보기"}));
+  await waitFor(() => expect(screen.getByRole("heading", {name: "신청 목록 1건"})).toHaveFocus());
+  fireEvent.click(screen.getByRole("button", {name: "초기화"}));
+  await waitFor(() => expect(router.state.location.search).toBe(""));
+  expect(approveStore).not.toHaveBeenCalled();
+});
+
+test("approval detail status opens its evidence list without approving the store", async () => {
+  const router = createMemoryRouter([{path: "*", element: <AdminStoreApprovals />}], {initialEntries: ["/admin/store-approvals"]});
+  render(<RouterProvider router={router} />);
+  fireEvent.click(await screen.findByRole("button", {name: "검토"}));
+  const detail = await screen.findByRole("dialog", {name: store.name});
+  fireEvent.click(within(detail).getByRole("button", {name: "입점 심사 중 신청 목록 보기"}));
+  await waitFor(() => expect(getStoreApprovals).toHaveBeenLastCalledWith(expect.objectContaining({verificationStatus: "reviewing"})));
+  expect(router.state.location.search).toContain("verificationStatus=reviewing");
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(approveStore).not.toHaveBeenCalled();
 });

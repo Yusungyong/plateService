@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {Link} from 'react-router-dom';
+import {Link, useSearchParams} from 'react-router-dom';
+import { focusWorkspaceList, readWorkspaceQuery, writeWorkspaceQuery } from './storeSupportQuery';
 import { createFaq, deleteFaq, fetchFaqDetail, fetchFaqs, updateFaq } from "../api/faqApi";
 import ConfirmDialog from "../admin/components/ConfirmDialog";
 import PageLayout from "../components/PageLayout";
@@ -48,16 +49,23 @@ function mergeUniqueById(currentItems, nextItems, key) {
 }
 
 function FAQ({ adminMode = false }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryKey = searchParams.toString();
+  const previousQuery = useRef(queryKey);
+  const approvedNavigation = useRef(false);
+  const listHeadingRef = useRef(null);
+  const queryFilters = () => adminMode ? readWorkspaceQuery(searchParams, initialFaqFilters) : initialFaqFilters;
   const listRequest=useRef(0);
   const detailRef=useRef(null);
   const detailHeadingRef=useRef(null);
-  const [statusFilter,setStatusFilter]=useState("");
+  const [statusFilter,setStatusFilter]=useState(() => adminMode ? readWorkspaceQuery(searchParams, {status:""}, {status:["published","review","draft"]}).status : "");
+  const statusRef=useRef(statusFilter); statusRef.current=statusFilter;
   const [editorTargetId,setEditorTargetId]=useState(null);
   const [originalDraft,setOriginalDraft]=useState(emptyDraft);
   const [detailError,setDetailError]=useState("");
   const [detailReload,setDetailReload]=useState(0);
-  const [filters, setFilters] = useState(initialFaqFilters);
-  const [appliedFilters, setAppliedFilters] = useState(initialFaqFilters);
+  const [filters, setFilters] = useState(queryFilters);
+  const [appliedFilters, setAppliedFilters] = useState(queryFilters);
   const [faqPage, setFaqPage] = useState({
     content: [],
     page: 0,
@@ -78,6 +86,20 @@ function FAQ({ adminMode = false }) {
   const [submitMessage, setSubmitMessage] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [pendingDeleteFaqId, setPendingDeleteFaqId] = useState(null);
+
+  useEffect(() => { approvedNavigation.current = false; });
+  useEffect(() => {
+    if (!adminMode || queryKey === previousQuery.current) return;
+    previousQuery.current = queryKey;
+    const params = new URLSearchParams(queryKey);
+    const next = readWorkspaceQuery(params, initialFaqFilters);
+    setFilters(next);
+    setAppliedFilters(current => JSON.stringify(current) === JSON.stringify(next) ? current : next);
+    setStatusFilter(readWorkspaceQuery(params, {status:""}, {status:["published","review","draft"]}).status);
+    setSelectedFaqId(null); setSelectedFaqDetail(null); setIsEditorOpen(false);
+    setDraft(emptyDraft); setOriginalDraft(emptyDraft);
+    focusWorkspaceList(listHeadingRef);
+  }, [adminMode, queryKey]);
 
   const loadFaqList = useCallback(async ({ nextSelectedFaqId, page = 0, append = false } = {}) => {
     const request=++listRequest.current;
@@ -108,7 +130,7 @@ function FAQ({ adminMode = false }) {
       const responsePage = response?.page ?? page;
       const responseSize = response?.size ?? PAGE_SIZE;
       const responseTotalPages = response?.totalPages ?? (content.length > 0 ? 1 : 0);
-      const fallbackFaqId = content[0]?.faqId ?? null;
+      const fallbackFaqId = content.find(post => !statusRef.current || post.statusCode === statusRef.current)?.faqId ?? null;
       const resolvedFaqId =
         nextSelectedFaqId && content.some((item) => item.faqId === nextSelectedFaqId)
           ? nextSelectedFaqId
@@ -210,7 +232,18 @@ function FAQ({ adminMode = false }) {
     if(!allowWorkspaceChange())return;
     resetDraft(true);setSelectedFaqId(id);focusFaqDetail();
   }
-  function changeStatus(value){if(!allowWorkspaceChange())return;resetDraft(true);setStatusFilter(value);setSelectedFaqId(faqPosts.find(post=>!value||post.statusCode===value)?.faqId||null);}
+  function changeStatus(value){
+    if(!allowWorkspaceChange())return;
+    resetDraft(true);setStatusFilter(value);setSelectedFaqId(faqPosts.find(post=>!value||post.statusCode===value)?.faqId||null);
+    writeWorkspaceQuery(setSearchParams,previousQuery,{...appliedFilters,status:value},approvedNavigation);
+    focusWorkspaceList(listHeadingRef);
+  }
+  function returnToFaqList(){if(!allowWorkspaceChange())return;resetDraft(true);setSelectedFaqId(null);setSelectedFaqDetail(null);focusWorkspaceList(listHeadingRef);}
+  function removeFaqFilter(field){
+    if(!allowWorkspaceChange())return;
+    resetDraft(true);const next={...appliedFilters,[field]:""};setFilters(next);setAppliedFilters(next);
+    writeWorkspaceQuery(setSearchParams,previousQuery,{...next,status:statusFilter},approvedNavigation);focusWorkspaceList(listHeadingRef);
+  }
   function openCreateEditor(){if(!allowWorkspaceChange())return;setEditorMode("create");setEditorTargetId(null);setDraft(emptyDraft);setOriginalDraft(emptyDraft);setSubmitError("");setSubmitMessage("");setIsEditorOpen(true);focusFaqDetail();}
   function resetDraft(force=false) {
     if(!force&&!allowWorkspaceChange())return;
@@ -311,10 +344,9 @@ function FAQ({ adminMode = false }) {
     event.preventDefault();
     if(adminMode&&!allowWorkspaceChange())return;
     if(adminMode)resetDraft(true);
-    setAppliedFilters({
-      category: filters.category,
-      keyword: filters.keyword.trim(),
-    });
+    const next = {category: filters.category, keyword: filters.keyword.trim()};
+    setAppliedFilters(next);
+    if(adminMode){writeWorkspaceQuery(setSearchParams,previousQuery,{...next,status:statusFilter},approvedNavigation);focusWorkspaceList(listHeadingRef);}
   }
 
   function resetFilters() {
@@ -322,6 +354,7 @@ function FAQ({ adminMode = false }) {
     if(adminMode){resetDraft(true);setStatusFilter("");}
     setFilters(initialFaqFilters);
     setAppliedFilters(initialFaqFilters);
+    if(adminMode){writeWorkspaceQuery(setSearchParams,previousQuery,initialFaqFilters,approvedNavigation);focusWorkspaceList(listHeadingRef);}
   }
 
   function handleLoadMoreFaq() {
@@ -356,13 +389,19 @@ function FAQ({ adminMode = false }) {
   }
 
   if(adminMode) return <PageLayout title="자주 묻는 질문 관리" className="support-workspace" description="사용자에게 보여줄 안내를 찾고, 필요한 내용만 편집하세요.">
-    <UnsavedChangesGuard when={editorDirty} pending={isSubmitting}/>
-    <div className="sw-topline"><p><strong>{faqPage.totalElements.toLocaleString()}건</strong> 조회 결과 · {faqPosts.length}건 불러옴</p><button type="button" className="button-primary" onClick={openCreateEditor} disabled={isSubmitting}>새 FAQ 등록</button></div>
+    <UnsavedChangesGuard when={editorDirty} pending={isSubmitting} completed={approvedNavigation}/>
+    <div className="sw-topline"><p><button type="button" className="sw-metric-link" onClick={()=>focusWorkspaceList(listHeadingRef)} aria-label={`조회 결과 ${faqPage.totalElements}건 FAQ 목록 보기`}><strong>{faqPage.totalElements.toLocaleString()}건</strong> 조회 결과 →</button> · {faqPosts.length}건 불러옴</p><button type="button" className="button-primary" onClick={openCreateEditor} disabled={isSubmitting}>새 FAQ 등록</button></div>
     <div className="sw-status-bar" aria-label="불러온 FAQ의 게시 상태">{[["","전체"],["published","게시 중"],["review","검토 중"],["draft","임시 저장"]].map(([value,text])=><button type="button" key={value} aria-pressed={statusFilter===value} disabled={isSubmitting} onClick={()=>changeStatus(value)}>{text}</button>)}</div>
     <form className="sw-filters" onSubmit={handleSearch}><label><span>FAQ 검색</span><input type="search" value={filters.keyword} onChange={event=>updateFilter("keyword",event.target.value)} placeholder="제목 또는 답변 검색" disabled={isSubmitting}/></label><label><span>분류</span><select value={filters.category} onChange={event=>updateFilter("category",event.target.value)} disabled={isSubmitting}><option value="">모든 분류</option>{Object.entries(categoryLabels).map(([value,text])=><option key={value} value={value}>{text}</option>)}</select></label><div className="sw-filter-actions"><button type="button" onClick={resetFilters} disabled={isSubmitting}>초기화</button><button type="submit" className="button-primary" disabled={isSubmitting}>조회</button></div></form>
+    <div className="sw-applied-filters" role="group" aria-label="적용된 FAQ 조건"><strong>적용 조건</strong>
+      {appliedFilters.keyword&&<button type="button" onClick={()=>removeFaqFilter("keyword")}>검색: {appliedFilters.keyword} ×</button>}
+      {appliedFilters.category&&<button type="button" onClick={()=>removeFaqFilter("category")}>분류: {toCategoryLabel(appliedFilters.category)} ×</button>}
+      {statusFilter&&<button type="button" onClick={()=>changeStatus("")}>불러온 목록 상태: {({published:"게시 중",review:"검토 중",draft:"임시 저장"})[statusFilter]} ×</button>}
+      {!appliedFilters.keyword&&!appliedFilters.category&&!statusFilter&&<span>전체 FAQ</span>}
+    </div>
     {loadError&&<div className="api-status api-status--error" role="alert">{loadError}<button type="button" onClick={()=>{if(allowWorkspaceChange())loadFaqList();}} disabled={isSubmitting||isListLoading}>다시 시도</button></div>}
     {submitMessage&&<div className="api-status api-status--success" role="status">{submitMessage}</div>}
-    <div className="sw-columns"><section className="sw-list" aria-label="FAQ 목록"><div className="sw-panel-heading"><h2>안내 목록</h2><span>{workspacePosts.length}건 표시</span></div><p className="sw-list-hint">게시 상태는 불러온 목록을 기준으로 분류해요.</p>
+    <div className="sw-columns"><section className="sw-list" aria-label="FAQ 목록"><div className="sw-panel-heading"><h2 ref={listHeadingRef} tabIndex={-1}>안내 목록</h2><button type="button" className="sw-metric-link" onClick={()=>focusWorkspaceList(listHeadingRef)}>{workspacePosts.length}건 표시 →</button></div><p className="sw-list-hint">게시 상태는 불러온 목록을 기준으로 분류해요.</p>
       {isListLoading&&!faqPosts.length?<p className="sw-empty" role="status">FAQ 목록을 불러오고 있어요.</p>:!workspacePosts.length?<p className="sw-empty">조건에 맞는 FAQ가 없어요.</p>:<ul>{workspacePosts.map(post=><li key={post.faqId}><button type="button" className="sw-list-item" aria-current={selectedFaqId===post.faqId?'true':undefined} disabled={isSubmitting} onClick={()=>selectFaq(post.faqId)}><span className="sw-item-meta"><span className={'sw-status sw-status--'+(post.statusCode||'unknown')}>{({published:'게시 중',review:'검토 중',draft:'임시 저장'})[post.statusCode]||'상태 확인 필요'}</span><time>{formatDate(post.updatedAt)}</time></span><strong>{post.title}</strong><span className="sw-item-caption">{toCategoryLabel(post.category)}{post.isPinned?' · 상단 고정':''}</span><span className="sw-item-arrow" aria-hidden="true">→</span></button></li>)}</ul>}
       {faqPage.hasNext&&<button type="button" className="sw-more" onClick={handleLoadMoreFaq} disabled={isListLoading||isSubmitting}>{isListLoading?'불러오는 중...':'FAQ 더 보기'}</button>}
     </section><section className="sw-detail" aria-label="선택한 FAQ" ref={detailRef}><div className="sw-panel-heading"><h2 ref={detailHeadingRef} tabIndex={-1}>{isEditorOpen?(editorMode==='edit'?'FAQ 편집':'새 FAQ 작성'):'안내 상세'}</h2>{isEditorOpen&&<span className="sw-status">{editorDirty?'저장 전':'편집 중'}</span>}</div>
@@ -462,10 +501,12 @@ function FAQ({ adminMode = false }) {
                     </button>
                   </div>
                 </fieldset></form>:workspaceSelected?<><span className="sw-eyebrow">{toCategoryLabel(workspaceSelected.category)}{workspaceSelected.isPinned?' · 상단 고정':''}</span><h3 className="sw-detail-title">{workspaceSelected.title}</h3>
+        <button type="button" className="sw-return-link" onClick={()=>changeStatus(workspaceSelected.statusCode)} aria-label={`${({published:"게시 중",review:"검토 중",draft:"임시 저장"})[workspaceSelected.statusCode]||"같은 상태"} FAQ 목록 보기`}>같은 게시 상태의 FAQ 보기 →</button>
         {isDetailLoading?<p className="sw-empty" role="status">상세 내용을 불러오고 있어요.</p>:detailError?<div className="api-status api-status--error" role="alert">{detailError}<button type="button" onClick={()=>setDetailReload(current=>current+1)}>다시 확인</button></div>:<div className="sw-answer-body">{workspaceSelected.answer||'등록된 답변이 없어요.'}</div>}
-        <dl className="sw-facts"><div><dt>작성자</dt><dd>{workspaceSelected.username||'-'}</dd></div><div><dt>최근 수정</dt><dd>{formatDate(workspaceSelected.updatedAt)}</dd></div><div><dt>조회수</dt><dd>{Number(workspaceSelected.viewCount??0).toLocaleString()}</dd></div><div><dt>노출 순서</dt><dd>{workspaceSelected.displayOrder??'-'}</dd></div></dl>
+        <dl className="sw-facts"><div><dt>작성자</dt><dd>{workspaceSelected.username||'-'}</dd></div><div><dt>최근 수정</dt><dd>{formatDate(workspaceSelected.updatedAt)}</dd></div><div><dt>조회수</dt><dd><details><summary>{Number(workspaceSelected.viewCount??0).toLocaleString()}회 · 집계 안내</summary><p>이 FAQ의 누적 조회수입니다. 개별 조회 기록은 제공되지 않습니다.</p></details></dd></div><div><dt>노출 순서</dt><dd><details><summary>{workspaceSelected.displayOrder??'-'} · 순서 안내</summary><p>이 FAQ에 저장된 노출 순서입니다. 게시 상태와 함께 확인해 주세요.</p></details></dd></div></dl>
         <div className="sw-save-bar"><button type="button" className="sw-danger-link" onClick={()=>requestDeleteFaq(workspaceSelected.faqId)} disabled={isSubmitting}>삭제</button><button type="button" className="button-primary" disabled={isSubmitting||isDetailLoading||Boolean(detailError)||selectedFaqDetail?.faqId!==workspaceSelected.faqId} onClick={()=>fillDraftFromFaq(workspaceSelected)}>내용 편집</button></div>
       </>:<p className="sw-empty">목록에서 FAQ를 선택하거나 새 안내를 작성해 주세요.</p>}
+      {(workspaceSelected||isEditorOpen)&&<button type="button" className="sw-return-link" disabled={isSubmitting} onClick={returnToFaqList}>목록으로 돌아가기</button>}
     </section></div>
     <ConfirmDialog isOpen={Boolean(pendingDeleteFaqId)} title="FAQ 삭제" description="삭제한 FAQ는 사용자 화면에 더 이상 노출되지 않습니다. 계속 삭제할까요?" confirmLabel="삭제하기" isSubmitting={isSubmitting} onCancel={()=>setPendingDeleteFaqId(null)} onConfirm={confirmDeleteFaq}/>
   </PageLayout>;

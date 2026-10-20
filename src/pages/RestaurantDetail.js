@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import {
   fetchAdminRestaurantDetail,
   fetchRestaurantDetail,
@@ -35,6 +35,9 @@ const emptyRestaurant = {
 
 function RestaurantDetail({ adminMode = false }) {
   const { restaurantId } = useParams();
+  const {state: navigationState} = useLocation();
+  const requestedReturn = navigationState?.returnTo;
+  const listPath = adminMode && typeof requestedReturn === "string" && /^\/admin\/stores(?:\?[^#]*)?$/.test(requestedReturn) ? requestedReturn : adminMode ? "/admin/stores" : "/business/stores";
   const [restaurant, setRestaurant] = useState(emptyRestaurant);
   const [menus, setMenus] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -254,7 +257,7 @@ function RestaurantDetail({ adminMode = false }) {
               <span className="support-kicker">기본 정보</span>
               <h3>{restaurant.title || "매장 이름 미입력"}</h3>
             </div>
-            <Link className="restaurant-text-link" to={adminMode ? "/admin/stores" : "/business/stores"}>
+            <Link className="restaurant-text-link" to={listPath}>
               목록으로
             </Link>
           </div>

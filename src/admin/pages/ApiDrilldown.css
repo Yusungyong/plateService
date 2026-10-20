@@ -1,0 +1,8 @@
+.api-registry .api-metric-action{font:inherit;color:inherit;background:transparent;border:0;text-align:inherit;padding:3px 0;cursor:pointer;text-decoration:underline;text-decoration-color:#d6bdae;text-underline-offset:5px}
+.api-registry .api-metric-action:hover{color:#a34724;text-decoration-color:currentColor}
+.api-registry .api-metric-action:focus-visible{outline:3px solid #f18c61;outline-offset:4px;border-radius:4px}
+.api-registry .api-runtime-evidence{background:#fff8f2;border:1px solid #e5d0be;border-radius:14px;padding:18px;margin:18px 0;overflow:auto}
+.api-runtime-evidence table{width:100%;text-align:left;border-collapse:collapse}.api-runtime-evidence th,.api-runtime-evidence td{padding:10px 12px;border-bottom:1px solid #e7ddd4}
+.api-registry :is(#api-list-section,#api-detail-section,#api-menu-panel,#api-structure-panel):focus{outline:2px solid #e7ad8d;outline-offset:5px}
+.api-module-drill-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:20px}.api-module-drill-list button{display:flex;flex-direction:column;gap:8px;border:1px solid #ded1c6;background:#fffaf4;border-radius:10px;padding:14px;color:#5b4231;text-align:left}.api-module-drill-list button:hover{background:#ffedd9}.api-module-drill-list span{font-size:12px;color:#85644e}
+.api-unlinked-errors{padding:16px;border:1px solid #e9b6a0;background:#fff4ed;border-radius:12px;margin:14px 0}.api-unlinked-errors a{display:block;margin-top:10px;color:#a94322;font-size:13px;overflow-wrap:anywhere}

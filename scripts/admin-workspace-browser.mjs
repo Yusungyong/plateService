@@ -30,7 +30,8 @@ const restaurant = {id: 17, title: '합성 검수 매장', address: '화면 검�
 const qna = {qnaId: 1, question: '합성 문의', answer: '', category: '계정문의', statusCode: 'received', isPublic: false, guestName: '합성 사용자', guestEmail: 'fixture@example.com', createdAt: date};
 const faq = {faqId: 1, title: '합성 FAQ', answer: '안내내용 · 화면 검증용 합성 답변입니다.', category: 'service', statusCode: 'published', isPinned: false, username: '운영자', updatedAt: date, viewCount: 1, displayOrder: 0};
 const fixtures = new Map([
-  ['/api/admin/member-monitoring/summary', {totalUsers: 30, newUsersToday: 2, activeUsers7d: 12, loginFailureRateToday: 3, pendingRoleChanges: 1, riskUsers24h: 1}],
+  ['/api/admin/member-monitoring/summary', {totalUsers: 30, newUsersToday: 2, activeUsers7d: 12, loginFailureRateToday: 20, loginAttemptsToday:10, loginSuccessesToday:7, loginFailuresToday:2, loginOtherToday:1, pendingRoleChanges: 1, riskUsers24h: 1}],
+  ['/api/admin/member-monitoring/metric-details',{metric:'riskUsers24h',total:1,page:0,size:20,hasNext:false,from:'2026-10-19T14:00:00+09:00',to:'2026-10-20T14:00:00+09:00',rows:[{username:'alice',nickname:'테스트 회원',available:true,reason:'받은 신고',occurredAt:date}]}],
   ['/api/admin/member-monitoring/login-risks', [{username: 'alice', riskType: 'LOGIN_FAILURE', riskLabel: '로그인 실패 증가', detail: '합성 테스트', state: '확인 필요'}]],
   ['/api/admin/member-monitoring/profile-changes', [{historyId: 1, username: 'alice', changeType: 'NICKNAME', createdAt: date, actor: 'system'}]],
   ['/api/admin/member-monitoring/risk-users', [{username: 'alice', reportCount: 2, blockedCount: 1, score: 3}]],
@@ -84,7 +85,7 @@ async function contextFor(viewport) {
       report.apiRequests.push({method, path: url.pathname, query: Object.fromEntries(url.searchParams)});
       if (fixtures.has(url.pathname)) {
         // FAQ's existing public API returns raw pages/details; admin APIs use an envelope.
-        const value = url.pathname === '/api/admin/dashboard/activity-trends' ? trendsForRange(url.searchParams) : fixtures.get(url.pathname);
+        const value = url.pathname === '/api/admin/dashboard/activity-trends' ? trendsForRange(url.searchParams) : url.pathname === '/api/admin/feeds' && url.searchParams.get('reported') === 'true' ? pageOf([feed]) : fixtures.get(url.pathname);
         const payload = url.pathname === '/api/faqs' || url.pathname.startsWith('/api/faqs/') ? value : {success: true, data: value};
         return route.fulfill({status: 200, headers, contentType: 'application/json', body: JSON.stringify(payload)});
       }
@@ -180,18 +181,44 @@ try {
       await page.getByRole('heading', {name: '신고·차단 집중 사용자'}).waitFor();
       return {...await noOverflow(page), tabArrowKeyboard: true};
     });
+    await check(page, prefix + '-member-metrics', async () => {
+      await page.goto(base.origin+'/admin/member-monitoring');
+      await page.getByRole('button',{name:'위험 회원 근거 보기'}).click();
+      const evidence=page.getByRole('region',{name:'위험 회원 자세히'});
+      await evidence.getByText('받은 신고',{exact:true}).waitFor();
+      assert(new URL(page.url()).searchParams.get('metric')==='riskUsers24h');
+      await capture(page,prefix+'-risk-list');
+      const memberLink=evidence.getByRole('link',{name:/alice/});
+      await memberLink.click();
+      await page.getByRole('region',{name:'회원 alice',exact:true}).waitFor();
+      await page.getByRole('button',{name:'← 위험 회원 확인으로 돌아가기'}).click();
+      await evidence.waitFor();
+      await page.getByRole('button',{name:'로그인 실패율 근거 보기'}).click();
+      await page.getByRole('region',{name:'로그인 실패율 자세히'}).waitFor();
+      return {...await capture(page,prefix+'-login-rate'),riskCountToList:true,returnToMetric:true};
+    });
     await check(page, prefix + '-feeds', async () => {
       await page.goto(base.origin + '/admin/feeds');
       await page.getByRole('button', {name: '피드 #43 검토'}).waitFor();
       await capture(page, prefix + '-feeds');
-      await page.getByRole('checkbox', {name: '이 페이지에서 신고 있는 항목만'}).check();
-      assert.equal(await page.getByRole('button', {name: '피드 #43 검토'}).count(), 0);
+      await page.getByRole('checkbox', {name: '신고 있는 사진 전체'}).check();
+      await page.getByRole('button', {name: '피드 #43 검토'}).waitFor({state:'hidden'});
+      assert(report.apiRequests.some(item=>item.path==='/api/admin/feeds'&&item.query.reported==='true'),'Report filtering must reach the server.');
       const trigger = page.getByRole('button', {name: '피드 #42 검토'});
       await openWithKeyboard(page, trigger);
       const dialog = page.getByRole('dialog', {name: '피드 #42'});
       await dialog.getByText(/합성 신고/).waitFor();
       const bounds = await capture(page, prefix + '-feed-detail');
       return {...bounds, reportFilter: true, ...await checkDrawer(page, dialog, trigger)};
+    });
+    await check(page,prefix+'-seasonal-metrics',async()=>{
+      await page.goto(base.origin+'/admin/seasonal-foods');
+      await page.getByRole('button',{name:/합성 대하/}).waitFor();
+      await page.getByRole('button',{name:'초안 0 목록 보기 →'}).click();
+      assert.equal(new URL(page.url()).searchParams.get('status'),'DRAFT');
+      await page.getByRole('heading',{name:'검색 결과가 없습니다'}).waitFor();
+      await page.goBack(); await page.getByRole('button',{name:/합성 대하/}).waitFor();
+      return {...await capture(page,prefix+'-seasonal-counts'),zeroCountEmptyState:true,backRestoresList:true};
     });
     await check(page, prefix + '-seasonal', async () => {
       await page.goto(base.origin + '/admin/seasonal-foods');
@@ -262,7 +289,17 @@ try {
       await chart.focus(); await page.keyboard.press('ArrowRight');
       await page.waitForFunction(el => el.scrollLeft > 0, await chart.elementHandle(), {timeout: 1000});
       await chart.evaluate(el => {el.scrollLeft = 0;});
-      return {...await capture(page, prefix + '-dashboard-30days'), thirtyDayRange: lastRequest.query, chartColumns: 30, chartBounds, keyboardChartScroll: true};
+      const bounds=await capture(page,prefix+'-dashboard-30days');
+      await columns.first().click();
+      const dialog=page.getByRole('dialog'); await dialog.getByRole('link',{name:/이 날짜 사진 게시물/}).waitFor();
+      const expectedDay=lastRequest.query.from;
+      await dialog.getByRole('link',{name:/이 날짜 사진 게시물/}).click();
+      await page.getByRole('heading',{name:'피드 관리',exact:true}).waitFor();
+      assert.equal(new URL(page.url()).searchParams.get('from'),expectedDay);
+      await page.goBack();await page.getByRole('dialog').waitFor();
+      await page.keyboard.press('Escape');
+      assert.equal(new URL(page.url()).searchParams.get('from'),lastRequest.query.from);
+      return {...bounds, dailyToPhotoList:true, backPreservesPeriod:true, thirtyDayRange: lastRequest.query, chartColumns: 30, chartBounds, keyboardChartScroll: true};
     });
     await context.close();
   }

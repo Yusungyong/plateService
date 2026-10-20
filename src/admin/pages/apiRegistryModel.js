@@ -73,14 +73,14 @@ export function summarizeModules(rows) {
 }
 
 export function filterRegistryRows(rows, {query = "", module = "", method = "", surface = "", menuId = "", group = "", updateId = "", errorsOnly = false} = {}) {
-  const needle = query.trim().toLowerCase();
+  const needle = query.trim().toLowerCase().replace(/\{[^}]*\}/g,"{}");
   return rows.filter(row => (!module || row.module === module) && (!method || row.method === method)
     && (!errorsOnly || row.clientErrorAvailable !== true || row.clientErrorCount > 0)
     && (!surface || (row.surfaces || []).includes(surface))
     && (!group || row.commonizationGroup === group)
     && (!updateId || (row.updateIds || []).includes(updateId))
     && (!menuId || (menuId === UNLINKED_MENU ? !(row.menuIds || []).length : (row.menuIds || []).includes(menuId)))
-    && `${row.method} ${row.path} ${row.module} ${moduleDetails(row.module).label} ${row.capability || ""} ${(row.menuLabels || []).join(" ")} ${(row.updateLabels || []).join(" ")}`.toLowerCase().includes(needle));
+    && `${row.method} ${row.path} ${row.module} ${moduleDetails(row.module).label} ${row.capability || ""} ${(row.menuLabels || []).join(" ")} ${(row.updateLabels || []).join(" ")}`.toLowerCase().replace(/\{[^}]*\}/g,"{}").includes(needle));
 }
 
 export function relationshipGraph(rows, limit = 8) {

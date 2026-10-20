@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, createMemoryRouter, RouterProvider } from "react-router-dom";
 import RestaurantManagement from "./RestaurantManagement";
 import { deleteAdminRestaurant, fetchAdminRestaurants, fetchRestaurants } from "../api/restaurantApi";
 
@@ -120,4 +120,23 @@ test("shows a deletion failure in the open drawer and permits a deliberate retry
   fireEvent.click(within(drawer).getByRole("button", { name: "매장 삭제" }));
   expect(screen.getByRole("dialog", { name: "매장 삭제" })).toBeInTheDocument();
   expect(deleteAdminRestaurant).toHaveBeenCalledTimes(1);
+});
+
+test("restaurant status drilldown restores URL filters and menu links preserve the list destination", async () => {
+  const router = createMemoryRouter([{path: "/admin/stores", element: <RestaurantManagement adminMode />}, {path: "/admin/stores/:id", element: <p>상세로 이동</p>}], {initialEntries: ["/admin/stores?exposureStatus=review&keyword=검수"]});
+  render(<RouterProvider router={router} />);
+  await screen.findByRole("button", {name: "검수할 식당 관리 작업 열기"});
+  expect(fetchAdminRestaurants).toHaveBeenLastCalledWith(expect.objectContaining({exposureStatus: "review", keyword: "검수"}));
+  fireEvent.click(within(screen.getByRole("group", {name: "매장 노출 상태 빠른 필터"})).getByRole("button", {name: "즉시 노출"}));
+  await waitFor(() => expect(new URLSearchParams(router.state.location.search).get("exposureStatus")).toBe("published"));
+  await act(async () => router.navigate(-1));
+  await waitFor(() => expect(fetchAdminRestaurants).toHaveBeenLastCalledWith(expect.objectContaining({exposureStatus: "review", keyword: "검수"})));
+  fireEvent.click(await screen.findByRole("link", {name: "검수할 식당 메뉴 2개 상세 보기"}));
+  await screen.findByText("상세로 이동");
+  expect(router.state.location.pathname).toBe("/admin/stores/17");
+  const backLink = new URL(router.state.location.state.returnTo, "http://localhost");
+  expect(backLink.pathname).toBe("/admin/stores");
+  expect(backLink.searchParams.get("keyword")).toBe("검수");
+  expect(backLink.searchParams.get("exposureStatus")).toBe("review");
+  expect(deleteAdminRestaurant).not.toHaveBeenCalled();
 });

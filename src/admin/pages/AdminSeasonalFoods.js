@@ -1,4 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from "react";
+import {useSearchParams} from "react-router-dom";
+import "../styles/content-workspace.css";
 import AdminPageHeader from "../components/AdminPageHeader";
 import DetailDrawer from "../components/DetailDrawer";
 import {ADMIN_PERMISSIONS, userHasAdminPermission} from "../constants/adminPermissions";
@@ -23,14 +25,22 @@ export default function AdminSeasonalFoods() {
   const [form, setForm] = useState(null);
   const [baseline, setBaseline] = useState(null);
   const [files, setFiles] = useState({});
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("");
-  const [category, setCategory] = useState("");
+  const [params, setParams] = useSearchParams();
+  const query=params.get("keyword") || "", status=STATUS[params.get("status")] ? params.get("status") : "", category=params.get("category") || "";
+  const listFocus=useRef(null);
+  const changeFilter = (key,value,focus=false) => {
+    if(saving) return;
+    setParams(current => {const next=new URLSearchParams(current); if(value)next.set(key,value);else next.delete(key);return next;},{replace:key==="keyword"});
+    if(focus)requestAnimationFrame(()=>{listFocus.current?.scrollIntoView?.({block:"nearest"});listFocus.current?.focus();});
+  };
+  const setQuery=value=>changeFilter("keyword",value), setStatus=value=>changeFilter("status",value), setCategory=value=>changeFilter("category",value);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState(null);
   const [loadError, setLoadError] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const filterLocation=params.toString();
+  useEffect(()=>{setForm(null);setBaseline(null);setFiles({});setDeleteOpen(false);},[filterLocation]);
   const deleteDialog = useRef(null);
   const newName = useRef(null);
   const selectionTrigger = useRef(null);
@@ -106,13 +116,16 @@ export default function AdminSeasonalFoods() {
   return <div className="admin-page seasonal-foods-page">
     <UnsavedChangesGuard when={dirty} pending={saving} />
     <AdminPageHeader eyebrow="SEASONAL FOOD LIBRARY" title="제철 음식 관리" description="계절마다 찾게 되는 음식, 한곳에서 정리하세요." actions={<><button className="admin-button" onClick={load} disabled={loading || saving}>목록 새로고침</button>{canManage && <button className="admin-button admin-button--primary" onClick={() => select(blankFood())} disabled={saving}>＋ 음식 등록</button>}</>} />
-    <p className="food-library-summary">{loading ? "음식 목록을 확인하고 있어요." : loadError ? "음식 현황을 다시 확인해 주세요." : `등록 ${foods.length}개 · 공개 ${foods.filter(food => food.status === "PUBLISHED").length}개 · 초안 ${foods.filter(food => food.status === "DRAFT").length}개`} <span>음식을 선택하면 상세 정보와 편집 화면이 열려요.</span></p>
+    <div className="seasonal-metrics" aria-label="음식 상태별 목록">
+      {[["","전체"],...Object.entries(STATUS)].map(([key,label])=><button type="button" key={key} disabled={loading || Boolean(loadError) || saving} aria-pressed={status===key && !query && !category} onClick={()=>{if(saving)return;setParams(key ? {status:key} : {});requestAnimationFrame(()=>listFocus.current?.focus());}}><span>{label}</span><strong>{loading || loadError ? "—" : foods.filter(food=>!key || food.status===key).length}</strong><small>목록 보기 →</small></button>)}
+    </div>
     {!form && notice && <div role={notice.type === "error" ? "alert" : "status"} className={`api-status api-status--${notice.type}`}>{notice.text}</div>}
     <div className="food-workspace">
-      <section id="food-library" className="food-library" aria-label="제철 음식 목록">
+      <section ref={listFocus} tabIndex={-1} id="food-library" className="food-library" aria-label="제철 음식 목록">
         <div className="food-library-tools"><label><span>음식 검색</span><input type="search" placeholder="음식 이름 또는 소개 검색" value={query} onChange={event => setQuery(event.target.value)} /></label><div><label><span>공개 상태</span><select value={status} onChange={event => setStatus(event.target.value)}><option value="">모든 상태</option>{Object.entries(STATUS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label><span>분류</span><select value={category} onChange={event => setCategory(event.target.value)}><option value="">모든 분류</option>{categories.map(key => <option key={key} value={key}>{categoryName(key)}</option>)}</select></label></div></div>
+        {(query || status || category) && <div className="drilldown-filters" aria-label="적용한 음식 조건">{query && <button onClick={()=>setQuery("")}>검색: {query} ×</button>}{status && <button onClick={()=>setStatus("")}>상태: {STATUS[status]} ×</button>}{category && <button onClick={()=>setCategory("")}>분류: {categoryName(category)} ×</button>}<button onClick={()=>setParams({})}>조건 전체 초기화</button></div>}
         <p className="food-results" role="status">{loading ? "음식을 불러오는 중…" : `${visible.length}개의 음식`}</p>
-        {loadError ? <div role="alert" className="food-empty"><p>{loadError}</p><button onClick={load}>다시 불러오기</button></div> : loading ? <div className="food-empty">목록을 준비하고 있습니다.</div> : visible.length ? <div className="food-card-grid">{visible.map(food => <button className="food-card" key={food.id} aria-pressed={form?.id === food.id} onClick={() => select(food)} disabled={saving}><FoodImage url={food.imagePreviewUrl || food.representativeImageUrl} alt="" /><div><small>{categoryName(food.categoryCode)}<span>{STATUS[food.status] || food.status}</span></small><h3>{food.nameKo}</h3><p>{food.shortDescription || "소개를 작성해 주세요."}</p><span className="food-card-action">{form?.id === food.id ? "선택한 음식" : "자세히 보기"} ↗</span></div></button>)}</div> : <div className="food-empty"><h3>{foods.length ? "검색 결과가 없습니다" : "등록된 음식이 없습니다"}</h3><p>검색어나 필터를 확인해 주세요.</p>{(query || status || category) && <button onClick={() => {setQuery(""); setStatus(""); setCategory("");}}>필터 초기화</button>}</div>}
+        {loadError ? <div role="alert" className="food-empty"><p>{loadError}</p><button onClick={load}>다시 불러오기</button></div> : loading ? <div className="food-empty">목록을 준비하고 있습니다.</div> : visible.length ? <div className="food-card-grid">{visible.map(food => <button className="food-card" key={food.id} aria-pressed={form?.id === food.id} onClick={() => select(food)} disabled={saving}><FoodImage url={food.imagePreviewUrl || food.representativeImageUrl} alt="" /><div><small>{categoryName(food.categoryCode)}<span>{STATUS[food.status] || food.status}</span></small><h3>{food.nameKo}</h3><p>{food.shortDescription || "소개를 작성해 주세요."}</p><span className="food-card-action">{form?.id === food.id ? "선택한 음식" : "자세히 보기"} ↗</span></div></button>)}</div> : <div className="food-empty"><h3>{foods.length ? "검색 결과가 없습니다" : "등록된 음식이 없습니다"}</h3><p>검색어나 필터를 확인해 주세요.</p>{(query || status || category) && <button onClick={() => setParams({})}>필터 초기화</button>}</div>}
       </section>
       <DetailDrawer isOpen={Boolean(form)} title={creating ? "새 음식 등록" : form?.nameKo || "음식 상세"} description={canManage ? "사진과 소개를 확인하고 필요한 부분만 수정해 주세요." : "조회 권한으로 열람 중입니다."} onClose={() => {if (!deleteOpen) select(null);}}>
       {notice && <div role={notice.type === "error" ? "alert" : "status"} className={`api-status api-status--${notice.type}`}>{notice.text}</div>}

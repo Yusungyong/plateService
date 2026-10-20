@@ -217,3 +217,47 @@
     padding-inline: 13px;
   }
 }
+
+.store-workspace .store-workspace__applied {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #766b62;
+  font-size: 0.8rem;
+}
+.store-workspace .store-workspace__applied button {
+  padding: 7px 10px;
+  border: 1px solid #e3d6ca;
+  border-radius: 8px;
+  background: #fff7ef;
+  color: #8f4326;
+  font: inherit;
+  overflow-wrap: anywhere;
+}
+.store-workspace .store-workspace__metric-link { cursor: pointer; text-align: left; }
+.store-workspace .store-workspace__status-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.store-workspace .store-workspace__status-link:hover { text-decoration: underline; }
+.store-workspace .store-workspace__text-link {
+  padding: 3px 0;
+  border: 0;
+  background: transparent;
+  color: #9d4626;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.store-workspace :is(.store-workspace__metric-link,.store-workspace__status-link,.store-workspace__text-link,.store-workspace__applied button):focus-visible,
+.store-workspace :is(h2,h3)[tabindex="-1"]:focus {
+  outline: 2px solid #bd5c36;
+  outline-offset: 4px;
+}

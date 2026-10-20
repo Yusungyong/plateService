@@ -90,3 +90,18 @@ test('a paused execution remains visible while setup is folded and opens the exi
  expect(settings).toHaveAttribute('open');expect(screen.getByRole('button',{name:'전체 실행 재개'})).toBeInTheDocument();
  expect(marketingAction.mock.calls.filter(([, ,method])=>method!=='GET')).toHaveLength(0);
 });
+
+test('review and published summary counts lead to exactly the matching records',async()=>{
+ const data=fixture();data.queue.creatives.push({...data.queue.creatives[0],id:'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb',state:'REJECTED'},{...data.queue.creatives[0],id:'cccccccc-cccc-4ccc-cccc-cccccccccccc',state:'READY_FOR_PUBLISHING'});data.publishing.posts=[{id:'post-one',title:'게시한 카드',state:'PUBLISHED',channel:'WEBSITE'},{id:'post-two',title:'아직 대기중 카드',state:'QUEUED',channel:'INSTAGRAM'}];getMarketingConsole.mockResolvedValue(data);
+ show();await ready();fireEvent.click(screen.getByRole('button',{name:'검토할 제작물 2개 근거 보기'}));expect(screen.getByLabelText('제작 상태')).toHaveValue('review');expect(within(screen.getByRole('complementary',{name:'제작물 보관함'})).getAllByRole('listitem')).toHaveLength(2);
+ fireEvent.click(screen.getByRole('tab',{name:'오늘'}));fireEvent.click(screen.getByRole('button',{name:'게시 완료 1건 근거 보기'}));expect(screen.getByLabelText('게시 상태')).toHaveValue('PUBLISHED');expect(screen.getByText('게시한 카드')).toBeInTheDocument();expect(screen.queryByText('아직 대기중 카드')).not.toBeInTheDocument();fireEvent.click(screen.getByRole('button',{name:'조건 초기화'}));expect(screen.getByText('아직 대기중 카드')).toBeInTheDocument();expect(marketingAction.mock.calls.filter(([, ,method])=>method!=='GET')).toHaveLength(0);
+});
+test('unknown summary includes both generation and publication then opens only the chosen record',async()=>{
+ const data=fixture();data.queue.jobs=[{id:'job-one',job_key:'결과 미확인 생성',status:'UNKNOWN',started_at:'2026-10-20T01:00:00Z'},{id:'job-two',job_key:'다른 대기 작업',status:'QUEUED'}];data.publishing.posts=[{id:'post-one',title:'결과 미확인 게시',state:'UNKNOWN',channel:'INSTAGRAM'}];getMarketingConsole.mockResolvedValue(data);show();await ready();
+ fireEvent.click(screen.getByRole('button',{name:'결과 확인 필요 2건 근거 보기'}));const evidence=screen.getByRole('region',{name:'결과 확인 필요 근거'});expect(within(evidence).getByText(/생성 작업 1건 \+ 게시 1건/)).toBeInTheDocument();fireEvent.click(within(evidence).getByRole('button',{name:/제작 · 결과 미확인 생성/}));expect(screen.getByLabelText('생성 작업 상태')).toHaveValue('UNKNOWN');expect(screen.getByText('결과 미확인 생성')).toBeInTheDocument();expect(screen.queryByText('다른 대기 작업')).not.toBeInTheDocument();expect(screen.getByRole('button',{name:'기록 검토 후 종료'})).toBeInTheDocument();expect(marketingAction.mock.calls.filter(([, ,method])=>method!=='GET')).toHaveLength(0);
+});
+
+test('measurement counts expose their exact group and limitations without an invented user list',async()=>{
+ getMarketingMeasurement.mockResolvedValue({collectionState:'ENABLED',groups:[{variant:'a',channel:'WEBSITE',verified_signups:12,mature_cohort:10,first_record_within_7_days:4,firstRecordRate:.4,decision:'DESCRIPTIVE_ONLY'},{variant:'b',channel:'WEBSITE',verified_signups:5,mature_cohort:0,first_record_within_7_days:0,firstRecordRate:null,decision:'INSUFFICIENT_SAMPLE'}]});show('metrics');fireEvent.click(await screen.findByRole('button',{name:'a WEBSITE 첫 기록 비율 근거'}));
+ const evidence=screen.getByRole('region',{name:'성과 집계 근거'});expect(evidence).toHaveTextContent('관찰된 첫 기록 비율 · a · WEBSITE');expect(evidence).toHaveTextContent('40.0%');expect(evidence).toHaveTextContent('개인별 가입·행동 명단은 이 조회 API에 제공되지 않아요');expect(marketingAction.mock.calls.filter(([, ,method])=>method!=='GET')).toHaveLength(0);
+});

@@ -7,7 +7,7 @@ export default function ApiClientErrorSummary({state, errorsOnly, onErrorsOnly, 
       <div className="api-monitor-controls"><label><input type="checkbox" checked={errorsOnly} onChange={event => onErrorsOnly(event.target.checked)} disabled={!state.available} /> 오류가 보고된 API만</label>
         <label><input type="checkbox" checked={autoRefresh} onChange={event => onAutoRefresh(event.target.checked)} /> 30초 자동 새로고침</label></div>
     </div>
-    {state.available ? <><dl className="api-client-summary"><div><dt>오류 보고</dt><dd>{state.errorCount.toLocaleString()}<small>건</small></dd></div><div><dt>영향 API</dt><dd>{state.affectedApiCount.toLocaleString()}<small>개</small></dd></div></dl>
+    {state.available ? <><dl className="api-client-summary"><div><dt>오류 보고</dt><dd><button type="button" className="api-metric-action" aria-label="오류 보고 API 목록" onClick={()=>onErrorsOnly(true)}>{state.errorCount.toLocaleString()}<small>건 ↗</small></button></dd></div><div><dt>영향 API</dt><dd><button type="button" className="api-metric-action" aria-label="영향 API 목록" onClick={()=>onErrorsOnly(true)}>{state.affectedApiCount.toLocaleString()}<small>개 ↗</small></button></dd></div></dl>
       <p className="api-monitor-scope">집계 구간: <time dateTime={state.windowStart}>{errorTime(state.windowStart)}</time> ~ <time dateTime={state.windowEnd}>{errorTime(state.windowEnd)}</time></p>
       <p className="api-registry-note">앱·웹이 보고한 최종 실패입니다. 전체 요청 대비 오류율은 제공하지 않습니다. 보고가 없으면 미보고·미사용 여부를 구분할 수 없습니다.</p></>
       : <p className="api-monitor-unavailable" role="status">오류 집계를 확인할 수 없습니다. 보고 0건으로 판단하지 마세요.</p>}

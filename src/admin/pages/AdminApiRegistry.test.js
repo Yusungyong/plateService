@@ -147,3 +147,20 @@ test("compact menu selection uses the same filters and preserves selected menus 
   expect(screen.getByRole("button", {name: "관계도 POST /api/images"})).toBeInTheDocument();
   expect(getApiRegistry).toHaveBeenCalledTimes(1);
 });
+
+test('registration totals clear old menu filters and show exactly the clicked registration scope',async()=>{
+ getApiRegistry.mockResolvedValue(snapshot);render(<AdminApiRegistry/>);
+ fireEvent.click(await screen.findByRole('button',{name:'서버 등록 API 목록'}));expect(screen.getByText('2개 표시')).toBeInTheDocument();expect(screen.getByRole('button',{name:'GET /api/admin/api-registry'})).toBeInTheDocument();
+ fireEvent.click(screen.getByRole('button',{name:'미등록 API 목록'}));expect(screen.queryByRole('button',{name:'POST /api/images'})).not.toBeInTheDocument();expect(screen.getByText((registryRows(snapshot).length-2)+'개 표시')).toBeInTheDocument();
+ fireEvent.click(screen.getByRole('button',{name:'필터 초기화'}));expect(screen.getByText(registryRows(snapshot).length+'개 표시')).toBeInTheDocument();expect(getApiRegistry).toHaveBeenCalledTimes(1);
+});
+test('runtime metric opens status-level observations rather than interpreting no observations as zero',async()=>{
+ getApiRegistry.mockResolvedValue(snapshot);render(<AdminApiRegistry/>);fireEvent.click(await screen.findByRole('button',{name:'호출 지표 보기'}));fireEvent.click(screen.getByRole('button',{name:'POST /api/images 오류율 근거'}));
+ const detail=screen.getByRole('region',{name:'서버 호출 근거'});expect(detail).toHaveTextContent('200');expect(detail).toHaveTextContent('500');expect(detail).toHaveTextContent('8건');expect(detail).toHaveTextContent('2건');expect(detail).toHaveTextContent('20.0ms');expect(getApiRegistry).toHaveBeenCalledTimes(1);
+});
+
+test('reports missing from the current registry remain visible as separate error evidence',async()=>{
+ const stamp='2026-10-20T01:00:00Z',report={method:'DELETE',path:'/api/retired-route',errorCount:1,http4xxCount:1,http5xxCount:0,networkCount:0,timeoutCount:0,clients:['IOS'],lastSeenAt:stamp,recent:[{kind:'HTTP',status:404,client:'IOS',count:1,lastSeenAt:stamp}]};
+ getApiRegistry.mockResolvedValue({...snapshot,clientErrors:{available:true,windowHours:24,windowStart:stamp,windowEnd:stamp,rows:[report]}});render(<AdminApiRegistry/>);fireEvent.click(await screen.findByRole('button',{name:'영향 API 목록'}));
+ expect(screen.getByText('0개 표시')).toBeInTheDocument();expect(screen.getByRole('heading',{name:'구조 목록에 없는 오류 API 1개'})).toBeInTheDocument();expect(screen.getByRole('link',{name:'DELETE /api/retired-route · 1건 · 오류 근거 →'})).toHaveAttribute('href','/admin/operations/incidents?api=DELETE%20%2Fapi%2Fretired-route');expect(getApiRegistry).toHaveBeenCalledTimes(1);
+});

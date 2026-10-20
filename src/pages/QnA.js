@@ -1,6 +1,7 @@
 import useActiveForm from "../components/useActiveForm";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { focusWorkspaceList, readWorkspaceQuery, writeWorkspaceQuery } from "./storeSupportQuery";
 import UnsavedChangesGuard from "../components/UnsavedChangesGuard";
 import PageLayout from "../components/PageLayout";
 import InquiryRetentionNotice from "../components/InquiryRetentionNotice";
@@ -316,8 +317,14 @@ function QnaWriteForm() {
 }
 
 function QnA({ adminMode = false }) {
-  const [searchText, setSearchText] = useState("");
-  const [appliedSearch, setAppliedSearch] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryKey = searchParams.toString();
+  const previousQuery = useRef(queryKey);
+  const approvedNavigation = useRef(false);
+  const listHeadingRef = useRef(null);
+  const queryFilters = () => adminMode ? readWorkspaceQuery(searchParams, initialQnaFilters, {statusCode: qnaStatusOptions.map(item => item.value)}) : initialQnaFilters;
+  const [searchText, setSearchText] = useState(() => adminMode ? searchParams.get("keyword") || "" : "");
+  const [appliedSearch, setAppliedSearch] = useState(searchText);
   const detailRef = useRef(null);
   const detailHeadingRef = useRef(null);
   const listRequest = useRef(0);
@@ -329,14 +336,27 @@ function QnA({ adminMode = false }) {
     totalPages: 0,
     hasNext: false,
   });
-  const [filters, setFilters] = useState(initialQnaFilters);
-  const [appliedFilters, setAppliedFilters] = useState(initialQnaFilters);
+  const [filters, setFilters] = useState(queryFilters);
+  const [appliedFilters, setAppliedFilters] = useState(queryFilters);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [submitMessage, setSubmitMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedQnaId, setSelectedQnaId] = useState(null);
   const [answerDraft, setAnswerDraft] = useState(initialAnswerDraft);
+
+  useEffect(() => { approvedNavigation.current = false; });
+  useEffect(() => {
+    if (!adminMode || queryKey === previousQuery.current) return;
+    previousQuery.current = queryKey;
+    const params = new URLSearchParams(queryKey);
+    const next = readWorkspaceQuery(params, initialQnaFilters, {statusCode: qnaStatusOptions.map(item => item.value)});
+    setFilters(next);
+    setAppliedFilters(current => JSON.stringify(current) === JSON.stringify(next) ? current : next);
+    setSearchText(params.get("keyword") || ""); setAppliedSearch(params.get("keyword") || "");
+    setSelectedQnaId(null); setSubmitMessage("");
+    focusWorkspaceList(listHeadingRef);
+  }, [adminMode, queryKey]);
 
   const loadEntries = useCallback(async ({ page = 0, append = false } = {}) => {
     const request = ++listRequest.current;
@@ -453,11 +473,21 @@ function QnA({ adminMode = false }) {
     setSubmitMessage("");
     focusQuestionDetail();
   }
-  function quickStatus(statusCode) {
+  function commitQnaFilters(next, keyword = appliedSearch) {
     if (!allowWorkspaceChange()) return;
-    setFilters(current=>({...current,statusCode}));
-    setAppliedFilters(current=>({...current,statusCode}));
-    setSearchText("");setAppliedSearch("");
+    approvedNavigation.current = true;
+    setSelectedQnaId(null); setAnswerDraft(initialAnswerDraft);
+    setFilters(next);
+    setAppliedFilters(current => JSON.stringify(current) === JSON.stringify(next) ? current : next);
+    setSearchText(keyword); setAppliedSearch(keyword);
+    writeWorkspaceQuery(setSearchParams, previousQuery, {...next, keyword}, approvedNavigation);
+    focusWorkspaceList(listHeadingRef);
+  }
+  function quickStatus(statusCode) { commitQnaFilters({...appliedFilters, statusCode}, ""); }
+  function returnToQuestionList() {
+    if (!allowWorkspaceChange()) return;
+    setSelectedQnaId(null); setAnswerDraft(initialAnswerDraft);
+    focusWorkspaceList(listHeadingRef);
   }
 
   function updateQnaFilter(field, value) {
@@ -469,20 +499,13 @@ function QnA({ adminMode = false }) {
 
   function handleFilterSubmit(event) {
     event.preventDefault();
-    if (adminMode && !allowWorkspaceChange()) return;
+    if (adminMode) { commitQnaFilters(filters, searchText.trim()); return; }
     setAppliedFilters(filters);
-    if (adminMode) {
-      const query=searchText.trim();setAppliedSearch(query);
-      const matches=entries.filter(entry=>!query||[entry.question,entry.username,entry.guestName,entry.category].filter(Boolean).join(" ").toLocaleLowerCase().includes(query.toLocaleLowerCase()));
-      setSelectedQnaId(matches[0]?.qnaId||null);
-    }
   }
 
   function resetFilters() {
-    if (adminMode && !allowWorkspaceChange()) return;
-    setSearchText("");setAppliedSearch("");
-    setFilters(initialQnaFilters);
-    setAppliedFilters(initialQnaFilters);
+    if (adminMode) { commitQnaFilters(initialQnaFilters, ""); return; }
+    setFilters(initialQnaFilters); setAppliedFilters(initialQnaFilters);
   }
 
   function handleLoadMoreQna() {
@@ -527,8 +550,8 @@ function QnA({ adminMode = false }) {
 
   if (adminMode) {
     return <PageLayout title="문의 답변" className="support-workspace" description="기다리는 질문을 찾고, 한 건씩 답변을 마무리하세요.">
-      <UnsavedChangesGuard when={answerDirty} pending={isSubmitting}/>
-      <div className="sw-topline"><p><strong>{qnaPage.totalElements.toLocaleString()}건</strong> 조회 결과 · {entries.length}건 불러옴</p><span>문의 내용과 연락처는 운영자에게만 보여요.</span></div>
+      <UnsavedChangesGuard when={answerDirty} pending={isSubmitting} completed={approvedNavigation}/>
+      <div className="sw-topline"><p><button type="button" className="sw-metric-link" onClick={()=>focusWorkspaceList(listHeadingRef)} aria-label={`조회 결과 ${qnaPage.totalElements}건 문의 목록 보기`}><strong>{qnaPage.totalElements.toLocaleString()}건</strong> 조회 결과 →</button> · {entries.length}건 불러옴</p><span>문의 내용과 연락처는 운영자에게만 보여요.</span></div>
       <div className="sw-status-bar" aria-label="문의 상태 바로 찾기">
         {[{value:"",label:"전체"},...qnaStatusOptions].map(status=><button type="button" key={status.value} aria-pressed={appliedFilters.statusCode===status.value} disabled={isSubmitting} onClick={()=>quickStatus(status.value)}>{status.label}</button>)}
       </div>
@@ -537,16 +560,23 @@ function QnA({ adminMode = false }) {
         <label><span>문의 유형</span><select value={filters.category} onChange={event=>updateQnaFilter("category",event.target.value)} disabled={isSubmitting}><option value="">모든 유형</option>{qnaCategoryOptions.map(category=><option key={category} value={category}>{category}</option>)}</select></label>
         <div className="sw-filter-actions"><button type="button" onClick={resetFilters} disabled={isSubmitting}>초기화</button><button type="submit" className="button-primary" disabled={isSubmitting}>조회</button></div>
       </form>
+      <div className="sw-applied-filters" role="group" aria-label="적용된 문의 조건"><strong>적용 조건</strong>
+        {appliedFilters.statusCode&&<button type="button" onClick={()=>commitQnaFilters({...appliedFilters,statusCode:""})}>상태: {getStatusLabel(appliedFilters.statusCode)} ×</button>}
+        {appliedFilters.category&&<button type="button" onClick={()=>commitQnaFilters({...appliedFilters,category:""})}>유형: {appliedFilters.category} ×</button>}
+        {appliedSearch&&<button type="button" onClick={()=>commitQnaFilters(appliedFilters,"")}>불러온 목록 검색: {appliedSearch} ×</button>}
+        {!appliedFilters.statusCode&&!appliedFilters.category&&!appliedSearch&&<span>전체 문의</span>}
+      </div>
       {loadError&&<div className="api-status api-status--error" role="alert"><span>{loadError}</span><button type="button" onClick={()=>{if(allowWorkspaceChange())loadEntries();}} disabled={isLoading||isSubmitting}>다시 시도</button></div>}
       {submitMessage&&<div className={'api-status '+(submitMessage==='답변이 저장되었습니다.'?'api-status--success':'api-status--error')} role="status">{submitMessage}</div>}
       <div className="sw-columns">
-        <section className="sw-list" aria-label="문의 목록"><div className="sw-panel-heading"><h2>받은 문의</h2><span>{workspaceEntries.length}건 표시</span></div>
+        <section className="sw-list" aria-label="문의 목록"><div className="sw-panel-heading"><h2 ref={listHeadingRef} tabIndex={-1}>받은 문의</h2><button type="button" className="sw-metric-link" onClick={()=>focusWorkspaceList(listHeadingRef)}>{workspaceEntries.length}건 표시 →</button></div>
           <p className="sw-list-hint">{appliedSearch?'불러온 목록 안에서 검색한 결과예요.':'상태를 눌러 접수·검토 중인 문의를 찾으세요.'}</p>
           {isLoading&&!entries.length?<p className="sw-empty" role="status">문의 목록을 불러오고 있어요.</p>:!workspaceEntries.length?<p className="sw-empty">조건에 맞는 문의가 없어요.</p>:<ul>{workspaceEntries.map(entry=><li key={entry.qnaId}><button type="button" className="sw-list-item" aria-current={selectedQnaId===entry.qnaId?'true':undefined} disabled={isSubmitting} onClick={()=>selectQuestion(entry.qnaId)}><span className="sw-item-meta"><span className={'sw-status sw-status--'+(entry.statusCode||'received')}>{getStatusLabel(entry.statusCode)}</span><time>{getDateLabel(entry)}</time></span><strong>{entry.question}</strong><span className="sw-item-caption">{entry.category||'미분류'} · {getAuthorLabel(entry)}{entry.isPublic===false?' · 비공개':''}</span><span className="sw-item-arrow" aria-hidden="true">→</span></button></li>)}</ul>}
           {qnaPage.hasNext&&<button type="button" className="sw-more" onClick={handleLoadMoreQna} disabled={isLoading||isSubmitting}>{isLoading?'불러오는 중...':'Q&A 더 보기'}</button>}
         </section>
         <section className="sw-detail" aria-label="선택한 문의" ref={detailRef}>
-          {selectedEntry?<><div className="sw-panel-heading"><h2 ref={detailHeadingRef} tabIndex={-1}>문의 상세</h2><span className={'sw-status sw-status--'+(selectedEntry.statusCode||'received')}>{getStatusLabel(selectedEntry.statusCode)}</span></div>
+          {selectedEntry?<><div className="sw-panel-heading"><h2 ref={detailHeadingRef} tabIndex={-1}>문의 상세</h2><button type="button" className={'sw-status sw-status--'+(selectedEntry.statusCode||'received')} disabled={isSubmitting} onClick={()=>quickStatus(selectedEntry.statusCode||'received')} aria-label={`${getStatusLabel(selectedEntry.statusCode)} 문의 목록 보기`}>{getStatusLabel(selectedEntry.statusCode)} →</button></div>
+            <button type="button" className="sw-return-link" disabled={isSubmitting} onClick={returnToQuestionList}>목록으로 돌아가기</button>
             <p className="sw-question">{selectedEntry.question}</p>
             <dl className="sw-facts"><div><dt>질문자</dt><dd>{getAuthorLabel(selectedEntry)}</dd></div><div><dt>문의 유형</dt><dd>{selectedEntry.category||'-'}</dd></div><div><dt>답변 이메일</dt><dd>{selectedEntry.guestEmail||'등록된 이메일 없음'}</dd></div><div><dt>최근 수정</dt><dd>{getDateLabel(selectedEntry)}</dd></div></dl>
             <InquiryRetentionNotice entry={selectedEntry}/>
