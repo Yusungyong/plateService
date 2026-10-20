@@ -1,0 +1,22 @@
+import React from 'react';
+import {label, time} from './marketingModel';
+
+const steps=[['campaigns','01','소재 준비','사진과 앱 화면'],['studio','02','만들고 검토','문구 · 이미지 카드'],['posts','03','게시하기','접시 웹 · Instagram'],['metrics','04','반응 살피기','동의한 유입 기록']];
+export default function MarketingOverview({data,model,onNavigate,onGenerate,canWrite,onExecutionDetails,children}) {
+  const unknownTab=data.queue.jobs.some(j=>j.status==='UNKNOWN')?'queue':'posts';
+  const next=model.unknown?{title:'결과를 확인할 작업이 있어요',text:'재실행 전에 저장된 기록부터 확인해 주세요.',action:'미확인 작업 확인',tab:unknownTab}:
+    model.review?{title:'새로 만든 콘텐츠를 만나보세요',text:'카드와 문구를 확인하면 다음 게시를 준비할 수 있어요.',action:'제작물 검토하기',tab:'studio'}:
+    model.waiting?{title:'제작 요청을 기다리고 있어요',text:'Mac 제작 도구가 다음 실행 때 작업을 이어가요.',action:'제작 진행 확인',tab:'queue'}:
+    {title:'다음 홍보를 준비해 볼까요?',text:'지난 제작물을 둘러보거나 새 콘텐츠를 요청해 보세요.',action:'제작물 둘러보기',tab:'studio'};
+  const workerNeedsAttention=data.workerChecks.some(check=>check.stale||check.state!=='READY');
+  const executionNotice=model.generationPaused?'전체 실행이 중단되어 있어요.':model.publishingPaused?'게시 실행이 중단되었거나 서버 준비가 필요해요.':workerNeedsAttention?'Mac 실행 상태를 다시 확인해 주세요.':!model.instagramConnected?'Instagram 연결을 확인해 주세요.':null;
+  const recent=data.queue.creatives[0], upcoming=[...data.publishing.posts].filter(p=>['QUEUED','LEASED'].includes(p.state)).sort((a,b)=>Date.parse(a.due_at)-Date.parse(b.due_at))[0];
+  return <>
+    <section className="mk-today-hero"><div className="mk-today-message"><span className="mk-eyebrow">오늘 확인할 일</span><h2>{next.title}</h2><p>{next.text}</p><div className="mk-toolbar"><button type="button" className="mk-action mk-action--primary" onClick={()=>onNavigate(next.tab)}>{next.action} <span aria-hidden="true">→</span></button><button type="button" className="mk-action" disabled={!canWrite||!data.queue.campaigns.length} onClick={onGenerate}>새 제작 요청</button></div></div><div className="mk-today-art" aria-hidden="true"><div className="mk-art-card mk-art-card-back"><span>접시</span><div/></div><div className="mk-art-card mk-art-card-front"><div>한 장의 기록,<br/>다음 약속으로.</div><span>PLATE / CREATIVE</span></div><span className="mk-art-spark">✦</span></div></section>
+    {executionNotice&&<div className="mk-execution-alert" role="alert"><div><strong>{executionNotice}</strong><p>{workerNeedsAttention?'Mac 확인 기록이 오래됐거나 준비가 필요한 상태예요.':'자동 실행 조건을 확인한 뒤 다음 작업을 준비해 주세요.'}</p></div><button type="button" className="mk-action" onClick={onExecutionDetails}>실행 상태 확인 <span aria-hidden="true">↓</span></button></div>}
+    <div className="mk-stats" aria-label="최근 마케팅 기록"><div><span>검토할 제작물</span><strong>{model.review}<small>개</small></strong></div><div><span>제작 대기</span><strong>{model.waiting}<small>건</small></strong></div><div className={model.unknown?'is-attention':''}><span>결과 확인 필요</span><strong>{model.unknown}<small>건</small></strong></div><div><span>게시 완료</span><strong>{model.published}<small>건</small></strong></div></div>
+    <section className="mk-process"><div className="mk-section-heading"><div><span className="mk-eyebrow">한눈에 보는 흐름</span><h3>이 순서로 관리해요</h3></div><p>각 단계를 눌러 이동하세요</p></div><ol className="mk-process-steps">{steps.map(([tab,number,title,description])=><li key={tab}><button type="button" onClick={()=>onNavigate(tab)}><span className="mk-step-number">{number}</span><strong>{title}</strong><span>{description}</span><span className="mk-step-arrow" aria-hidden="true">↗</span></button></li>)}</ol></section>
+    <div className="mk-recent-grid"><button type="button" className="mk-destination-card" onClick={()=>onNavigate(recent?'studio':'queue')}><span className="mk-eyebrow">최근 제작</span><strong>{recent?label(recent.state):'아직 제작물이 없어요'}</strong><span>{recent?'제작물 보관함에서 이미지와 문구 확인':'첫 초안 생성 요청부터 시작하기'}</span><span className="mk-destination-arrow" aria-hidden="true">→</span></button><button type="button" className="mk-destination-card" onClick={()=>onNavigate('posts')}><span className="mk-eyebrow">다가오는 게시</span><strong>{upcoming?time(upcoming.due_at):'등록된 게시 예약이 없어요'}</strong><span>{upcoming?(upcoming.channel==='WEBSITE'?'접시 웹':'Instagram')+' · '+upcoming.title:'자동 게시 후보는 실행 시점에 등록될 수 있어요'}</span><span className="mk-destination-arrow" aria-hidden="true">→</span></button></div>
+    {children}
+  </>;
+}
