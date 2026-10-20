@@ -1,11 +1,12 @@
 import useActiveForm from "../components/useActiveForm";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import UnsavedChangesGuard from "../components/UnsavedChangesGuard";
 import PageLayout from "../components/PageLayout";
 import InquiryRetentionNotice from "../components/InquiryRetentionNotice";
 import { useAuth } from "../auth/AuthContext";
 import { createQna, fetchQna, updateQna } from "../api/qnaApi";
+import "./support-workspace.css";
 
 const initialForm = {
   authorName: "",
@@ -315,6 +316,11 @@ function QnaWriteForm() {
 }
 
 function QnA({ adminMode = false }) {
+  const [searchText, setSearchText] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const detailRef = useRef(null);
+  const detailHeadingRef = useRef(null);
+  const listRequest = useRef(0);
   const [qnaPage, setQnaPage] = useState({
     content: [],
     page: 0,
@@ -333,6 +339,7 @@ function QnA({ adminMode = false }) {
   const [answerDraft, setAnswerDraft] = useState(initialAnswerDraft);
 
   const loadEntries = useCallback(async ({ page = 0, append = false } = {}) => {
+    const request = ++listRequest.current;
     setIsLoading(true);
     setLoadError("");
 
@@ -355,6 +362,7 @@ function QnA({ adminMode = false }) {
         statusCode: appliedFilters.statusCode,
         adminMode,
       });
+      if (request !== listRequest.current) return;
       const nextPage = normalizeQnaPage(response, page);
 
       setQnaPage((current) => ({
@@ -372,6 +380,7 @@ function QnA({ adminMode = false }) {
         );
       }
     } catch (error) {
+      if (request !== listRequest.current) return;
       if (!append) {
         setQnaPage({
           content: [],
@@ -385,12 +394,13 @@ function QnA({ adminMode = false }) {
       }
       setLoadError("Q&A 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {
-      setIsLoading(false);
+      if (request === listRequest.current) setIsLoading(false);
     }
   }, [appliedFilters, adminMode]);
 
   useEffect(() => {
     loadEntries();
+    return () => { listRequest.current += 1; };
   }, [loadEntries]);
 
   const entries = qnaPage.content;
@@ -400,8 +410,10 @@ function QnA({ adminMode = false }) {
       ? qnaPage.totalElements
       : visibleEntries.length;
   const selectedEntry = useMemo(() => {
-    return entries.find((entry) => entry.qnaId === selectedQnaId) || entries[0] || null;
-  }, [entries, selectedQnaId]);
+    const entry = entries.find((item) => item.qnaId === selectedQnaId) || (adminMode ? null : entries[0]) || null;
+    if (adminMode && appliedSearch && entry && ![entry.question,entry.username,entry.guestName,entry.category].filter(Boolean).join(" ").toLocaleLowerCase().includes(appliedSearch.toLocaleLowerCase())) return null;
+    return entry;
+  }, [entries, selectedQnaId, adminMode, appliedSearch]);
   const qnaResultCaption = getQnaFilterSummary(appliedFilters);
 
   useEffect(() => {
@@ -416,6 +428,38 @@ function QnA({ adminMode = false }) {
     });
   }, [adminMode, selectedEntry]);
 
+  const answerDirty = adminMode && Boolean(selectedEntry) && (
+    answerDraft.answer !== (selectedEntry.answer || "") ||
+    answerDraft.statusCode !== (selectedEntry.statusCode || "reviewing") ||
+    answerDraft.isPublic !== (selectedEntry.isPublic ?? true)
+  );
+  const matchesSearch = entry => !appliedSearch || [entry.question, entry.username, entry.guestName, entry.category].filter(Boolean).join(" ").toLocaleLowerCase().includes(appliedSearch.toLocaleLowerCase());
+  const workspaceEntries = entries.filter(matchesSearch);
+  function allowWorkspaceChange() {
+    if (isSubmitting) return false;
+    return !answerDirty || window.confirm("저장하지 않은 답변이 있어요. 내용을 버리고 이동할까요?");
+  }
+  function focusQuestionDetail() {
+    requestAnimationFrame(() => {
+      detailRef.current?.scrollIntoView?.({block:"nearest"});
+      detailHeadingRef.current?.focus({preventScroll:true});
+    });
+  }
+  function selectQuestion(id) {
+    if (isSubmitting) return;
+    if (id === selectedQnaId) { focusQuestionDetail(); return; }
+    if (!allowWorkspaceChange()) return;
+    setSelectedQnaId(id);
+    setSubmitMessage("");
+    focusQuestionDetail();
+  }
+  function quickStatus(statusCode) {
+    if (!allowWorkspaceChange()) return;
+    setFilters(current=>({...current,statusCode}));
+    setAppliedFilters(current=>({...current,statusCode}));
+    setSearchText("");setAppliedSearch("");
+  }
+
   function updateQnaFilter(field, value) {
     setFilters((current) => ({
       ...current,
@@ -425,10 +469,18 @@ function QnA({ adminMode = false }) {
 
   function handleFilterSubmit(event) {
     event.preventDefault();
+    if (adminMode && !allowWorkspaceChange()) return;
     setAppliedFilters(filters);
+    if (adminMode) {
+      const query=searchText.trim();setAppliedSearch(query);
+      const matches=entries.filter(entry=>!query||[entry.question,entry.username,entry.guestName,entry.category].filter(Boolean).join(" ").toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+      setSelectedQnaId(matches[0]?.qnaId||null);
+    }
   }
 
   function resetFilters() {
+    if (adminMode && !allowWorkspaceChange()) return;
+    setSearchText("");setAppliedSearch("");
     setFilters(initialQnaFilters);
     setAppliedFilters(initialQnaFilters);
   }
@@ -442,6 +494,7 @@ function QnA({ adminMode = false }) {
 
   async function handleAnswerSubmit(event) {
     event.preventDefault();
+    if (isSubmitting) return;
     setSubmitMessage("");
 
     if (!selectedEntry?.qnaId) {
@@ -473,188 +526,39 @@ function QnA({ adminMode = false }) {
   }
 
   if (adminMode) {
-    return (
-      <PageLayout
-        title="Q&A 관리"
-        description="접수된 질문을 선택하고 답변과 상태를 관리하는 관리자 화면입니다."
-      >
-        {loadError ? (
-          <div className="api-status api-status--error" role="alert">
-            <span>{loadError}</span>
-            <button type="button" onClick={() => loadEntries()} disabled={isLoading}>
-              다시 시도
-            </button>
-          </div>
-        ) : null}
-        {submitMessage ? (
-          <div
-            className={
-              submitMessage.includes("저장")
-                ? "api-status api-status--success"
-                : "api-status api-status--error"
-            }
-          >
-            {submitMessage}
-          </div>
-        ) : null}
-
-        <QnaFilterPanel
-          filters={filters}
-          onChange={updateQnaFilter}
-          onSubmit={handleFilterSubmit}
-          onReset={resetFilters}
-        />
-
-        <div className="faq-columns faq-columns--admin">
-          <section className="board-table" aria-label="Q&A 목록">
-            <div className="board-table__head">
-              <span>상태</span>
-              <span>질문</span>
-              <span>작성자</span>
-              <span>유형</span>
-              <span>수정일</span>
-            </div>
-
-            <div className="board-table__body">
-              {isLoading && entries.length === 0 ? (
-                <div className="board-empty">Q&A 목록을 불러오는 중입니다.</div>
-              ) : entries.length === 0 ? (
-                <div className="board-empty">등록된 질문이 없습니다.</div>
-              ) : (
-                entries.map((entry) => (
-                  <details
-                    key={entry.qnaId}
-                    className={`board-row ${selectedQnaId === entry.qnaId ? "board-row--selected" : ""}`}
-                    open={selectedQnaId === entry.qnaId}
-                  >
-                    <summary
-                      className="board-row__summary"
-                      onClick={() => setSelectedQnaId(entry.qnaId)}
-                    >
-                      <span className="board-badge">{getStatusLabel(entry.statusCode)}</span>
-                      <span className="board-row__title">{entry.question}</span>
-                      <span className="board-row__meta" data-label="작성자">
-                        {entry.guestName || entry.username || "-"}
-                      </span>
-                      <span className="board-row__meta" data-label="유형">
-                        {entry.category}
-                      </span>
-                      <span className="board-row__meta" data-label="수정일">
-                        {String(entry.updatedAt || entry.createdAt || "-").slice(0, 10)}
-                      </span>
-                    </summary>
-
-                    <div className="board-row__content">
-                      <div className="board-row__answer-label">문의</div>
-                      <div className="board-row__body">
-                        <p>{entry.question}</p>
-                      </div>
-                    </div>
-                  </details>
-                ))
-              )}
-            </div>
-
-            {qnaPage.hasNext ? (
-              <div className="list-more-actions">
-                <button type="button" onClick={handleLoadMoreQna} disabled={isLoading}>
-                  {isLoading ? "불러오는 중..." : "Q&A 더 보기"}
-                </button>
-              </div>
-            ) : null}
-          </section>
-
-          <aside className="faq-side-card">
-            <div className="faq-side-card__section">
-              <div className="faq-side-card__header">
-                <h2>답변 작성</h2>
-              </div>
-
-              {selectedEntry ? (
-                <form className="admin-form" onSubmit={handleAnswerSubmit}>
-                  <div className="faq-editor-caption">
-                    선택한 질문: {selectedEntry.question}
-                  </div>
-
-                  <div className="admin-inline-fields">
-                    <label className="admin-field">
-                      <span>질문자</span>
-                      <input
-                        type="text"
-                        value={selectedEntry.guestName || selectedEntry.username || "비로그인 사용자"}
-                        readOnly
-                      />
-                    </label>
-
-                    <label className="admin-field">
-                      <span>답변 이메일</span>
-                      <input type="text" value={selectedEntry.guestEmail || "-"} readOnly />
-                    </label>
-                  </div>
-
-                  <label className="admin-field">
-                    <span>상태</span>
-                    <select
-                      value={answerDraft.statusCode}
-                      onChange={(event) =>
-                        setAnswerDraft((current) => ({
-                          ...current,
-                          statusCode: event.target.value,
-                        }))
-                      }
-                    >
-                      <option value="received">접수</option>
-                      <option value="reviewing">검토 중</option>
-                      <option value="answered">답변 완료</option>
-                      <option value="hidden">비공개</option>
-                    </select>
-                  </label>
-
-                  <InquiryRetentionNotice entry={selectedEntry} />
-
-                  <label className="admin-field">
-                    <span>답변 내용</span>
-                    <textarea
-                      rows={8}
-                      value={answerDraft.answer}
-                      onChange={(event) =>
-                        setAnswerDraft((current) => ({
-                          ...current,
-                          answer: event.target.value,
-                        }))
-                      }
-                      placeholder="답변 내용을 입력해 주세요."
-                    />
-                  </label>
-
-                  <label className="admin-toggle">
-                    <input
-                      type="checkbox"
-                      checked={answerDraft.isPublic}
-                      onChange={(event) =>
-                        setAnswerDraft((current) => ({
-                          ...current,
-                          isPublic: event.target.checked,
-                        }))
-                      }
-                    />
-                    <span>공개 답변</span>
-                  </label>
-
-                  <div className="admin-actions">
-                    <button type="submit" className="button-primary" disabled={isSubmitting}>
-                      {isSubmitting ? "저장 중..." : "답변 저장"}
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="board-empty">목록에서 질문을 선택해 주세요.</div>
-              )}
-            </div>
-          </aside>
-        </div>
-      </PageLayout>
-    );
+    return <PageLayout title="문의 답변" className="support-workspace" description="기다리는 질문을 찾고, 한 건씩 답변을 마무리하세요.">
+      <UnsavedChangesGuard when={answerDirty} pending={isSubmitting}/>
+      <div className="sw-topline"><p><strong>{qnaPage.totalElements.toLocaleString()}건</strong> 조회 결과 · {entries.length}건 불러옴</p><span>문의 내용과 연락처는 운영자에게만 보여요.</span></div>
+      <div className="sw-status-bar" aria-label="문의 상태 바로 찾기">
+        {[{value:"",label:"전체"},...qnaStatusOptions].map(status=><button type="button" key={status.value} aria-pressed={appliedFilters.statusCode===status.value} disabled={isSubmitting} onClick={()=>quickStatus(status.value)}>{status.label}</button>)}
+      </div>
+      <form className="sw-filters" onSubmit={handleFilterSubmit}>
+        <label><span>불러온 문의에서 검색</span><input type="search" value={searchText} onChange={event=>setSearchText(event.target.value)} placeholder="질문 내용, 작성자" disabled={isSubmitting}/></label>
+        <label><span>문의 유형</span><select value={filters.category} onChange={event=>updateQnaFilter("category",event.target.value)} disabled={isSubmitting}><option value="">모든 유형</option>{qnaCategoryOptions.map(category=><option key={category} value={category}>{category}</option>)}</select></label>
+        <div className="sw-filter-actions"><button type="button" onClick={resetFilters} disabled={isSubmitting}>초기화</button><button type="submit" className="button-primary" disabled={isSubmitting}>조회</button></div>
+      </form>
+      {loadError&&<div className="api-status api-status--error" role="alert"><span>{loadError}</span><button type="button" onClick={()=>{if(allowWorkspaceChange())loadEntries();}} disabled={isLoading||isSubmitting}>다시 시도</button></div>}
+      {submitMessage&&<div className={'api-status '+(submitMessage==='답변이 저장되었습니다.'?'api-status--success':'api-status--error')} role="status">{submitMessage}</div>}
+      <div className="sw-columns">
+        <section className="sw-list" aria-label="문의 목록"><div className="sw-panel-heading"><h2>받은 문의</h2><span>{workspaceEntries.length}건 표시</span></div>
+          <p className="sw-list-hint">{appliedSearch?'불러온 목록 안에서 검색한 결과예요.':'상태를 눌러 접수·검토 중인 문의를 찾으세요.'}</p>
+          {isLoading&&!entries.length?<p className="sw-empty" role="status">문의 목록을 불러오고 있어요.</p>:!workspaceEntries.length?<p className="sw-empty">조건에 맞는 문의가 없어요.</p>:<ul>{workspaceEntries.map(entry=><li key={entry.qnaId}><button type="button" className="sw-list-item" aria-current={selectedQnaId===entry.qnaId?'true':undefined} disabled={isSubmitting} onClick={()=>selectQuestion(entry.qnaId)}><span className="sw-item-meta"><span className={'sw-status sw-status--'+(entry.statusCode||'received')}>{getStatusLabel(entry.statusCode)}</span><time>{getDateLabel(entry)}</time></span><strong>{entry.question}</strong><span className="sw-item-caption">{entry.category||'미분류'} · {getAuthorLabel(entry)}{entry.isPublic===false?' · 비공개':''}</span><span className="sw-item-arrow" aria-hidden="true">→</span></button></li>)}</ul>}
+          {qnaPage.hasNext&&<button type="button" className="sw-more" onClick={handleLoadMoreQna} disabled={isLoading||isSubmitting}>{isLoading?'불러오는 중...':'Q&A 더 보기'}</button>}
+        </section>
+        <section className="sw-detail" aria-label="선택한 문의" ref={detailRef}>
+          {selectedEntry?<><div className="sw-panel-heading"><h2 ref={detailHeadingRef} tabIndex={-1}>문의 상세</h2><span className={'sw-status sw-status--'+(selectedEntry.statusCode||'received')}>{getStatusLabel(selectedEntry.statusCode)}</span></div>
+            <p className="sw-question">{selectedEntry.question}</p>
+            <dl className="sw-facts"><div><dt>질문자</dt><dd>{getAuthorLabel(selectedEntry)}</dd></div><div><dt>문의 유형</dt><dd>{selectedEntry.category||'-'}</dd></div><div><dt>답변 이메일</dt><dd>{selectedEntry.guestEmail||'등록된 이메일 없음'}</dd></div><div><dt>최근 수정</dt><dd>{getDateLabel(selectedEntry)}</dd></div></dl>
+            <InquiryRetentionNotice entry={selectedEntry}/>
+            <form className="sw-editor admin-form" onSubmit={handleAnswerSubmit}><fieldset disabled={isSubmitting}><legend>답변 작성</legend>
+              <label className="admin-field"><span>답변 내용</span><textarea rows={8} value={answerDraft.answer} onChange={event=>setAnswerDraft(current=>({...current,answer:event.target.value}))} placeholder="사용자에게 전달할 답변을 작성해 주세요."/></label>
+              <div className="sw-editor-options"><label className="admin-field"><span>처리 상태</span><select value={answerDraft.statusCode} onChange={event=>setAnswerDraft(current=>({...current,statusCode:event.target.value}))}>{qnaStatusOptions.map(status=><option key={status.value} value={status.value}>{status.label}</option>)}</select></label><label className="admin-toggle"><input type="checkbox" checked={answerDraft.isPublic} onChange={event=>setAnswerDraft(current=>({...current,isPublic:event.target.checked}))}/><span>공개 답변</span></label></div>
+              <div className="sw-save-bar"><span>{answerDirty?'저장하지 않은 변경 내용이 있어요.':'저장하면 선택한 문의에 반영돼요.'}</span><button type="submit" className="button-primary" disabled={isSubmitting}>{isSubmitting?'저장 중...':'답변 저장'}</button></div>
+            </fieldset></form>
+          </>:<p className="sw-empty">목록에서 답변할 문의를 선택해 주세요.</p>}
+        </section>
+      </div>
+    </PageLayout>;
   }
 
   return (

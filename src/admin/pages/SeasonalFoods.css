@@ -70,3 +70,11 @@
 @media (max-width: 1100px) { .food-workspace.has-selection { grid-template-columns: minmax(0, 1fr); } .has-selection .food-card-grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); } .has-selection .food-library { max-height: 430px; overflow: auto; padding: 4px; } }
 @media (max-width: 600px) { .food-library-intro { padding: 22px; align-items: flex-start; } .food-library-count { min-width: 65px; padding-left: 16px; } .food-library-count small { display: none; } .food-library-intro h2 { font-size: 20px; } .food-library-intro p { font-size: 12px; } .food-card-grid, .has-selection .food-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } .food-card > div:not(.food-image-placeholder) { padding: 12px; } .food-card h3 { font-size: 18px; } .food-editor { padding: 18px; } .food-months { grid-template-columns: repeat(4, minmax(0, 1fr)); } .food-image-placeholder small { display: none; } }
 @media (prefers-reduced-motion: reduce) { .food-card { transition: none; } }
+
+.food-library-summary { font-size: 14px; color: #66574c; line-height: 1.8; margin: 0 0 22px; }
+.food-library-summary span { display: block; color: #85766a; font-size: 13px; }
+.food-editor--drawer { padding: 0; border: 0; box-shadow: none; background: transparent; }
+.food-editor--drawer .food-editor-section:first-child { margin-top: 0; }
+.food-editor--drawer .food-editor-actions { bottom: 0; }
+.seasonal-foods-page .admin-detail-drawer { width: min(680px, 100vw); }
+@media (max-width:600px) { .food-editor--drawer { padding: 0; } }

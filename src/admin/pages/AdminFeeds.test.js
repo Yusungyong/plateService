@@ -89,3 +89,17 @@ test("authorized preview images stay visible after changing moderation state", a
   fireEvent.error(screen.getByRole("img", { name: "피드 #42 사진" }));
   expect(screen.getByText("사진을 표시하지 못했습니다. 상세 새로고침으로 다시 확인해 주세요.")).toBeInTheDocument();
 });
+
+test("visibility shortcuts query the server; report filter is explicitly scoped to the loaded page", async () => {
+  getAdminFeeds.mockResolvedValue({content:[feed, {...feed,feedId:43,reportCount:0}],hasNext:true});
+  mount();
+  await screen.findByRole("button", {name:"피드 #43 검토"});
+  fireEvent.click(screen.getByRole("checkbox", {name:"이 페이지에서 신고 있는 항목만"}));
+  expect(screen.queryByRole("button", {name:"피드 #43 검토"})).not.toBeInTheDocument();
+  expect(screen.getByRole("button", {name:"피드 #42 검토"})).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", {name:"숨김",exact:true}));
+  await waitFor(() => expect(getAdminFeeds).toHaveBeenLastCalledWith(
+    {keyword:"",visibility:"hidden",page:0}, expect.objectContaining({signal:expect.anything()})
+  ));
+  expect(moderateAdminFeed).not.toHaveBeenCalled();
+});

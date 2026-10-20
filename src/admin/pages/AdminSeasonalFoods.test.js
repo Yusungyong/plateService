@@ -74,3 +74,15 @@ test("keeps unsaved text when the server reports a version conflict", async () =
   expect(screen.getByLabelText("소개")).toHaveValue("지키고 싶은 내용");
   await waitFor(() => expect(screen.getByRole("button", { name: "식재료 저장" })).toBeEnabled());
 });
+
+test("closing an edited food drawer preserves changes when discard is declined", async () => {
+  const confirm = jest.spyOn(window, "confirm").mockReturnValue(false);
+  render(<App />);
+  fireEvent.click(await screen.findByRole("button", {name:/대하/}));
+  fireEvent.change(await screen.findByLabelText("소개"), {target:{value:"보존할 소개"}});
+  fireEvent.click(screen.getByRole("button", {name:"닫기",exact:true}));
+  expect(confirm).toHaveBeenCalled();
+  expect(screen.getByRole("dialog", {name:"대하"})).toBeInTheDocument();
+  expect(screen.getByLabelText("소개")).toHaveValue("보존할 소개");
+  expect(fetchSpy.mock.calls.some(([,options]) => options.method === "PUT")).toBe(false);
+});

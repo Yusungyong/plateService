@@ -4,6 +4,7 @@ import { useAuth } from "../../auth/AuthContext";
 import AdminPageHeader from "../components/AdminPageHeader";
 import DetailDrawer from "../components/DetailDrawer";
 import ReasonDialog from "../components/ReasonDialog";
+import "../styles/content-workspace.css";
 import { ADMIN_PERMISSIONS as P } from "../constants/adminPermissions";
 import {
   getAdminFeeds,
@@ -18,6 +19,7 @@ export default function AdminFeeds() {
     initial = params.get("keyword") || "";
   const [keyword, setKeyword] = useState(initial),
     [visibility, setVisibility] = useState(""),
+    [reportedOnly, setReportedOnly] = useState(false),
     [page, setPage] = useState(0),
     [filters, setFilters] = useState({ keyword: initial, visibility: "" }),
     [list, setList] = useState(null),
@@ -138,11 +140,18 @@ export default function AdminFeeds() {
       if (mounted.current) setSaving(false);
     }
   }
+  const rows = list?.content || [];
+  const visibleRows = reportedOnly ? rows.filter(row => Number(row.reportCount) > 0) : rows;
+  const applyVisibility = (value) => {
+    setVisibility(value);
+    setFilters({keyword: keyword.trim(), visibility: value});
+    setPage(0);
+  };
   return (
-    <div className="admin-page">
+    <div className="admin-page content-workspace">
       <AdminPageHeader
         title="피드 관리"
-        description="사진 게시물의 신고 내용을 검토하고 숨김·복원·추천 노출을 관리합니다. 영상 게시물은 현재 이 관리 API의 대상에 포함되지 않습니다."
+        description="게시물을 찾아 선택하면 사진과 신고 내용을 확인하고 조치할 수 있어요."
       />
       <form
         className="admin-work-filter"
@@ -162,14 +171,6 @@ export default function AdminFeeds() {
             placeholder="작성자 ID·내용·식당명"
           />
         </label>
-        <label>
-          노출 상태
-          <select value={visibility} onChange={(e) => setVisibility(e.target.value)}>
-            <option value="">전체</option>
-            <option value="visible">노출</option>
-            <option value="hidden">숨김</option>
-          </select>
-        </label>
         <button className="admin-button admin-button--primary" disabled={loading}>
           조회
         </button>
@@ -177,43 +178,30 @@ export default function AdminFeeds() {
           새로고침
         </button>
       </form>
-      {error && <p role="alert">{error}</p>}
-      {message && <p role="status">{message}</p>}
-      {loading && <p role="status">피드 조회 중…</p>}
-      <div className="admin-table-scroll">
-        <table className="admin-data-table">
-          <thead>
-            <tr>
-              <th>게시물</th>
-              <th>작성자</th>
-              <th>식당</th>
-              <th>상태</th>
-              <th>신고</th>
-              <th>조치</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list?.content.map((row) => (
-              <tr key={row.feedId}>
-                <td>#{row.feedId}</td>
-                <td>{row.username}</td>
-                <td>{row.storeName || "미등록"}</td>
-                <td>
-                  {row.visibilityStatus === "hidden" ? "숨김" : "노출"}
-                  {row.recommended ? " · 추천" : ""}
-                </td>
-                <td>{row.reportCount}건</td>
-                <td>
-                  <button type="button" onClick={() => setSelected(row.feedId)}>
-                    피드 #{row.feedId} 검토
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="content-toolbar">
+        <div className="content-status-tabs" role="group" aria-label="노출 상태">
+          {[["", "전체"], ["visible", "노출 중"], ["hidden", "숨김"]].map(([value, label]) =>
+            <button type="button" key={value} aria-pressed={visibility === value} onClick={() => applyVisibility(value)}>{label}</button>
+          )}
+        </div>
+        <label className="content-report-filter"><input type="checkbox" checked={reportedOnly} onChange={event => setReportedOnly(event.target.checked)} />이 페이지에서 신고 있는 항목만</label>
       </div>
-      {!loading && !error && list?.content.length === 0 && <p>조회된 사진 게시물이 없습니다.</p>}
+      <p className="content-scope">사진 게시물만 관리합니다. 영상 게시물은 이 목록에 포함되지 않습니다.</p>
+      {error && <p role="alert">{error}</p>}
+      {selected === null && message && <p role="status">{message}</p>}
+      {loading && <p role="status">피드 조회 중…</p>}
+      <section className="content-list" aria-label="사진 게시물 목록" aria-busy={loading}>
+        {!loading && !error && list && <p className="content-results" role="status">{page + 1}페이지 · {visibleRows.length}개 표시{reportedOnly ? ` / 불러온 ${rows.length}개` : ""}</p>}
+        {visibleRows.map(row => (
+          <button type="button" className={`content-row${Number(row.reportCount) > 0 ? " content-row--reported" : ""}`} key={row.feedId} aria-label={`피드 #${row.feedId} 검토`} onClick={() => setSelected(row.feedId)}>
+            <span className="content-row__mark" aria-hidden="true">{Number(row.reportCount) > 0 ? "!" : "#"}</span>
+            <span className="content-row__body"><strong>{row.storeName || "식당 정보 없음"}</strong><span>{row.username} · 게시물 #{row.feedId}</span>{row.content && <span className="content-row__excerpt">{row.content}</span>}</span>
+            <span className="content-row__state"><span>{row.visibilityStatus === "hidden" ? "숨김" : "노출 중"}{row.recommended ? " · 추천" : ""}</span><span className={Number(row.reportCount) > 0 ? "content-report-count" : ""}>{Number(row.reportCount) > 0 ? `신고 ${row.reportCount}건` : "신고 없음"}</span></span>
+            <span className="content-row__arrow" aria-hidden="true">›</span>
+          </button>
+        ))}
+        {!loading && !error && list && visibleRows.length === 0 && <div className="content-empty"><strong>{reportedOnly && rows.length ? "이 페이지에는 신고된 게시물이 없어요." : "검색 결과가 없어요."}</strong><p>{reportedOnly ? "다른 페이지를 보거나 신고 필터를 해제해 주세요." : "검색어 또는 노출 상태를 바꿔보세요."}</p><button type="button" onClick={() => {setReportedOnly(false); setKeyword(""); setVisibility(""); setFilters({keyword:"", visibility:""}); setPage(0);}}>필터 초기화</button></div>}
+      </section>
       <div className="admin-work-actions">
         <button
           type="button"
@@ -232,6 +220,7 @@ export default function AdminFeeds() {
         </button>
       </div>
       <DetailDrawer isOpen={selected !== null} title={`피드 #${selected}`} onClose={close}>
+        {message && <p role="status">{message}</p>}
         {detailError && <p role="alert">{detailError}</p>}
         {!detail && !detailError && <p role="status">상세 조회 중…</p>}
         {detail && (

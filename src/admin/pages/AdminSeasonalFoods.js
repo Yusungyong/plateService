@@ -1,5 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import AdminPageHeader from "../components/AdminPageHeader";
+import DetailDrawer from "../components/DetailDrawer";
 import {ADMIN_PERMISSIONS, userHasAdminPermission} from "../constants/adminPermissions";
 import {useAuth} from "../../auth/AuthContext";
 import {getAllSeasonalFoods, updateSeasonalFood, createSeasonalFood, deleteSeasonalFood, getSeasonalFood} from "../api/seasonalFoodApi";
@@ -32,6 +33,7 @@ export default function AdminSeasonalFoods() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const deleteDialog = useRef(null);
   const newName = useRef(null);
+  const selectionTrigger = useRef(null);
   const request = useRef(0);
   const creating = Boolean(form && form.id == null);
   const dirty = Boolean(form && (JSON.stringify(form) !== JSON.stringify(baseline) || Object.values(files).some(Boolean)));
@@ -47,6 +49,7 @@ export default function AdminSeasonalFoods() {
   useEffect(() => {if (deleteOpen) deleteDialog.current?.showModal?.();}, [deleteOpen]);
   async function select(food) {
     if (saving || (dirty && !window.confirm("저장하지 않은 변경 내용을 버리고 이동할까요?"))) return;
+    if (food && !form) selectionTrigger.current = document.activeElement;
     let next;
     try {
       if (food?.id != null) {setSaving(true); next = normalized(await getSeasonalFood(food.id));}
@@ -54,6 +57,9 @@ export default function AdminSeasonalFoods() {
     } catch (error) {setNotice({type: "error", text: error.message || "최신 정보를 불러오지 못했습니다."}); return;}
     finally {setSaving(false);}
     setForm(next); setBaseline(next); setFiles({}); setNotice(null);
+    if (!next) requestAnimationFrame(() => {
+      if (selectionTrigger.current?.isConnected) selectionTrigger.current.focus();
+    });
   }
   function change(key, value) {setForm(current => ({...current, [key]: value}));}
   async function save(event) {
@@ -98,21 +104,19 @@ export default function AdminSeasonalFoods() {
   const visible = foods.filter(food => (!status || food.status === status) && (!category || food.categoryCode === category) && `${food.nameKo} ${food.shortDescription || ""}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   const categories = [...new Set(foods.map(food => food.categoryCode).filter(Boolean))];
   return <div className="admin-page seasonal-foods-page">
-    <UnsavedChangesGuard when={dirty && !saving} />
+    <UnsavedChangesGuard when={dirty} pending={saving} />
     <AdminPageHeader eyebrow="SEASONAL FOOD LIBRARY" title="제철 음식 관리" description="계절마다 찾게 되는 음식, 한곳에서 정리하세요." actions={<><button className="admin-button" onClick={load} disabled={loading || saving}>목록 새로고침</button>{canManage && <button className="admin-button admin-button--primary" onClick={() => select(blankFood())} disabled={saving}>＋ 음식 등록</button>}</>} />
-    <section className="food-library-intro" aria-label="음식 관리 현황"><div><span>OUR SEASONAL TABLE</span><h2>좋은 음식의 이야기를 채우는 곳</h2><p>음식을 찾아 선택하고, 사진과 소개를 함께 살펴보며 편집하세요.</p></div><div className="food-library-count"><strong>{foods.length}</strong><span>등록된 음식</span><small>공개 {foods.filter(food => food.status === "PUBLISHED").length} · 초안 {foods.filter(food => food.status === "DRAFT").length}</small></div></section>
-    {notice && <div role={notice.type === "error" ? "alert" : "status"} className={`api-status api-status--${notice.type}`}>{notice.text}</div>}
-    <div className={`food-workspace${form ? " has-selection" : ""}`}>
+    <p className="food-library-summary">{loading ? "음식 목록을 확인하고 있어요." : loadError ? "음식 현황을 다시 확인해 주세요." : `등록 ${foods.length}개 · 공개 ${foods.filter(food => food.status === "PUBLISHED").length}개 · 초안 ${foods.filter(food => food.status === "DRAFT").length}개`} <span>음식을 선택하면 상세 정보와 편집 화면이 열려요.</span></p>
+    {!form && notice && <div role={notice.type === "error" ? "alert" : "status"} className={`api-status api-status--${notice.type}`}>{notice.text}</div>}
+    <div className="food-workspace">
       <section id="food-library" className="food-library" aria-label="제철 음식 목록">
         <div className="food-library-tools"><label><span>음식 검색</span><input type="search" placeholder="음식 이름 또는 소개 검색" value={query} onChange={event => setQuery(event.target.value)} /></label><div><label><span>공개 상태</span><select value={status} onChange={event => setStatus(event.target.value)}><option value="">모든 상태</option>{Object.entries(STATUS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label><span>분류</span><select value={category} onChange={event => setCategory(event.target.value)}><option value="">모든 분류</option>{categories.map(key => <option key={key} value={key}>{categoryName(key)}</option>)}</select></label></div></div>
         <p className="food-results" role="status">{loading ? "음식을 불러오는 중…" : `${visible.length}개의 음식`}</p>
         {loadError ? <div role="alert" className="food-empty"><p>{loadError}</p><button onClick={load}>다시 불러오기</button></div> : loading ? <div className="food-empty">목록을 준비하고 있습니다.</div> : visible.length ? <div className="food-card-grid">{visible.map(food => <button className="food-card" key={food.id} aria-pressed={form?.id === food.id} onClick={() => select(food)} disabled={saving}><FoodImage url={food.imagePreviewUrl || food.representativeImageUrl} alt="" /><div><small>{categoryName(food.categoryCode)}<span>{STATUS[food.status] || food.status}</span></small><h3>{food.nameKo}</h3><p>{food.shortDescription || "소개를 작성해 주세요."}</p><span className="food-card-action">{form?.id === food.id ? "선택한 음식" : "자세히 보기"} ↗</span></div></button>)}</div> : <div className="food-empty"><h3>{foods.length ? "검색 결과가 없습니다" : "등록된 음식이 없습니다"}</h3><p>검색어나 필터를 확인해 주세요.</p>{(query || status || category) && <button onClick={() => {setQuery(""); setStatus(""); setCategory("");}}>필터 초기화</button>}</div>}
       </section>
-      {form && <form id="food-editor" className="food-editor" onSubmit={save}>
-        <header><div><span>{creating ? "NEW SEASONAL FOOD" : `${canManage ? "음식 편집" : "음식 상세"} · #${form.id}`}</span><h2>{creating ? form.nameKo || "새 음식 등록" : form.nameKo}</h2><p>{creating ? "이름과 제철 정보를 먼저 채워 주세요." : `${categoryName(form.categoryCode)} · ${STATUS[form.status] || form.status}`}</p></div><button type="button" aria-label="음식 상세 닫기" onClick={() => select(null)} disabled={saving}>×</button></header>
-        {!canManage && <p className="food-helper">조회 권한으로 열람 중입니다.</p>}
-
-        <nav className="food-editor-jumps" aria-label="음식 편집 위치"><a href="#food-library">목록</a><a href="#food-basics">기본 정보</a><a href="#food-story">음식 이야기</a><a href="#food-photos">사진</a></nav>
+      <DetailDrawer isOpen={Boolean(form)} title={creating ? "새 음식 등록" : form?.nameKo || "음식 상세"} description={canManage ? "사진과 소개를 확인하고 필요한 부분만 수정해 주세요." : "조회 권한으로 열람 중입니다."} onClose={() => {if (!deleteOpen) select(null);}}>
+      {notice && <div role={notice.type === "error" ? "alert" : "status"} className={`api-status api-status--${notice.type}`}>{notice.text}</div>}
+      {form && <form id="food-editor" className="food-editor food-editor--drawer" onSubmit={save}>
         <fieldset disabled={saving || !canManage}><legend>음식 정보</legend>
           <section id="food-basics" className="food-editor-section"><h3>01 · 기본 정보</h3><label className="food-input"><span>음식 이름 *</span><input ref={newName} aria-label="음식 이름" maxLength={100} required value={form.nameKo} onChange={event => change("nameKo", event.target.value)} placeholder="예: 대하" /></label><label className="food-input"><span>음식 분류 *</span><select aria-label="음식 분류" value={form.categoryCode} onChange={event => change("categoryCode", event.target.value)} required><option value="">분류 선택</option>{Object.entries(CATEGORIES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><div className="food-input"><span>제철 월 · 여러 달 선택 가능</span><div className="food-months">{Array.from({length: 12}, (_, i) => i + 1).map(month => <label key={month}><input type="checkbox" disabled={!creating && !form.monthsEditable} checked={form.months.includes(month)} onChange={event => change("months", event.target.checked ? [...form.months, month].sort((a,b) => a-b) : form.months.filter(value => value !== month))} /><span>{month}월</span></label>)}</div></div><p className="food-helper">{creating ? "새 음식은 초안으로 등록됩니다." : form.monthsEditable ? "제철 월은 전국 기준으로 저장됩니다." : "날짜·지역·출처가 있는 기존 제철 정보는 보존됩니다. 이 화면에서는 월을 변경할 수 없습니다."}</p>{!creating && <label className="food-input"><span>공개 상태 변경</span><select aria-label="공개 상태 변경" value={form.status} onChange={event => change("status", event.target.value)}>{Object.entries(STATUS).map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select><small>공개하려면 소개·대표 이미지·제철 기간이 필요합니다. 보관하면 앱 카탈로그에서 숨겨집니다.</small></label>}</section>
           <section id="food-story" className="food-editor-section"><h3>02 · 음식 이야기</h3>{TEXT_FIELDS.map(([key, label, placeholder], index) => <label className="food-input" key={key}><span>{label}</span><textarea aria-label={label} rows={index === 0 ? 4 : 3} maxLength={5000} placeholder={placeholder} value={form[key]} onChange={event => change(key, event.target.value)} /><small>{form[key].length.toLocaleString()} / 5,000</small></label>)}</section>
@@ -120,8 +124,9 @@ export default function AdminSeasonalFoods() {
         </fieldset>
         {canManage && <footer className="food-editor-actions"><span>{creating ? "초안으로 등록" : dirty ? "저장하지 않은 변경 사항" : "저장된 내용"}</span><div>{!creating && <button type="button" className="food-delete" onClick={() => setDeleteOpen(true)} disabled={saving}>음식 삭제</button>}<button type="submit" className="admin-button admin-button--primary" disabled={saving || !dirty}>{saving ? "저장 중…" : creating ? "초안 등록" : "식재료 저장"}</button></div></footer>}
       </form>}
+      </DetailDrawer>
     </div>
-    {deleteOpen && <dialog ref={deleteDialog} className="food-delete-dialog" aria-labelledby="food-delete-title" onCancel={() => setDeleteOpen(false)}><h2 id="food-delete-title">{form?.nameKo} 삭제</h2><p>연결된 추천과 앱 노출에 영향을 줄 수 있어, 삭제 전 사용 여부를 확인해야 합니다.</p><p>삭제하면 되돌릴 수 없습니다. 연결된 콘텐츠가 있으면 삭제가 제한됩니다.</p><div><button className="admin-button" autoFocus disabled={saving} onClick={() => {deleteDialog.current?.close?.(); setDeleteOpen(false);}}>돌아가기</button><button className="admin-button" disabled={saving} onClick={removeFood}>{saving ? "삭제 중…" : "삭제 확인"}</button></div></dialog>}
+    {deleteOpen && <dialog ref={deleteDialog} className="food-delete-dialog" aria-labelledby="food-delete-title" onCancel={event => {if (saving) event.preventDefault(); else setDeleteOpen(false);}}><h2 id="food-delete-title">{form?.nameKo} 삭제</h2><p>연결된 추천과 앱 노출에 영향을 줄 수 있어, 삭제 전 사용 여부를 확인해야 합니다.</p><p>삭제하면 되돌릴 수 없습니다. 연결된 콘텐츠가 있으면 삭제가 제한됩니다.</p><div><button className="admin-button" autoFocus disabled={saving} onClick={() => {deleteDialog.current?.close?.(); setDeleteOpen(false);}}>돌아가기</button><button className="admin-button" disabled={saving} onClick={removeFood}>{saving ? "삭제 중…" : "삭제 확인"}</button></div></dialog>}
   </div>;
 }
 

@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import MemberActions from "../admin/components/MemberActions";
+import { useAuth } from "../auth/AuthContext";
+import { ADMIN_PERMISSIONS as P } from "../admin/constants/adminPermissions";
+import "../admin/styles/member-workspace.css";
 import PageLayout from "../components/PageLayout";
 import {
   fetchMemberMonitoringLoginRisks,
@@ -59,6 +62,7 @@ function formatDateTime(value) {
   }
 
   return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -104,240 +108,53 @@ function buildKpiCards(summary) {
 }
 
 function MemberMonitoring() {
-  const [summary, setSummary] = useState({});
-  const [loginRisks, setLoginRisks] = useState([]);
-  const [profileChanges, setProfileChanges] = useState([]);
-  const [riskUsers, setRiskUsers] = useState([]);
-  const [profileChangesPage, setProfileChangesPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
-
-  const [refresh, setRefresh] = useState(0);
-  const [failures, setFailures] = useState([]);
-  const profileChangesPageSize = 5;
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadMonitoring() {
-      setIsLoading(true);
-      setErrorMessage("");
-
-      try {
-        const results = await Promise.allSettled([
-          fetchMemberMonitoringSummary(), fetchMemberMonitoringLoginRisks(),
-          fetchMemberMonitoringProfileChanges(), fetchMemberMonitoringRiskUsers(),
-        ]);
-        if (!isMounted) return;
-        const names = ["회원 지표", "로그인 이상 징후", "변경 이력", "위험 계정"];
-        setFailures(results.flatMap((r,i)=>r.status==="rejected"?[names[i]]:[]));
-        setSummary(results[0].status==="fulfilled" ? unwrapPayload(results[0].value) : {});
-        [setLoginRisks,setProfileChanges,setRiskUsers].forEach((setter,i)=>setter(results[i+1].status==="fulfilled"?normalizeItemsResponse(results[i+1].value):[]));
-        setProfileChangesPage(1);
-      } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
-        setErrorMessage(error.message || "회원 모니터링 데이터를 불러오지 못했습니다.");
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadMonitoring();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [refresh]);
-
-  const kpiCards = useMemo(() => buildKpiCards(summary), [summary]);
-  const totalProfileChangesPages = Math.max(
-    1,
-    Math.ceil(profileChanges.length / profileChangesPageSize)
-  );
-  const pagedProfileChanges = useMemo(() => {
-    const startIndex = (profileChangesPage - 1) * profileChangesPageSize;
-    return profileChanges.slice(startIndex, startIndex + profileChangesPageSize);
-  }, [profileChanges, profileChangesPage]);
-
-  return (
-    <PageLayout
-      title="회원 모니터링"
-      description="가입, 로그인, 권한 변경, 신고·차단 위험 신호를 한 화면에서 확인하는 운영자용 대시보드입니다."
-    >
-      <div className="stack-layout">
-        <div className="admin-work-actions"><button type="button" className="admin-button admin-button--secondary" disabled={isLoading} onClick={()=>setRefresh(n=>n+1)}>모니터링 새로고침</button></div>
-        <MemberActions />
-        {failures.length>0&&<p role="alert">조회 실패: {failures.join(" · ")}. 새로고침으로 다시 확인해 주세요.</p>}
-        {errorMessage ? <div className="api-status api-status--error">{errorMessage}</div> : null}
-
-        <section className="metric-grid" aria-label="회원 핵심 지표">
-          {kpiCards.map((card) => (
-            <article key={card.label} className="metric-card">
-              <span className="metric-card__label">{card.label}</span>
-              <strong className="metric-card__value">{isLoading ? "..." : card.value}</strong>
-              <p className="metric-card__note">{card.note}</p>
-            </article>
-          ))}
-        </section>
-
-        <div className="monitoring-layout">
-          <section className="support-panel">
-            <div className="support-panel__header">
-              <span className="support-kicker">로그인 이상 징후</span>
-              <h3>즉시 확인이 필요한 계정</h3>
-            </div>
-
-            <div className="monitoring-table" role="table" aria-label="로그인 이상 징후 목록">
-              <div className="monitoring-table__head" role="row">
-                <span>계정</span>
-                <span>이상 항목</span>
-                <span>상세</span>
-                <span>상태</span>
-              </div>
-
-              <div className="monitoring-table__body">
-                {isLoading ? (
-                  <div className="board-empty">회원 모니터링 데이터를 불러오는 중입니다.</div>
-                ) : loginRisks.length === 0 ? (
-                  <div className="board-empty">{failures.includes("로그인 이상 징후") ? "로그인 이상 징후 조회 실패" : "현재 확인된 로그인 이상 징후가 없습니다."}</div>
-                ) : (
-                  loginRisks.map((item) => (
-                    <div
-                      key={`${item.username}-${item.riskType || item.riskLabel || item.lastOccurredAt || ""}`}
-                      className="monitoring-table__row"
-                      role="row"
-                    >
-                      {item.username && !item.username.includes(",") ? <Link to={"/admin/member-monitoring?username="+encodeURIComponent(item.username)}>{item.username} 확인 →</Link> : <strong>{item.username || "-"}</strong>}
-                      <span>{item.riskLabel || item.issue || item.riskType || "-"}</span>
-                      <span>
-                        {item.detail ||
-                          [item.ipAddress, item.deviceId].filter(Boolean).join(" / ") ||
-                          "-"}
-                      </span>
-                      <span className="status-pill status-pill--review">
-                        {item.state || item.score || "확인 필요"}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </section>
-
-          <aside className="support-panel">
-            <div className="support-panel__header">
-              <span className="support-kicker">운영 체크포인트</span>
-              <h3>우선 확인 순서</h3>
-            </div>
-
-            <ol className="monitoring-checklist">
-              <li>로그인 실패 급증 계정과 동일 IP 다계정 로그인 여부를 먼저 확인합니다.</li>
-              <li>권한 변경 이력은 실제 운영 요청과 일치하는지 actor 정보와 함께 대조합니다.</li>
-              <li>신고와 차단이 동시에 증가한 계정은 콘텐츠 활동 내역까지 함께 검토합니다.</li>
-            </ol>
-          </aside>
-        </div>
-
-        <div className="monitoring-layout">
-          <section className="support-panel">
-            <div className="support-panel__header">
-              <span className="support-kicker">최근 변경 이력</span>
-              <h3>권한 및 회원 상태 변경</h3>
-            </div>
-
-            <div className="monitoring-list">
-              {isLoading ? (
-                <div className="board-empty">변경 이력을 불러오는 중입니다.</div>
-              ) : profileChanges.length === 0 ? (
-                <div className="board-empty">{failures.includes("변경 이력") ? "변경 이력 조회 실패" : "최근 변경 이력이 없습니다."}</div>
-              ) : (
-                <>
-                  {pagedProfileChanges.map((item) => (
-                    <article
-                      key={`${item.historyId || item.username}-${item.createdAt || item.at || ""}`}
-                      className="monitoring-list__item"
-                    >
-                      <div>
-                        {item.username && !item.username.includes(",") ? <Link to={"/admin/member-monitoring?username="+encodeURIComponent(item.username)}>{item.username} 확인 →</Link> : <strong>{item.username || "-"}</strong>}
-                        <p>{item.changedField || item.changeType || item.change || "-"}</p>
-                      </div>
-                      <div className="monitoring-list__meta">
-                        <span>{item.actor === "system" ? "수행자 미수집" : item.actor || item.actorUsername || item.actorName || "수행자 미수집"}</span>
-                        <span>{formatDateTime(item.createdAt || item.at)}</span>
-                      </div>
-                    </article>
-                  ))}
-
-                  <div className="monitoring-pagination" aria-label="최근 변경 이력 페이지 이동">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setProfileChangesPage((current) => Math.max(1, current - 1))
-                      }
-                      disabled={profileChangesPage === 1}
-                    >
-                      이전
-                    </button>
-                    <span>
-                      {profileChangesPage} / {totalProfileChangesPages}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setProfileChangesPage((current) =>
-                          Math.min(totalProfileChangesPages, current + 1)
-                        )
-                      }
-                      disabled={profileChangesPage === totalProfileChangesPages}
-                    >
-                      다음
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </section>
-
-          <section className="support-panel">
-            <div className="support-panel__header">
-              <span className="support-kicker">위험 계정</span>
-              <h3>신고·차단 집중 사용자</h3>
-            </div>
-
-            <div className="monitoring-list">
-              {isLoading ? (
-                <div className="board-empty">위험 계정 목록을 불러오는 중입니다.</div>
-              ) : riskUsers.length === 0 ? (
-                <div className="board-empty">{failures.includes("위험 계정") ? "위험 계정 조회 실패" : "현재 표시할 위험 계정이 없습니다."}</div>
-              ) : (
-                riskUsers.map((item) => (
-                  <article key={item.username} className="monitoring-list__item">
-                    <div>
-                      {item.username && !item.username.includes(",") ? <Link to={"/admin/member-monitoring?username="+encodeURIComponent(item.username)}>{item.username} 확인 →</Link> : <strong>{item.username || "-"}</strong>}
-                      <p>
-                        신고 {formatNumber(item.reportCount)}건 / 차단 {formatNumber(item.blockedCount)}
-                        건
-                        {item.recentActivityLabel ? ` / ${item.recentActivityLabel}` : ""}
-                      </p>
-                    </div>
-                    <div className="monitoring-list__meta monitoring-list__meta--action">
-                      <span>{item.recommendedAction || "운영 검토 필요"}</span>
-                      <span>{item.score ? `점수 ${item.score}` : ""}</span>
-                    </div>
-                  </article>
-                ))
-              )}
-            </div>
-          </section>
-        </div>
-      </div>
-    </PageLayout>
-  );
+  const {user,canAdmin}=useAuth();
+  const scope=JSON.stringify([user?.accountSubject,user?.roles,user?.permissions]);
+  const allowed=canAdmin(P.MEMBER_MONITORING_READ);
+  return <MemberMonitoringWorkspace key={scope} allowed={allowed}/>;
 }
 
+function MemberMonitoringWorkspace({allowed}) {
+  const [summary,setSummary]=useState({}), [loginRisks,setLoginRisks]=useState([]);
+  const [profileChanges,setProfileChanges]=useState([]), [riskUsers,setRiskUsers]=useState([]);
+  const [profileChangesPage,setProfileChangesPage]=useState(1), [isLoading,setIsLoading]=useState(true);
+  const [refresh,setRefresh]=useState(0), [failures,setFailures]=useState([]);
+  const [tab,setTab]=useState('search'), [signalTab,setSignalTab]=useState('login');
+  const pageSize=5;
+  useEffect(()=>{
+    if(!allowed)return undefined;
+    let current=true;
+    setIsLoading(true);
+    Promise.allSettled([fetchMemberMonitoringSummary(),fetchMemberMonitoringLoginRisks(),fetchMemberMonitoringProfileChanges(),fetchMemberMonitoringRiskUsers()]).then(results=>{
+      if(!current)return;
+      const names=['회원 지표','로그인 이상 징후','변경 이력','위험 계정'];
+      setFailures(results.flatMap((result,index)=>result.status==='rejected'?[names[index]]:[]));
+      setSummary(results[0].status==='fulfilled'?(unwrapPayload(results[0].value)||{}):{});
+      [setLoginRisks,setProfileChanges,setRiskUsers].forEach((setter,index)=>setter(results[index+1].status==='fulfilled'?normalizeItemsResponse(results[index+1].value):[]));
+      setProfileChangesPage(1);setIsLoading(false);
+    });
+    return()=>{current=false;};
+  },[allowed,refresh]);
+  const cards=useMemo(()=>buildKpiCards(summary),[summary]);
+  const totalPages=Math.max(1,Math.ceil(profileChanges.length/pageSize));
+  const pagedChanges=profileChanges.slice((profileChangesPage-1)*pageSize,profileChangesPage*pageSize);
+  function account(item){return item.username&&!item.username.includes(',')?<Link to={'/admin/member-monitoring?username='+encodeURIComponent(item.username)} onClick={()=>setTab('search')}>{item.username} 확인 <span aria-hidden="true">→</span></Link>:<strong>{item.username||'-'}</strong>;}
+  if(!allowed)return <p role="alert">회원 모니터링을 조회할 권한이 없습니다.</p>;
+  return <PageLayout title="회원 모니터링" description="회원을 찾고, 활동을 살펴보고, 필요한 조치를 차분히 진행하세요." className="member-workspace">
+    <div className="member-workspace-toolbar"><p>찾기부터 확인까지, 한 화면에서 이어서 관리해요.</p><button type="button" className="admin-button admin-button--secondary" disabled={isLoading} onClick={()=>setRefresh(value=>value+1)}>모니터링 새로고침</button></div>
+    <section className="member-workspace-stats" aria-label="회원 핵심 지표">{cards.slice(0,3).map(card=><div key={card.label}><span>{card.label}</span><strong>{isLoading?'…':card.value}</strong><small>{card.note}</small></div>)}</section>
+    {failures.length>0&&<p role="alert" className="member-feedback member-feedback--error">조회 실패: {failures.join(' · ')}. 새로고침으로 다시 확인해 주세요.</p>}
+    <MemberTabs label="회원 관리 영역" items={[["search","회원 찾기"],["signals","이상 징후"]]} selected={tab} onSelect={setTab}/>
+    <section id="member-panel-search" role="tabpanel" aria-labelledby="member-tab-search" hidden={tab!=='search'}><MemberActions/></section>
+    <section id="member-panel-signals" role="tabpanel" aria-labelledby="member-tab-signals" hidden={tab!=='signals'}>
+      <div className="member-signals-intro"><div><span className="member-eyebrow">서비스 살펴보기</span><h2>확인이 필요한 신호</h2><p>이상 징후는 검토를 위한 자료예요. 회원을 선택해 실제 활동과 함께 확인하세요.</p></div><details><summary>점검 순서 보기</summary><ol><li>로그인 실패와 동일 IP 다계정 기록을 확인해요.</li><li>권한 변경은 실제 요청과 수행자를 대조해요.</li><li>신고·차단 기록은 콘텐츠 활동과 함께 검토해요.</li></ol></details></div>
+      <section className="member-workspace-stats member-workspace-stats--signals" aria-label="회원 보안 지표">{cards.slice(3).map(card=><div key={card.label}><span>{card.label}</span><strong>{isLoading?'…':card.value}</strong><small>{card.note}</small></div>)}</section>
+      <MemberTabs label="회원 모니터링 종류" items={[["login","로그인 이상 징후"],["changes","변경 이력"],["risk","신고·차단"]]} selected={signalTab} onSelect={setSignalTab}/>
+      {signalTab==='login'&&<section id="member-panel-login" role="tabpanel" aria-labelledby="member-tab-login" className="member-signal-panel"><h3>로그인 이상 징후</h3><p className="member-search-help">최근 기록 최대 20건 · 회원을 선택하면 상세로 이동해요.</p>{isLoading?<p role="status">로그인 기록을 불러오고 있어요…</p>:failures.includes('로그인 이상 징후')?<p className="member-empty">로그인 이상 징후 조회 실패</p>:!loginRisks.length?<p className="member-empty">현재 확인된 로그인 이상 징후가 없습니다.</p>:<ul className="member-signal-list">{loginRisks.map((item,index)=><li key={`${item.username}-${item.riskType||index}`}><div className="member-signal-main">{account(item)}<strong>{item.riskLabel||item.issue||item.riskType||'-'}</strong><p>{item.detail||[item.ipAddress,item.deviceId].filter(Boolean).join(' / ')||'-'}</p></div><span className="member-signal-state">{item.state||item.score||'확인 필요'}</span></li>)}</ul>}</section>}
+      {signalTab==='changes'&&<section id="member-panel-changes" role="tabpanel" aria-labelledby="member-tab-changes" className="member-signal-panel"><h3>권한 및 회원 상태 변경</h3><p className="member-search-help">최근 기록 최대 20건 · 변경 항목과 수행 시각을 확인해요.</p>{isLoading?<p role="status">변경 이력을 불러오고 있어요…</p>:failures.includes('변경 이력')?<p className="member-empty">변경 이력 조회 실패</p>:!profileChanges.length?<p className="member-empty">최근 변경 이력이 없습니다.</p>:<><ul className="member-signal-list">{pagedChanges.map((item,index)=><li key={`${item.historyId||item.username}-${item.createdAt||item.at||index}`}><div className="member-signal-main">{account(item)}<strong>{item.changedField||item.changeType||item.change||'-'}</strong></div><div className="member-signal-meta"><span>{item.actor==='system'?'수행자 미수집':item.actor||item.actorUsername||item.actorName||'수행자 미수집'}</span><time>{formatDateTime(item.createdAt||item.at)}</time></div></li>)}</ul><nav className="member-pagination" aria-label="최근 변경 이력 페이지 이동"><button type="button" disabled={profileChangesPage===1} onClick={()=>setProfileChangesPage(value=>Math.max(1,value-1))}>이전</button><span>{profileChangesPage} / {totalPages}</span><button type="button" disabled={profileChangesPage===totalPages} onClick={()=>setProfileChangesPage(value=>Math.min(totalPages,value+1))}>다음</button></nav></>}</section>}
+      {signalTab==='risk'&&<section id="member-panel-risk" role="tabpanel" aria-labelledby="member-tab-risk" className="member-signal-panel"><h3>신고·차단 집중 사용자</h3><p className="member-search-help">최근 기록 최대 20건 · 신호만으로 회원 상태를 변경하지 않아요.</p>{isLoading?<p role="status">위험 계정 기록을 불러오고 있어요…</p>:failures.includes('위험 계정')?<p className="member-empty">위험 계정 조회 실패</p>:!riskUsers.length?<p className="member-empty">현재 표시할 위험 계정이 없습니다.</p>:<ul className="member-signal-list">{riskUsers.map(item=><li key={item.username}><div className="member-signal-main">{account(item)}<p>신고 {formatNumber(item.reportCount)}건 · 차단 {formatNumber(item.blockedCount)}건{item.recentActivityLabel?' · '+item.recentActivityLabel:''}</p></div><div className="member-signal-meta"><span>{item.recommendedAction||'운영 검토 필요'}</span>{item.score!=null&&<span>점수 {item.score}</span>}</div></li>)}</ul>}</section>}
+    </section>
+  </PageLayout>;
+}
+function MemberTabs({label,items,selected,onSelect}){return <div role="tablist" aria-label={label} className="member-tabs">{items.map(([key,title],index)=><button key={key} id={'member-tab-'+key} type="button" role="tab" aria-selected={selected===key} aria-controls={'member-panel-'+key} tabIndex={selected===key?0:-1} onClick={()=>onSelect(key)} onKeyDown={event=>{const next={ArrowRight:(index+1)%items.length,ArrowLeft:(index+items.length-1)%items.length,Home:0,End:items.length-1}[event.key];if(next!==undefined){event.preventDefault();onSelect(items[next][0]);document.getElementById('member-tab-'+items[next][0])?.focus();}}}>{title}</button>)}</div>;}
 export default MemberMonitoring;
