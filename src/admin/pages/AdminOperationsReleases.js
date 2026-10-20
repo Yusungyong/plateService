@@ -5,7 +5,7 @@ import {
   createOperationsRelease,
   recordReleaseCheck,
 } from "../api/operationsApi";
-import OperationsShared, { Flow, State } from "./OperationsShared";
+import OperationsShared, { State } from "./OperationsShared";
 import useOperationsSnapshot from "./useOperationsSnapshot";
 import {
   CHECKS,
@@ -18,6 +18,9 @@ import {
   time,
 } from "./operationsModel";
 import "./Operations.css";
+import {useSearchParams} from "react-router-dom";
+import {EvidenceFlow,focusEvidence} from "./OperationsDrilldown";
+import "./OperationsDrilldown.css";
 function eventId() {
   if (window.crypto?.randomUUID) return window.crypto.randomUUID();
   const bytes = new Uint8Array(16);
@@ -43,8 +46,9 @@ export default function AdminOperationsReleases() {
     m = useMemo(() => operationsModel(s), [s]);
   const { canAdmin } = useAuth(),
     canWrite = canAdmin(ADMIN_PERMISSIONS.SETTING_MANAGE);
-  const [selected, setSelected] = useState(""),
-    [busy, setBusy] = useState(false),
+  const [params,setParams]=useSearchParams();
+  const selected=params.get("release")||"",evidence=params.get("evidence")||"",checkFilter=params.get("check")||"";
+  const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
   const [draft, setDraft] = useState({
@@ -54,9 +58,12 @@ export default function AdminOperationsReleases() {
     revision: "",
   });
   const release =
-      m.releases.find((r) => r.releaseId === selected) || m.releases[0],
+      selected?m.releases.find((r) => String(r.releaseId) === selected):m.releases[0],
     checks = latestChecks(s, release?.releaseId),
     runs = releaseWorkflows(s, release);
+  const checkHistory=(s?.releases?.checks||[]).filter(row=>row.releaseId===release?.releaseId&&(!checkFilter||row.check===checkFilter));
+  const visibleRuns=runs.filter(run=>evidence==='ci'?run.workflow.endsWith(release?.platform==='ANDROID'||release?.platform==='IOS'?'mobile-ci.yml':'ci.yml'):evidence==='deploy'?['deploy.yml','deploy-from-source.yml','mobile-beta.yml','mobile-release.yml'].some(path=>run.workflow.endsWith(path)):true);
+  function inspect(kind,check=''){setParams({release:String(release?.releaseId||selected),evidence:kind,...(check?{check}:{})});focusEvidence(kind==='history'?'ops-release-history':kind==='registered'?'ops-release-registered':'ops-release-runs');}
   const writable = canWrite && s?.releases?.available === true;
   async function create(event) {
     event.preventDefault();
@@ -65,7 +72,7 @@ export default function AdminOperationsReleases() {
     setNotice("");
     try {
       const result = await createOperationsRelease(draft);
-      setSelected(result.releaseId);
+      setParams({release:String(result.releaseId)});
       setDraft({ platform: "ANDROID", version: "", build: "", revision: "" });
       setNotice(
         "버전을 등록했습니다. 배포 완료와 기기 점검은 별도 확인하세요."
@@ -119,7 +126,7 @@ export default function AdminOperationsReleases() {
           <select
             className="ops-select"
             value={release?.releaseId || ""}
-            onChange={(e) => setSelected(e.target.value)}
+            onChange={(e) => setParams({release:e.target.value})}
           >
             <option value="" disabled>
               등록 버전 없음
@@ -132,13 +139,11 @@ export default function AdminOperationsReleases() {
             ))}
           </select>
         </label>
-        <span className="ops-muted">
-          GitHub · {GITHUB_LABELS[s?.github?.status] || "확인 불가"}
-        </span>
+        <button type="button" className="ops-link-button" onClick={()=>inspect('runs')}>GitHub · {GITHUB_LABELS[s?.github?.status] || "확인 불가"} · 근거 보기 →</button>
       </div>
       {release ? (
         <>
-          <section className="ops-panel">
+          <section className="ops-panel" id="ops-release-registered" tabIndex={-1}>
             <h2>
               {release.platform} {release.version} · 빌드 {release.build}
             </h2>
@@ -146,7 +151,9 @@ export default function AdminOperationsReleases() {
               등록 {time(release.createdAt)} · 소스{" "}
               {release.revision.slice(0, 12)}
             </p>
-            <Flow stages={releaseStages(s, release)} label="릴리스 근거 단계" />
+            <EvidenceFlow stages={releaseStages(s, release)} label="릴리스 근거 단계" onSelect={(_,index)=>inspect(['registered','ci','deploy','history','history'][index],index===3?'STORE_PUBLISHED':index===4?'DEVICE_CHECK':'')} />
+            {evidence==='registered'&&<p className="ops-evidence-selection">등록 근거 · {release.platform} / {release.version} / 빌드 {release.build} / 소스 {release.revision}. 운영자가 등록한 기록이며 실제 출시 증명이 아닙니다.</p>}
+            {evidence&&<button type="button" className="ops-link-button" onClick={()=>setParams({release:String(release.releaseId)})}>근거 조건 초기화</button>}
             <p className="ops-muted">
               워크플로 성공만으로 스토어 출시나 실제 기기 동작을 확정하지
               않습니다. 소스 리비전이 일치하는 기록만 연결합니다.
@@ -179,7 +186,7 @@ export default function AdminOperationsReleases() {
                           </small>
                         </td>
                         <td>
-                          <State
+                          <button type="button" className="ops-status-link" aria-label={label+' 점검 이력 보기'} onClick={()=>inspect('history',check)}><State
                             value={
                               checks[check]?.result === "PASS"
                                 ? "good"
@@ -191,7 +198,7 @@ export default function AdminOperationsReleases() {
                               RESULT_LABELS[checks[check]?.result] ||
                               "확인 대기"
                             }
-                          />
+                          /> <span aria-hidden="true">↗</span></button>
                         </td>
                         <td>
                           {canWrite ? (
@@ -226,14 +233,15 @@ export default function AdminOperationsReleases() {
                 실제 점검한 결과만 기록하세요. 기록 변경 이력을 보존합니다.
               </p>
             </section>
-            <section className="ops-panel">
+            <section className="ops-panel" id="ops-release-runs" tabIndex={-1}>
               <h2>연결된 자동 실행</h2>
-              {runs.length ? (
+              <p className="ops-muted">{evidence==='ci'?'자동 검증':evidence==='deploy'?'배포 워크플로':'전체 실행'} · 선택한 버전의 저장소와 소스 리비전이 일치하는 조회 기록 {visibleRuns.length}건. GitHub {GITHUB_LABELS[s?.github?.status]||'확인 불가'} · 마지막 확인 {time(s?.github?.checkedAt)}</p>
+              {visibleRuns.length ? (
                 <ul className="ops-list">
-                  {runs.map((run) => (
+                  {visibleRuns.map((run) => (
                     <li key={run.repository + run.runId}>
                       <strong>{run.workflow.split("/").pop()}</strong>
-                      <p>
+                      <p><a className="ops-status-link" href={'https://github.com/'+run.repository+'/actions/runs/'+run.runId} target="_blank" rel="noreferrer" aria-label={(run.conclusion||run.status)+' 실행 로그 보기'}>
                         <State
                           value={
                             run.status === "completed" &&
@@ -244,7 +252,7 @@ export default function AdminOperationsReleases() {
                               : "unknown"
                           }
                           label={run.conclusion || run.status}
-                        />
+                        /> ↗</a>
                       </p>
                       <p className="ops-muted">
                         시도 {run.attempt} · {time(run.updatedAt)}
@@ -275,11 +283,11 @@ export default function AdminOperationsReleases() {
               </p>
             </section>
           </div>
-          <section className="ops-panel">
+          <section className="ops-panel" id="ops-release-history" tabIndex={-1} aria-label="점검 변경 이력">
             <h2>점검 변경 이력</h2>
+            <div className="ops-filter-bar"><label>점검 항목 <select value={checkFilter} onChange={event=>inspect('history',event.target.value)}><option value="">전체 점검</option>{Object.entries(CHECKS).map(([key,title])=><option key={key} value={key}>{title}</option>)}</select></label><span>서버가 반환한 이력 중 선택 조건 {checkHistory.length}건 · 최대 20건 표시</span></div>
             <ul className="ops-list">
-              {(s?.releases?.checks || [])
-                .filter((row) => row.releaseId === release.releaseId)
+              {checkHistory
                 .slice(0, 20)
                 .map((row) => (
                   <li key={row.eventId}>
@@ -288,14 +296,12 @@ export default function AdminOperationsReleases() {
                   </li>
                 ))}
             </ul>
-            {!(s?.releases?.checks || []).some(
-              (row) => row.releaseId === release.releaseId
-            ) && <p className="ops-muted">점검 기록 없음</p>}
+            {!checkHistory.length && <p className="ops-muted">점검 기록 없음</p>}
           </section>
         </>
       ) : (
         <p className="ops-empty">
-          등록된 버전이 없습니다. 확인할 버전을 등록해 점검을 시작하세요.
+          {selected?"선택한 버전이 조회 목록에 없습니다. 버전 선택에서 다시 골라 주세요.":"등록된 버전이 없습니다. 확인할 버전을 등록해 점검을 시작하세요."}
         </p>
       )}
       {canWrite && (

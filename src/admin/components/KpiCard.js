@@ -1,10 +1,12 @@
 import React from "react";
+import {Link} from "react-router-dom";
 
-function KpiCard({ label, value, change, note, tone = "primary" }) {
+function KpiCard({ label, value, change, note, tone = "primary", to, onClick, actionLabel }) {
   const isPositive = typeof change === "number" && change >= 0;
 
+  const Tag = to ? Link : onClick ? "button" : "article";
   return (
-    <article className={`admin-kpi-card admin-kpi-card--${tone}`}>
+    <Tag {...(to ? {to} : onClick ? {type: "button", onClick} : {})} className={`admin-kpi-card admin-kpi-card--${tone}${to || onClick ? " admin-kpi-card--interactive" : ""}`}>
       <span className="admin-kpi-card__label">{label}</span>
       <strong>{typeof value === "string" ? value : Number.isFinite(Number(value)) && value !== null && value !== undefined ? Number(value).toLocaleString() : "확인 불가"}</strong>
       <div className="admin-kpi-card__meta">
@@ -22,7 +24,8 @@ function KpiCard({ label, value, change, note, tone = "primary" }) {
         ) : null}
         <span>{note}</span>
       </div>
-    </article>
+    {(to || onClick) && <span className="metric-action">{actionLabel || "자세히 보기"} →</span>}
+    </Tag>
   );
 }
 

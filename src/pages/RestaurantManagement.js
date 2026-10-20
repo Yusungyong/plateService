@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { focusWorkspaceList, readWorkspaceQuery, writeWorkspaceQuery } from "./storeSupportQuery";
 import {
   deleteAdminRestaurant,
   fetchAdminRestaurants,
@@ -25,8 +26,21 @@ const exposureStatusDescriptions = {
 };
 
 function RestaurantManagement({ adminMode = false }) {
-  const [filters, setFilters] = useState(initialFilters);
-  const [appliedFilters, setAppliedFilters] = useState(initialFilters);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryKey = searchParams.toString();
+  const previousQuery = useRef(queryKey);
+  const listHeading = useRef(null);
+  const queryFilters = () => adminMode ? readWorkspaceQuery(searchParams, initialFilters, {exposureStatus: Object.keys(exposureStatusDescriptions)}) : initialFilters;
+  const [filters, setFilters] = useState(queryFilters);
+  const [appliedFilters, setAppliedFilters] = useState(queryFilters);
+  const returnTo = `/admin/stores${queryKey ? `?${queryKey}` : ""}`;
+  useEffect(() => {
+    if (!adminMode || queryKey === previousQuery.current) return;
+    previousQuery.current = queryKey;
+    const next = readWorkspaceQuery(new URLSearchParams(queryKey), initialFilters, {exposureStatus: Object.keys(exposureStatusDescriptions)});
+    setFilters(next); setAppliedFilters(next); setSelectedRestaurant(null);
+    focusWorkspaceList(listHeading);
+  }, [adminMode, queryKey]);
   const [restaurantPage, setRestaurantPage] = useState({
     content: [],
     page: 0,
@@ -94,20 +108,29 @@ function RestaurantManagement({ adminMode = false }) {
 
   function handleSearch(event) {
     event.preventDefault();
+    if (deleteInFlight.current || pendingDeleteRestaurant) return;
     setAppliedFilters(filters);
+    if (adminMode) { writeWorkspaceQuery(setSearchParams, previousQuery, filters); focusWorkspaceList(listHeading); }
     setSelectedRestaurant(null);
   }
 
-  function applyExposureStatus(exposureStatus) {
-    const nextFilters = { ...filters, exposureStatus };
+  function applyRestaurantFilter(field, value) {
+    if (deleteInFlight.current || pendingDeleteRestaurant) return;
+    const nextFilters = { ...appliedFilters, [field]: value };
     setFilters(nextFilters);
     setAppliedFilters(nextFilters);
+    writeWorkspaceQuery(setSearchParams, previousQuery, nextFilters);
     setSelectedRestaurant(null);
+    focusWorkspaceList(listHeading);
   }
 
+  function applyExposureStatus(exposureStatus) { applyRestaurantFilter("exposureStatus", exposureStatus); }
+
   function resetFilters() {
+    if (deleteInFlight.current || pendingDeleteRestaurant) return;
     setFilters(initialFilters);
     setAppliedFilters(initialFilters);
+    if (adminMode) { writeWorkspaceQuery(setSearchParams, previousQuery, initialFilters); focusWorkspaceList(listHeading); }
     setSelectedRestaurant(null);
   }
 
@@ -239,11 +262,12 @@ function RestaurantManagement({ adminMode = false }) {
           ) : <ExposureStatusGuide />}
         </section>
 
+        {adminMode ? <div className="store-workspace__applied" role="group" aria-label="적용된 매장 조건"><strong>적용 조건</strong>{Object.values(appliedFilters).some(Boolean) ? Object.entries(appliedFilters).filter(([,value]) => value).map(([key,value]) => <button type="button" key={key} aria-label={`${restaurantFilterLabel(key,value)} 해제`} onClick={() => applyRestaurantFilter(key, "")}>{restaurantFilterLabel(key,value)} ×</button>) : <span>전체 매장</span>}</div> : null}
         <section className="support-panel">
           <div className="support-panel__header restaurant-menu-header">
             <div>
               <span className="support-kicker">목록</span>
-              <h3>총 {restaurantPage.totalElements.toLocaleString()}개</h3>
+              <h3 ref={listHeading} tabIndex={-1}>{adminMode ? <button type="button" className="store-workspace__text-link" aria-label={`조회 결과 ${restaurantPage.totalElements}개 매장 목록 보기`} onClick={() => focusWorkspaceList(listHeading)}>총 {restaurantPage.totalElements.toLocaleString()}개 · 목록 보기 →</button> : <>총 {restaurantPage.totalElements.toLocaleString()}개</>}</h3>
             </div>
             {adminMode ? null : (
               <Link className="restaurant-text-link" to="/business/signup">
@@ -295,12 +319,12 @@ function RestaurantManagement({ adminMode = false }) {
                         data-label="상태"
                         className={`status-pill status-pill--${restaurant.exposureStatus || "default"}`}
                       >
-                        {toExposureStatusLabel(restaurant.exposureStatus)}
+                        {adminMode ? <button type="button" className="store-workspace__status-link" aria-label={`${toExposureStatusLabel(restaurant.exposureStatus)} 매장 목록 보기`} onClick={() => applyExposureStatus(restaurant.exposureStatus)}>{toExposureStatusLabel(restaurant.exposureStatus)} →</button> : toExposureStatusLabel(restaurant.exposureStatus)}
                       </span>
-                      <span role="cell" data-label="메뉴">{Number(restaurant.menuCount || 0).toLocaleString()}개</span>
+                      <span role="cell" data-label="메뉴">{adminMode ? <Link className="store-workspace__text-link" to={`/admin/stores/${restaurantId}`} state={{returnTo}} aria-label={`${restaurant.title || restaurant.name} 메뉴 ${Number(restaurant.menuCount || 0)}개 상세 보기`}>{Number(restaurant.menuCount || 0).toLocaleString()}개 →</Link> : <>{Number(restaurant.menuCount || 0).toLocaleString()}개</>}</span>
                       <span role="cell" data-label="수정일">{formatDate(restaurant.updatedAt || restaurant.updated_at)}</span>
                       <div className="restaurant-row-actions" role="cell" data-label="작업">
-                        <Link to={`${adminMode ? "/admin/stores" : "/business/stores"}/${restaurantId}`}>상세</Link>
+                        <Link to={`${adminMode ? "/admin/stores" : "/business/stores"}/${restaurantId}`} state={adminMode ? {returnTo} : undefined}>상세</Link>
                       </div>
                     </div>
                   );
@@ -338,7 +362,7 @@ function RestaurantManagement({ adminMode = false }) {
             footer={selectedRestaurant ? (
               <div className="store-workspace__detail-actions">
                 <button type="button" className="admin-button admin-button--danger-outline" onClick={() => requestDelete(selectedRestaurant)} disabled={deletingRestaurantId !== null}>매장 삭제</button>
-                <Link className="admin-button admin-button--primary" to={`/admin/stores/${selectedRestaurant.id || selectedRestaurant.restaurantId}`}>매장 정보 편집</Link>
+                <Link className="admin-button admin-button--primary" to={`/admin/stores/${selectedRestaurant.id || selectedRestaurant.restaurantId}`} state={{returnTo}}>매장 정보 편집</Link>
               </div>
             ) : null}
           >
@@ -349,15 +373,16 @@ function RestaurantManagement({ adminMode = false }) {
             ) : null}
             {selectedRestaurant ? (
               <div className="store-workspace__summary">
+                <button type="button" className="store-workspace__text-link" disabled={deletingRestaurantId !== null} onClick={() => {setSelectedRestaurant(null); focusWorkspaceList(listHeading);}}>목록으로 돌아가기</button>
                 <div className="store-workspace__next-step">
-                  <strong>{toExposureStatusLabel(selectedRestaurant.exposureStatus)}</strong>
+                  <button type="button" className="store-workspace__text-link" disabled={deletingRestaurantId !== null} onClick={() => applyExposureStatus(selectedRestaurant.exposureStatus)} aria-label={`${toExposureStatusLabel(selectedRestaurant.exposureStatus)} 매장 목록 보기`}>{toExposureStatusLabel(selectedRestaurant.exposureStatus)} 매장 보기 →</button>
                   <p>{exposureStatusDescriptions[selectedRestaurant.exposureStatus] || "매장 정보를 열어 현재 상태를 확인하세요."}</p>
                 </div>
                 {getRepresentativeImageUrl(selectedRestaurant) ? <img className="store-workspace__summary-image" src={getRepresentativeImageUrl(selectedRestaurant)} alt={`${selectedRestaurant.title || selectedRestaurant.name || "매장"} 대표 이미지`} /> : null}
                 <dl className="admin-detail-list">
                   <div><dt>주소</dt><dd>{selectedRestaurant.address || "-"}</dd></div>
                   <div><dt>카테고리</dt><dd>{formatCategories(selectedRestaurant.categories)}</dd></div>
-                  <div><dt>메뉴</dt><dd>{Number(selectedRestaurant.menuCount || 0).toLocaleString()}개</dd></div>
+                  <div><dt>메뉴</dt><dd><Link className="store-workspace__text-link" to={`/admin/stores/${selectedRestaurant.id || selectedRestaurant.restaurantId}`} state={{returnTo}}>{Number(selectedRestaurant.menuCount || 0).toLocaleString()}개 · 상세 보기 →</Link></dd></div>
                   <div><dt>최근 수정</dt><dd>{formatDate(selectedRestaurant.updatedAt || selectedRestaurant.updated_at)}</dd></div>
                 </dl>
                 <p className="store-workspace__hint">매장 정보 편집에서 기본 정보, 메뉴, 사진과 노출 상태를 변경할 수 있습니다.</p>
@@ -374,6 +399,10 @@ function RestaurantManagement({ adminMode = false }) {
       </div>
     </PageLayout>
   );
+}
+
+function restaurantFilterLabel(key, value) {
+  return `${{keyword: "검색", category: "카테고리", exposureStatus: "노출 상태"}[key]}: ${key === "exposureStatus" ? toExposureStatusLabel(value) : value}`;
 }
 
 function ExposureStatusGuide() {

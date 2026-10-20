@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import AdminPageHeader from "../components/AdminPageHeader";
+import UnsavedChangesGuard from "../../components/UnsavedChangesGuard";
 import DetailDrawer from "../components/DetailDrawer";
 import ReasonDialog from "../components/ReasonDialog";
 import "../styles/content-workspace.css";
@@ -14,16 +15,24 @@ import {
   feedPreviewImages,
 } from "../api/feedModerationApi";
 export default function AdminFeeds() {
-  const { canAdmin } = useAuth(),
-    [params] = useSearchParams(),
-    initial = params.get("keyword") || "";
-  const [keyword, setKeyword] = useState(initial),
-    [visibility, setVisibility] = useState(""),
-    [reportedOnly, setReportedOnly] = useState(false),
-    [page, setPage] = useState(0),
-    [filters, setFilters] = useState({ keyword: initial, visibility: "" }),
-    [list, setList] = useState(null),
-    [selected, setSelected] = useState(null),
+  const { canAdmin } = useAuth();
+  const [params,setParams] = useSearchParams();
+  const query = new URLSearchParams([...params].filter(([key])=>["keyword","visibility","author","from","to","region","located","reported","recommended"].includes(key))).toString();
+  const filters = useMemo(() => {
+    const q=new URLSearchParams(query), result={keyword:q.get("keyword") || "", visibility:["visible","hidden"].includes(q.get("visibility")) ? q.get("visibility") : ""};
+    for (const key of ["author","from","to","region"]) if(q.get(key))result[key]=q.get(key);
+    for (const key of ["located","reported"]) if(["1","true"].includes(q.get(key)))result[key]=true;
+    if (["true","false"].includes(q.get("recommended"))) result.recommended=q.get("recommended")==="true";
+    return result;
+  }, [query]);
+  const page = /^\d{1,6}$/.test(params.get("page") || "") ? Number(params.get("page")) : 0;
+  const selected = /^\d{1,10}$/.test(params.get("feed") || "") ? Number(params.get("feed")) : null;
+  const visibility=filters.visibility, reportedOnly=!!filters.reported;
+  const [keyword, setKeyword] = useState(filters.keyword);
+  function changeQuery(changes, resetPage=true) {setParams(current => {const next=new URLSearchParams(current);if(resetPage)next.delete("page");Object.entries(changes).forEach(([key,value]) => {if(value===null||value===""||value===undefined)next.delete(key);else next.set(key,String(value));});return next;});}
+  const setPage = value => changeQuery({page:typeof value === "function" ? value(page) : value},false);
+  const setSelected = value => changeQuery({feed:value},false);
+  const [list, setList] = useState(null),
     [detail, setDetail] = useState(null),
     [reports, setReports] = useState(null),
     [reportError, setReportError] = useState(""),
@@ -38,6 +47,8 @@ export default function AdminFeeds() {
   const generation = useRef(0),
     mounted = useRef(true),
     writing = useRef(false);
+  const selectedRef=useRef(selected);selectedRef.current=selected;
+  useEffect(()=>{setAction(null);},[selected]);
   useEffect(() => {
     const counter = generation;
     mounted.current = true;
@@ -46,11 +57,7 @@ export default function AdminFeeds() {
       counter.current++;
     };
   }, []);
-  useEffect(() => {
-    setKeyword(initial);
-    setFilters((f) => ({ ...f, keyword: initial }));
-    setPage(0);
-  }, [initial]);
+  useEffect(() => {setKeyword(filters.keyword);}, [filters.keyword]);
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
@@ -103,7 +110,7 @@ export default function AdminFeeds() {
     setAction(null);
   }
   async function execute(reason) {
-    if (writing.current || !detail || !action) return;
+    if (writing.current || !detail || !action || selected === null || detail.feedId !== selected) return;
     writing.current = true;
     setSaving(true);
     setDetailError("");
@@ -116,22 +123,22 @@ export default function AdminFeeds() {
         version: detail.version,
         ...(kind === "recommendation" ? { recommended: !detail.recommended } : {}),
       });
-      if (mounted.current) {
+      if (mounted.current && selectedRef.current === id) {
         setDetail((previous) => ({ ...result, previewImages: previous?.previewImages || [] }));
         setAction(null);
         setMessage("피드 조치를 저장했습니다.");
         setReload((n) => n + 1);
       }
     } catch (e) {
-      if (mounted.current) {
+      if (mounted.current && selectedRef.current === id) {
         setAction(null);
         setDetailError(e.message || "처리 결과를 확인하지 못했습니다. 다시 조회해 주세요.");
         if (e.status === 409) {
           try {
             const current = await getAdminFeed(id);
-            if (mounted.current && id === selected) setDetail(current);
+            if (mounted.current && id === selectedRef.current) setDetail(current);
           } catch {
-            if (mounted.current) setDetail(null);
+            if (mounted.current && id === selectedRef.current) setDetail(null);
           }
         }
       }
@@ -141,14 +148,11 @@ export default function AdminFeeds() {
     }
   }
   const rows = list?.content || [];
-  const visibleRows = reportedOnly ? rows.filter(row => Number(row.reportCount) > 0) : rows;
-  const applyVisibility = (value) => {
-    setVisibility(value);
-    setFilters({keyword: keyword.trim(), visibility: value});
-    setPage(0);
-  };
+  const visibleRows = rows;
+  const applyVisibility = value => changeQuery({visibility:value});
   return (
     <div className="admin-page content-workspace">
+      <UnsavedChangesGuard when={Boolean(action)} pending={saving} />
       <AdminPageHeader
         title="피드 관리"
         description="게시물을 찾아 선택하면 사진과 신고 내용을 확인하고 조치할 수 있어요."
@@ -157,8 +161,7 @@ export default function AdminFeeds() {
         className="admin-work-filter"
         onSubmit={(e) => {
           e.preventDefault();
-          setFilters({ keyword: keyword.trim(), visibility });
-          setPage(0);
+          changeQuery({keyword:keyword.trim()});
         }}
       >
         <label>
@@ -184,14 +187,16 @@ export default function AdminFeeds() {
             <button type="button" key={value} aria-pressed={visibility === value} onClick={() => applyVisibility(value)}>{label}</button>
           )}
         </div>
-        <label className="content-report-filter"><input type="checkbox" checked={reportedOnly} onChange={event => setReportedOnly(event.target.checked)} />이 페이지에서 신고 있는 항목만</label>
+        <label className="content-report-filter"><input type="checkbox" checked={reportedOnly} onChange={event => changeQuery({reported:event.target.checked ? "1" : null})} />신고 있는 사진 전체</label>
       </div>
-      <p className="content-scope">사진 게시물만 관리합니다. 영상 게시물은 이 목록에 포함되지 않습니다.</p>
+      <div className="content-toolbar"><label>추천 여부 <select aria-label="추천 여부" value={filters.recommended===undefined ? "" : String(filters.recommended)} onChange={event=>changeQuery({recommended:event.target.value})}><option value="">전체</option><option value="true">추천 중</option><option value="false">추천 아님</option></select></label></div>
+      {Object.entries(filters).some(([,v])=>v!=="" && v!==undefined) && <div className="drilldown-filters" aria-label="적용한 피드 조건">{Object.entries(filters).filter(([,v])=>v!=="" && v!==undefined).map(([key,value])=><button type="button" key={key} onClick={()=>changeQuery({[key]:null})}>{({keyword:"검색",visibility:"노출",author:"작성자",from:"시작일",to:"종료일",region:"지역",located:"지역 정보",reported:"신고",recommended:"추천"})[key]}: {value===true ? "있음" : value===false ? "없음" : value} ×</button>)}<button type="button" onClick={()=>setParams({})}>조건 전체 초기화</button></div>}
+      <p className="content-scope">사진 게시물만 관리합니다. 영상 게시물은 이 목록에 포함되지 않습니다. 기간은 한국 시간 등록일 기준이며 신고 필터는 처리 여부와 관계없이 신고 이력이 있는 사진입니다.</p>
       {error && <p role="alert">{error}</p>}
       {selected === null && message && <p role="status">{message}</p>}
       {loading && <p role="status">피드 조회 중…</p>}
       <section className="content-list" aria-label="사진 게시물 목록" aria-busy={loading}>
-        {!loading && !error && list && <p className="content-results" role="status">{page + 1}페이지 · {visibleRows.length}개 표시{reportedOnly ? ` / 불러온 ${rows.length}개` : ""}</p>}
+        {!loading && !error && list && <p className="content-results" role="status">{page + 1}페이지 · {visibleRows.length}개 표시{Number.isFinite(list.totalElements) ? ` / 조건에 맞는 전체 ${list.totalElements.toLocaleString()}개` : ""}</p>}
         {visibleRows.map(row => (
           <button type="button" className={`content-row${Number(row.reportCount) > 0 ? " content-row--reported" : ""}`} key={row.feedId} aria-label={`피드 #${row.feedId} 검토`} onClick={() => setSelected(row.feedId)}>
             <span className="content-row__mark" aria-hidden="true">{Number(row.reportCount) > 0 ? "!" : "#"}</span>
@@ -200,7 +205,7 @@ export default function AdminFeeds() {
             <span className="content-row__arrow" aria-hidden="true">›</span>
           </button>
         ))}
-        {!loading && !error && list && visibleRows.length === 0 && <div className="content-empty"><strong>{reportedOnly && rows.length ? "이 페이지에는 신고된 게시물이 없어요." : "검색 결과가 없어요."}</strong><p>{reportedOnly ? "다른 페이지를 보거나 신고 필터를 해제해 주세요." : "검색어 또는 노출 상태를 바꿔보세요."}</p><button type="button" onClick={() => {setReportedOnly(false); setKeyword(""); setVisibility(""); setFilters({keyword:"", visibility:""}); setPage(0);}}>필터 초기화</button></div>}
+        {!loading && !error && list && visibleRows.length === 0 && <div className="content-empty"><strong>조건에 맞는 사진이 없어요.</strong><p>적용한 조건을 해제하거나 다른 기간을 선택해 주세요.</p><button type="button" onClick={() => setParams({})}>필터 초기화</button></div>}
       </section>
       <div className="admin-work-actions">
         <button

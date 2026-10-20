@@ -1,13 +1,21 @@
-import React, { useMemo } from "react";
-import { Link } from "react-router-dom";
-import OperationsShared, { Flow, State } from "./OperationsShared";
+import React, { useEffect, useMemo } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import OperationsShared, { State } from "./OperationsShared";
 import useOperationsSnapshot from "./useOperationsSnapshot";
 import { operationsModel, GITHUB_LABELS, time } from "./operationsModel";
 import "./Operations.css";
+import {EvidenceFlow, EvidenceHeader, focusEvidence, RuntimeTable, runtimeEvidence} from "./OperationsDrilldown";
+import "./OperationsDrilldown.css";
 export default function AdminOperationsHome() {
   const data = useOperationsSnapshot(),
     s = data.snapshot,
     m = useMemo(() => operationsModel(s), [s]);
+  const [params,setParams]=useSearchParams();
+  const evidence=params.get('evidence')||'',api=params.get('api')||'',response=params.get('response')||'',failuresOnly=params.get('status')==='failed';
+  const runtime=runtimeEvidence(s,{failuresOnly,api,response});
+  const available=Boolean(s);
+  useEffect(()=>{if(available&&evidence)focusEvidence("ops-home-evidence");},[available,evidence,api,response,failuresOnly]);
+  function showEvidence(value,extra={}){setParams({evidence:value,...extra});focusEvidence('ops-home-evidence');}
   const slow = [...(s?.api?.runtimeMetrics || [])]
     .filter((r) => r.path?.startsWith("/api/") && r.requestCount > 0)
     .sort(
@@ -28,14 +36,14 @@ export default function AdminOperationsHome() {
         </div>
       )}
       <dl className="ops-summary" aria-label="실제 운영 지표">
-        <div>
+        <div><Link to="/admin/operations/incidents">
           <dt>앱에서 보고한 API 오류</dt>
           <dd>
             {m.errors.available ? m.errors.errorCount + "건" : "확인 불가"}
           </dd>
           <small className="ops-muted">24 UTC 시간 버킷</small>
-        </div>
-        <div>
+</Link>        </div>
+        <div><Link to="/admin/operations?evidence=server&status=failed">
           <dt>서버 응답 실패율</dt>
           <dd>
             {m.serverFailureRate === null
@@ -43,8 +51,8 @@ export default function AdminOperationsHome() {
               : (m.serverFailureRate * 100).toFixed(1) + "%"}
           </dd>
           <small className="ops-muted">현재 프로세스 · HTTP 4xx/5xx</small>
-        </div>
-        <div>
+</Link>        </div>
+        <div><Link to="/admin/operations/incidents?view=push&outcome=SUCCESS">
           <dt>FCM 접수 성공률</dt>
           <dd>
             {!m.pushAvailable
@@ -54,14 +62,14 @@ export default function AdminOperationsHome() {
               : (m.acceptanceRate * 100).toFixed(1) + "%"}
           </dd>
           <small className="ops-muted">기기 수신률과 별개</small>
-        </div>
-        <div>
+</Link>        </div>
+        <div><Link to="/admin/operations?evidence=reports">
           <dt>활성 신고 표시</dt>
           <dd>
             {s?.reports?.available ? s.reports.activeFlags + "건" : "확인 불가"}
           </dd>
           <small className="ops-muted">미처리 신고 수와 별개</small>
-        </div>
+</Link>        </div>
       </dl>
       <div className="ops-grid">
         <section className="ops-panel">
@@ -131,7 +139,8 @@ export default function AdminOperationsHome() {
         </section>
         <section className="ops-panel">
           <h2>서비스 흐름</h2>
-          <Flow
+          <EvidenceFlow
+            onSelect={(_,index)=>{if(index===1)showEvidence("server");else if(index===0)showEvidence("app");else showEvidence("push");}}
             label="수집과 확인 범위"
             stages={[
               {
@@ -175,7 +184,7 @@ export default function AdminOperationsHome() {
           {slow.length ? (
             <ul className="ops-list">
               {slow.map((r, i) => (
-                <li key={i}>
+                <li key={i}><button type="button" className="ops-chart-link" aria-label={r.method+" "+r.path+" 응답 "+r.status+" 근거 보기"} onClick={()=>showEvidence("server",{api:r.method+" "+r.path,response:String(r.status)})}>
                   <div className="ops-row">
                     <code>
                       {r.method} {r.path} · {r.status}
@@ -192,7 +201,7 @@ export default function AdminOperationsHome() {
                       }}
                     />
                   </div>
-                </li>
+                </button></li>
               ))}
             </ul>
           ) : (
@@ -204,7 +213,7 @@ export default function AdminOperationsHome() {
           <ul className="ops-list">
             <li>
               GitHub 실행 기록{" "}
-              <strong>{GITHUB_LABELS[s?.github?.status] || "확인 불가"}</strong>
+              <button className="ops-status-link" type="button" onClick={()=>showEvidence("github")}><strong>{GITHUB_LABELS[s?.github?.status] || "확인 불가"} · 근거 보기 ↗</strong></button>
               <p className="ops-muted">
                 마지막 확인 {time(s?.github?.checkedAt)}
               </p>
@@ -222,6 +231,10 @@ export default function AdminOperationsHome() {
           <Link to="/admin/api-registry">기존 API 관계도 보기 →</Link>
         </section>
       </div>
+      {evidence&&<section className="ops-panel ops-evidence-panel" id="ops-home-evidence" tabIndex={-1} aria-label="운영 지표 근거">
+        <EvidenceHeader title={({server:'서버 응답 근거',reports:'활성 신고 표시 근거',github:'GitHub 수집 근거',app:'앱 오류 보고 근거',push:'푸시 수집 근거'})[evidence]||'관측 범위'} onReset={()=>setParams({})}>숫자를 만든 범위와 실제 조회 가능한 기록을 구분해요.</EvidenceHeader>
+        {evidence==='server'?<><dl className="ops-evidence-facts"><div><dt>현재 프로세스 전체 요청</dt><dd>{m.requests.toLocaleString()}건</dd></div><div><dt>HTTP 4xx/5xx 요청</dt><dd>{m.failed.toLocaleString()}건</dd></div></dl><p className="ops-muted">실패율 = HTTP 4xx/5xx 요청 ÷ 전체 관측 요청. 아래는 {api?'선택한 API'+(response?' · 응답 '+response:''):failuresOnly?'실패 응답만':'전체 응답 상태'}의 원본 집계 행이에요. 앱에서 보고한 오류 건수와 별개입니다.</p><RuntimeTable rows={runtime}/></>:evidence==='reports'?<><p>{s?.reports?.available?'서버가 반환한 활성 신고 표시 '+s.reports.activeFlags+'건입니다.':'신고 표시 집계를 조회하지 못했습니다.'}</p><p className="ops-muted">미처리 신고 사건 수와 다른 집계이므로 특정 신고 목록의 건수와 동일하게 해석하지 않아요.</p><Link to="/admin/feeds?reported=1">사진 신고 검토 열기 →</Link></>:evidence==='github'?<><p>수집 상태: {GITHUB_LABELS[s?.github?.status]||'확인 불가'} · 마지막 확인 {time(s?.github?.checkedAt)}</p><p className="ops-muted">연동됨은 수집 상태입니다. 개별 빌드·배포 성공 여부는 리비전이 일치하는 실행 기록에서 확인하세요.</p><Link to="/admin/operations/releases">배포별 실행 근거 보기 →</Link></>:evidence==='app'?<><p>24 UTC 시간 버킷 동안 앱·웹이 보고한 최종 실패입니다. 전체 요청 대비 실패율은 계산하지 않아요.</p><Link to="/admin/operations/incidents">오류가 보고된 API 목록 →</Link></>:<><p>FCM 접수 집계와 최근 최대 30건의 전송 시도, 앱 콜백으로 확인한 기기 수신 기록을 구분해요.</p><Link to="/admin/operations/incidents?view=push">푸시 집계와 전송 표본 보기 →</Link></>}
+      </section>}
     </OperationsShared>
   );
 }

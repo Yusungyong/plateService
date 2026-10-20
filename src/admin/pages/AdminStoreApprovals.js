@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { focusWorkspaceList, readWorkspaceQuery, writeWorkspaceQuery } from "../../pages/storeSupportQuery";
 import {
   approveStore,
   getStoreApprovalDetail,
@@ -46,17 +47,16 @@ const initialPage = {
 };
 
 function AdminStoreApprovals() {
-  const [searchParams] = useSearchParams();
-  const queryKeyword = searchParams.get("keyword") || "";
-  const previousQueryKeyword = useRef(queryKeyword);
-  const [filters, setFilters] = useState(() => ({
-    ...initialFilters,
-    keyword: queryKeyword,
-  }));
-  const [appliedFilters, setAppliedFilters] = useState(() => ({
-    ...initialFilters,
-    keyword: queryKeyword,
-  }));
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryKey = searchParams.toString();
+  const previousQuery = useRef(queryKey);
+  const listHeading = useRef(null);
+  const queryFilters = () => readWorkspaceQuery(searchParams, initialFilters, {
+    status: Object.keys(STORE_APPROVAL_STATUS_LABELS),
+    verificationStatus: Object.keys(VERIFICATION_STATUS_LABELS),
+  });
+  const [filters, setFilters] = useState(queryFilters);
+  const [appliedFilters, setAppliedFilters] = useState(queryFilters);
   const [approvalPage, setApprovalPage] = useState(initialPage);
   const [selectedStore, setSelectedStore] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -109,18 +109,19 @@ function AdminStoreApprovals() {
   }, [appliedFilters, loadApprovals]);
 
   useEffect(() => {
-    if (queryKeyword === previousQueryKeyword.current) {
-      return;
-    }
-
-    previousQueryKeyword.current = queryKeyword;
-    const nextFilters = {
-      ...initialFilters,
-      keyword: queryKeyword,
-    };
+    if (queryKey === previousQuery.current) return;
+    previousQuery.current = queryKey;
+    const nextFilters = readWorkspaceQuery(new URLSearchParams(queryKey), initialFilters, {
+      status: Object.keys(STORE_APPROVAL_STATUS_LABELS),
+      verificationStatus: Object.keys(VERIFICATION_STATUS_LABELS),
+    });
     setFilters(nextFilters);
     setAppliedFilters(nextFilters);
-  }, [queryKeyword]);
+    detailRequest.current += 1;
+    setSelectedStore(null);
+    setIsDetailLoading(false);
+    focusWorkspaceList(listHeading);
+  }, [queryKey]);
 
   const activeFilterCount = useMemo(
     () => Object.values(appliedFilters).filter(Boolean).length,
@@ -136,22 +137,35 @@ function AdminStoreApprovals() {
 
   function handleSearch(event) {
     event.preventDefault();
+    if (actionInFlight.current || pendingAction) return;
     setAppliedFilters(filters);
+    writeWorkspaceQuery(setSearchParams, previousQuery, filters);
+    focusWorkspaceList(listHeading);
     setSuccessMessage("");
     setIsAdvancedFiltersOpen(false);
   }
 
-  function applyStatus(status) {
-    const nextFilters = { ...filters, status };
+  function applyApprovalFilter(field, value) {
+    if (actionInFlight.current || pendingAction) return;
+    const nextFilters = { ...appliedFilters, [field]: value };
     setFilters(nextFilters);
     setAppliedFilters(nextFilters);
+    writeWorkspaceQuery(setSearchParams, previousQuery, nextFilters);
+    closeStoreDetail();
     setSuccessMessage("");
+    focusWorkspaceList(listHeading);
   }
 
+  function applyStatus(status) { applyApprovalFilter("status", status); }
+
   function resetFilters() {
+    if (actionInFlight.current || pendingAction) return;
     setFilters(initialFilters);
     setAppliedFilters(initialFilters);
+    writeWorkspaceQuery(setSearchParams, previousQuery, initialFilters);
     setIsAdvancedFiltersOpen(false);
+    closeStoreDetail();
+    focusWorkspaceList(listHeading);
   }
 
   async function openStoreDetail(storeId) {
@@ -329,10 +343,10 @@ function AdminStoreApprovals() {
         title="입점 신청 심사"
         description="대기 중인 신청을 찾고, 제출 서류를 확인한 뒤 처리하세요."
         actions={
-          <div className="admin-page-summary">
-            <span>조회 결과</span>
+          <button type="button" className="admin-page-summary store-workspace__metric-link" onClick={() => focusWorkspaceList(listHeading)} aria-label={`조회 결과 ${approvalPage.totalElements}건 신청 목록 보기`}>
+            <span>조회 결과 · 목록 보기 →</span>
             <strong>{approvalPage.totalElements.toLocaleString()}건</strong>
-          </div>
+          </button>
         }
       />
 
@@ -425,9 +439,15 @@ function AdminStoreApprovals() {
         </p>
       </section>
 
+      <div className="store-workspace__applied" role="group" aria-label="적용된 신청 조건">
+        <strong>적용 조건</strong>
+        {activeFilterCount ? Object.entries(appliedFilters).filter(([, value]) => value).map(([key, value]) => (
+          <button type="button" key={key} onClick={() => applyApprovalFilter(key, "")} aria-label={`${approvalFilterLabel(key, value)} 해제`}>{approvalFilterLabel(key, value)} ×</button>
+        )) : <span>전체 신청</span>}
+      </div>
       <section className="admin-panel admin-panel--table">
         <div className="store-workspace__list-header">
-          <h2>신청 목록 <span>{approvalPage.totalElements.toLocaleString()}건</span></h2>
+          <h2 ref={listHeading} tabIndex={-1}>신청 목록 <span>{approvalPage.totalElements.toLocaleString()}건</span></h2>
           <p>매장을 선택하면 제출 서류와 최근 처리 사유를 확인할 수 있습니다.</p>
         </div>
         <div className="admin-table-scroll admin-approval-table">
@@ -475,16 +495,16 @@ function AdminStoreApprovals() {
                     <td>{store.category}</td>
                     <td>{store.region}</td>
                     <td>
-                      <StatusBadge
+                      <button type="button" className="store-workspace__status-link" aria-label={`${VERIFICATION_STATUS_LABELS[store.verificationStatus]} 신청 목록 보기`} onClick={event => { event.stopPropagation(); applyApprovalFilter("verificationStatus", store.verificationStatus); }}><StatusBadge
                         status={store.verificationStatus}
                         label={VERIFICATION_STATUS_LABELS[store.verificationStatus]}
-                      />
+                      /></button>
                     </td>
                     <td>
-                      <StatusBadge
+                      <button type="button" className="store-workspace__status-link" aria-label={`${STORE_APPROVAL_STATUS_LABELS[store.approvalStatus]} 신청 목록 보기`} onClick={event => { event.stopPropagation(); applyApprovalFilter("status", store.approvalStatus); }}><StatusBadge
                         status={store.approvalStatus}
                         label={STORE_APPROVAL_STATUS_LABELS[store.approvalStatus]}
-                      />
+                      /></button>
                     </td>
                     <td>{formatDate(store.appliedAt)}</td>
                     <td>
@@ -534,19 +554,19 @@ function AdminStoreApprovals() {
                     <h2>{store.name}</h2>
                     <small>대표자 {store.ownerName}</small>
                   </div>
-                  <StatusBadge
+                  <button type="button" className="store-workspace__status-link" aria-label={`${STORE_APPROVAL_STATUS_LABELS[store.approvalStatus]} 신청 목록 보기`} onClick={event => { event.stopPropagation(); applyApprovalFilter("status", store.approvalStatus); }}><StatusBadge
                     status={store.approvalStatus}
                     label={STORE_APPROVAL_STATUS_LABELS[store.approvalStatus]}
-                  />
+                  /></button>
                 </header>
 
                 <div className="admin-mobile-approval-card__meta">
                   <div>
                     <span>입점 심사</span>
-                    <StatusBadge
+                    <button type="button" className="store-workspace__status-link" aria-label={`${VERIFICATION_STATUS_LABELS[store.verificationStatus]} 신청 목록 보기`} onClick={event => { event.stopPropagation(); applyApprovalFilter("verificationStatus", store.verificationStatus); }}><StatusBadge
                       status={store.verificationStatus}
                       label={VERIFICATION_STATUS_LABELS[store.verificationStatus]}
-                    />
+                    /></button>
                   </div>
                   <div>
                     <span>신청일</span>
@@ -670,6 +690,9 @@ function AdminStoreApprovals() {
             store={selectedStore}
             documentAccessId={documentAccessId}
             onDocumentOpen={openDocument}
+            onStatusFilter={applyApprovalFilter}
+            onReturn={() => { if (!actionInFlight.current && !pendingAction) { closeStoreDetail(); focusWorkspaceList(listHeading); } }}
+            isBusy={isSubmitting || Boolean(pendingAction)}
           />
         ) : null}
       </DetailDrawer>
@@ -706,9 +729,13 @@ function StoreApprovalDetail({
   store,
   documentAccessId,
   onDocumentOpen,
+  onStatusFilter,
+  onReturn,
+  isBusy,
 }) {
   return (
     <div className="admin-store-detail">
+      <button type="button" className="store-workspace__text-link" onClick={onReturn} disabled={isBusy}>목록으로 돌아가기</button>
       <div className="store-workspace__next-step">
         <strong>{STORE_APPROVAL_STATUS_LABELS[store.approvalStatus]} 상태</strong>
         <p>{getApprovalNextStep(store.approvalStatus)}</p>
@@ -720,14 +747,14 @@ function StoreApprovalDetail({
       )}
 
       <div className="admin-store-detail__badges">
-        <StatusBadge
+        <button type="button" className="store-workspace__status-link" disabled={isBusy} aria-label={`${STORE_APPROVAL_STATUS_LABELS[store.approvalStatus]} 신청 목록 보기`} onClick={() => onStatusFilter("status", store.approvalStatus)}><StatusBadge
           status={store.approvalStatus}
           label={STORE_APPROVAL_STATUS_LABELS[store.approvalStatus]}
-        />
-        <StatusBadge
+        /></button>
+        <button type="button" className="store-workspace__status-link" disabled={isBusy} aria-label={`${VERIFICATION_STATUS_LABELS[store.verificationStatus]} 신청 목록 보기`} onClick={() => onStatusFilter("verificationStatus", store.verificationStatus)}><StatusBadge
           status={store.verificationStatus}
           label={VERIFICATION_STATUS_LABELS[store.verificationStatus]}
-        />
+        /></button>
       </div>
 
       <section>
@@ -791,6 +818,12 @@ function StoreApprovalDetail({
       ) : null}
     </div>
   );
+}
+
+function approvalFilterLabel(key, value) {
+  const labels = {keyword: "검색", region: "지역", category: "업종", status: "승인 상태", verificationStatus: "입점 심사", appliedFrom: "신청일 시작", appliedTo: "신청일 종료"};
+  const readable = key === "status" ? STORE_APPROVAL_STATUS_LABELS[value] : key === "verificationStatus" ? VERIFICATION_STATUS_LABELS[value] : key === "region" ? STORE_REGION_OPTIONS.find(item => item.value === value)?.label : key === "category" ? STORE_CATEGORY_OPTIONS.find(item => item.value === value)?.label : value;
+  return `${labels[key]}: ${readable || value}`;
 }
 
 function getApprovalNextStep(status) {
