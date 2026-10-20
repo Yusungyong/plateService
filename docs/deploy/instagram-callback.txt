@@ -1,3 +1,5 @@
+2026-10-20 폐지: 아래 내용은 과거 구현 기록입니다. 마케팅 자동화·계정 연결·연결 파일 발급은 제거됐으며 다시 활성화하는 절차로 사용하지 않습니다.
+
 Instagram Login callback deployment (AWS Amplify)
 
 Related issue: Yusungyong/plateService#44. This is the callback portion only.

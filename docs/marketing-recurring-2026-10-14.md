@@ -1,3 +1,5 @@
+2026-10-20 폐지: 아래 내용은 과거 구현 기록입니다. 마케팅 자동화·계정 연결·연결 파일 발급은 제거됐으며 다시 활성화하는 절차로 사용하지 않습니다.
+
 # Marketing Mac recurring status
 
 /admin/marketing overview displays the last bounded worker report, stale evidence after 20 minutes, the user-confirmed KST timetable and weekly published counts when known. It does not infer that an unreported worker is running.
