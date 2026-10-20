@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   approveStore,
@@ -14,6 +14,8 @@ import DetailDrawer from "../components/DetailDrawer";
 import PermissionGuard from "../components/PermissionGuard";
 import ReasonDialog from "../components/ReasonDialog";
 import StatusBadge from "../components/StatusBadge";
+import UnsavedChangesGuard from "../../components/UnsavedChangesGuard";
+import "../styles/store-workspace.css";
 import { ADMIN_PERMISSIONS } from "../constants/adminPermissions";
 import {
   STORE_APPROVAL_STATUS,
@@ -46,6 +48,7 @@ const initialPage = {
 function AdminStoreApprovals() {
   const [searchParams] = useSearchParams();
   const queryKeyword = searchParams.get("keyword") || "";
+  const previousQueryKeyword = useRef(queryKeyword);
   const [filters, setFilters] = useState(() => ({
     ...initialFilters,
     keyword: queryKeyword,
@@ -59,29 +62,43 @@ function AdminStoreApprovals() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  const [isAdvancedFiltersOpen, setIsAdvancedFiltersOpen] = useState(false);
   const [documentAccessId, setDocumentAccessId] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [pendingAction, setPendingAction] = useState(null);
+  const mounted = useRef(false);
+  const listRequest = useRef(0);
+  const detailRequest = useRef(0);
+  const actionInFlight = useRef(false);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      listRequest.current += 1;
+      detailRequest.current += 1;
+    };
+  }, []);
 
   const loadApprovals = useCallback(
     async (page = 0, nextFilters = appliedFilters) => {
+      const request = ++listRequest.current;
+      const isCurrent = () => mounted.current && request === listRequest.current;
       setIsLoading(true);
       setErrorMessage("");
 
       try {
-        setApprovalPage(
-          await getStoreApprovals({
+        const response = await getStoreApprovals({
             page,
             size: approvalPage.size,
             ...nextFilters,
-          })
-        );
+          });
+        if (isCurrent()) setApprovalPage(response);
       } catch (error) {
-        setErrorMessage(error.message || "매장 승인 목록을 불러오지 못했습니다.");
+        if (isCurrent()) setErrorMessage(error.message || "매장 승인 목록을 불러오지 못했습니다.");
       } finally {
-        setIsLoading(false);
+        if (isCurrent()) setIsLoading(false);
       }
     },
     [appliedFilters, approvalPage.size]
@@ -92,17 +109,18 @@ function AdminStoreApprovals() {
   }, [appliedFilters, loadApprovals]);
 
   useEffect(() => {
-    if (queryKeyword === appliedFilters.keyword) {
+    if (queryKeyword === previousQueryKeyword.current) {
       return;
     }
 
+    previousQueryKeyword.current = queryKeyword;
     const nextFilters = {
       ...initialFilters,
       keyword: queryKeyword,
     };
     setFilters(nextFilters);
     setAppliedFilters(nextFilters);
-  }, [appliedFilters.keyword, queryKeyword]);
+  }, [queryKeyword]);
 
   const activeFilterCount = useMemo(
     () => Object.values(appliedFilters).filter(Boolean).length,
@@ -120,32 +138,52 @@ function AdminStoreApprovals() {
     event.preventDefault();
     setAppliedFilters(filters);
     setSuccessMessage("");
-    setIsMobileFiltersOpen(false);
+    setIsAdvancedFiltersOpen(false);
+  }
+
+  function applyStatus(status) {
+    const nextFilters = { ...filters, status };
+    setFilters(nextFilters);
+    setAppliedFilters(nextFilters);
+    setSuccessMessage("");
   }
 
   function resetFilters() {
     setFilters(initialFilters);
     setAppliedFilters(initialFilters);
-    setIsMobileFiltersOpen(false);
+    setIsAdvancedFiltersOpen(false);
   }
 
   async function openStoreDetail(storeId) {
+    if (actionInFlight.current) return;
+    const request = ++detailRequest.current;
+    const isCurrent = () => mounted.current && request === detailRequest.current;
     setIsDetailLoading(true);
     setErrorMessage("");
+    setSuccessMessage("");
     setSelectedStore({ id: storeId, name: "매장 신청 정보" });
 
     try {
-      setSelectedStore(await getStoreApprovalDetail(storeId));
+      const response = await getStoreApprovalDetail(storeId);
+      if (isCurrent()) setSelectedStore(response);
     } catch (error) {
+      if (!isCurrent()) return;
       setSelectedStore(null);
       setErrorMessage(error.message || "매장 신청 상세를 불러오지 못했습니다.");
     } finally {
-      setIsDetailLoading(false);
+      if (isCurrent()) setIsDetailLoading(false);
     }
   }
 
+  function closeStoreDetail() {
+    if (actionInFlight.current) return;
+    detailRequest.current += 1;
+    setSelectedStore(null);
+    setIsDetailLoading(false);
+  }
+
   function requestAction(type) {
-    if (!selectedStore) {
+    if (!selectedStore || isDetailLoading || actionInFlight.current) {
       return;
     }
 
@@ -156,11 +194,12 @@ function AdminStoreApprovals() {
   }
 
   async function executeAction(reason = "", reasonCode = "") {
-    if (!pendingAction) {
+    if (!pendingAction || actionInFlight.current) {
       return;
     }
 
     const action = pendingAction;
+    actionInFlight.current = true;
     setPendingAction(null);
     setIsSubmitting(true);
     setErrorMessage("");
@@ -185,6 +224,7 @@ function AdminStoreApprovals() {
           reason,
         });
       }
+      if (!mounted.current) return;
 
       const storeWithReview = {
         ...updatedStore,
@@ -204,11 +244,13 @@ function AdminStoreApprovals() {
       );
       await loadApprovals(approvalPage.page, appliedFilters);
     } catch (error) {
+      if (!mounted.current) return;
       if (error.status === 409 && action.store?.id) {
         try {
           const refreshedStore = await getStoreApprovalDetail(
             action.store.id
           );
+          if (!mounted.current) return;
           setSelectedStore(refreshedStore);
           await loadApprovals(approvalPage.page, appliedFilters);
         } catch (refreshError) {
@@ -216,13 +258,15 @@ function AdminStoreApprovals() {
         }
       }
 
+      if (!mounted.current) return;
       setErrorMessage(
         error.code === "STORE_APPROVAL_VERSION_CONFLICT"
           ? "다른 운영자가 먼저 처리했습니다. 최신 정보를 다시 불러왔습니다."
           : error.message || "승인 상태 변경에 실패했습니다."
       );
     } finally {
-      setIsSubmitting(false);
+      actionInFlight.current = false;
+      if (mounted.current) setIsSubmitting(false);
     }
   }
 
@@ -278,11 +322,12 @@ function AdminStoreApprovals() {
     selectedStatus === STORE_APPROVAL_STATUS.APPROVED;
 
   return (
-    <div className="admin-page">
+    <div className="admin-page store-workspace">
+      <UnsavedChangesGuard when={reasonDialogOpen} pending={isSubmitting} />
       <AdminPageHeader
         eyebrow="STORE ONBOARDING"
         title="입점 신청 심사"
-        description="신규 매장 신청과 제출 서류를 검토하고 승인, 보류, 반려 처리합니다."
+        description="대기 중인 신청을 찾고, 제출 서류를 확인한 뒤 처리하세요."
         actions={
           <div className="admin-page-summary">
             <span>조회 결과</span>
@@ -291,12 +336,12 @@ function AdminStoreApprovals() {
         }
       />
 
-      {successMessage ? (
+      {successMessage && !selectedStore ? (
         <div className="admin-notice admin-notice--success" role="status">
           {successMessage}
         </div>
       ) : null}
-      {errorMessage ? (
+      {errorMessage && !selectedStore ? (
         <div className="admin-notice admin-notice--error" role="alert">
           <span>{errorMessage}</span>
           <button type="button" onClick={() => loadApprovals(approvalPage.page, appliedFilters)}>
@@ -305,128 +350,90 @@ function AdminStoreApprovals() {
         </div>
       ) : null}
 
-      <section className="admin-panel">
-        <div className="admin-mobile-filter-toolbar">
-          <div>
-            <strong>검색 및 필터</strong>
-            <span>적용 {activeFilterCount}개</span>
-          </div>
-          <button
-            type="button"
-            aria-expanded={isMobileFiltersOpen}
-            onClick={() => setIsMobileFiltersOpen((current) => !current)}
-          >
-            {isMobileFiltersOpen ? "상세 필터 닫기" : "상세 필터 열기"}
-          </button>
+      <section className="admin-panel store-workspace__filters" aria-label="신청 검색 및 필터">
+        <div className="store-workspace__status-filters" role="group" aria-label="승인 상태 빠른 필터">
+          {[
+            ["", "전체"],
+            [STORE_APPROVAL_STATUS.PENDING, "대기"],
+            [STORE_APPROVAL_STATUS.ON_HOLD, "보류"],
+            [STORE_APPROVAL_STATUS.APPROVED, "승인"],
+            [STORE_APPROVAL_STATUS.REJECTED, "반려"],
+          ].map(([value, label]) => (
+            <button key={value} type="button" aria-pressed={appliedFilters.status === value} onClick={() => applyStatus(value)}>
+              {label}
+            </button>
+          ))}
         </div>
-        <form
-          className={
-            isMobileFiltersOpen
-              ? "admin-filter-form admin-filter-form--expanded"
-              : "admin-filter-form admin-filter-form--collapsed"
-          }
-          onSubmit={handleSearch}
-        >
-          <label className="admin-filter-field admin-filter-field--wide">
-            <span>검색어</span>
-            <input
-              type="search"
-              value={filters.keyword}
-              onChange={(event) => updateFilter("keyword", event.target.value)}
-              placeholder="매장명, 대표자명, 연락처, 주소"
-            />
-          </label>
-          <label className="admin-filter-field">
-            <span>지역</span>
-            <select
-              value={filters.region}
-              onChange={(event) => updateFilter("region", event.target.value)}
+        <form className="store-workspace__search" onSubmit={handleSearch}>
+          <div className="store-workspace__search-main">
+            <label className="admin-filter-field">
+              <span>검색어</span>
+              <input
+                type="search"
+                value={filters.keyword}
+                onChange={(event) => updateFilter("keyword", event.target.value)}
+                placeholder="매장명, 대표자명, 연락처, 주소"
+              />
+            </label>
+            <button type="submit" className="admin-button admin-button--primary">조회</button>
+            <button type="button" className="admin-button admin-button--secondary" onClick={resetFilters}>초기화</button>
+            <button
+              type="button"
+              className="admin-button admin-button--secondary"
+              aria-expanded={isAdvancedFiltersOpen}
+              aria-controls="store-approval-advanced-filters"
+              onClick={() => setIsAdvancedFiltersOpen((current) => !current)}
             >
-              <option value="">전체</option>
-              {STORE_REGION_OPTIONS.map((region) => (
-                <option value={region.value} key={region.value}>
-                  {region.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="admin-filter-field">
-            <span>업종</span>
-            <select
-              value={filters.category}
-              onChange={(event) => updateFilter("category", event.target.value)}
-            >
-              <option value="">전체</option>
-              {STORE_CATEGORY_OPTIONS.map((category) => (
-                <option value={category.value} key={category.value}>
-                  {category.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="admin-filter-field">
-            <span>승인 상태</span>
-            <select
-              value={filters.status}
-              onChange={(event) => updateFilter("status", event.target.value)}
-            >
-              <option value="">전체</option>
-              {Object.entries(STORE_APPROVAL_STATUS_LABELS).map(([value, label]) => (
-                <option value={value} key={value}>{label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="admin-filter-field">
-            <span>입점 심사</span>
-            <select
-              value={filters.verificationStatus}
-              onChange={(event) => updateFilter("verificationStatus", event.target.value)}
-            >
-              <option value="">전체</option>
-              {Object.entries(VERIFICATION_STATUS_LABELS).map(([value, label]) => (
-                <option value={value} key={value}>{label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="admin-filter-field">
-            <span>신청일 시작</span>
-            <input
-              type="date"
-              value={filters.appliedFrom}
-              onChange={(event) => updateFilter("appliedFrom", event.target.value)}
-            />
-          </label>
-          <label className="admin-filter-field">
-            <span>신청일 종료</span>
-            <input
-              type="date"
-              value={filters.appliedTo}
-              onChange={(event) => updateFilter("appliedTo", event.target.value)}
-            />
-          </label>
-          <div className="admin-filter-actions">
-            <button type="button" className="admin-button admin-button--secondary" onClick={resetFilters}>
-              초기화
+              {isAdvancedFiltersOpen ? "상세 필터 닫기" : "상세 필터 열기"}
             </button>
-            <button type="submit" className="admin-button admin-button--primary">
-              조회
-            </button>
+          </div>
+          <div id="store-approval-advanced-filters" className="store-workspace__advanced" hidden={!isAdvancedFiltersOpen}>
+            <label className="admin-filter-field">
+              <span>지역</span>
+              <select value={filters.region} onChange={(event) => updateFilter("region", event.target.value)}>
+                <option value="">전체</option>
+                {STORE_REGION_OPTIONS.map((region) => <option value={region.value} key={region.value}>{region.label}</option>)}
+              </select>
+            </label>
+            <label className="admin-filter-field">
+              <span>업종</span>
+              <select value={filters.category} onChange={(event) => updateFilter("category", event.target.value)}>
+                <option value="">전체</option>
+                {STORE_CATEGORY_OPTIONS.map((category) => <option value={category.value} key={category.value}>{category.label}</option>)}
+              </select>
+            </label>
+            <label className="admin-filter-field">
+              <span>입점 심사</span>
+              <select value={filters.verificationStatus} onChange={(event) => updateFilter("verificationStatus", event.target.value)}>
+                <option value="">전체</option>
+                {Object.entries(VERIFICATION_STATUS_LABELS).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+              </select>
+            </label>
+            <label className="admin-filter-field">
+              <span>신청일 시작</span>
+              <input type="date" value={filters.appliedFrom} onChange={(event) => updateFilter("appliedFrom", event.target.value)} />
+            </label>
+            <label className="admin-filter-field">
+              <span>신청일 종료</span>
+              <input type="date" value={filters.appliedTo} onChange={(event) => updateFilter("appliedTo", event.target.value)} />
+            </label>
           </div>
         </form>
-        <div className="admin-filter-caption">
-          <span>적용된 필터 {activeFilterCount}개</span>
-          <span>행을 선택하면 우측에서 제출 서류와 상세 정보를 확인할 수 있습니다.</span>
-        </div>
+        <p className="store-workspace__hint">
+          {getApprovalNextStep(appliedFilters.status)}
+          {activeFilterCount > 0 ? ` · 필터 ${activeFilterCount}개 적용` : ""}
+        </p>
       </section>
 
       <section className="admin-panel admin-panel--table">
+        <div className="store-workspace__list-header">
+          <h2>신청 목록 <span>{approvalPage.totalElements.toLocaleString()}건</span></h2>
+          <p>매장을 선택하면 제출 서류와 최근 처리 사유를 확인할 수 있습니다.</p>
+        </div>
         <div className="admin-table-scroll admin-approval-table">
           <table className="admin-data-table admin-data-table--interactive">
             <thead>
               <tr>
-                <th className="admin-table-checkbox">
-                  <input type="checkbox" aria-label="현재 페이지 전체 선택" disabled />
-                </th>
                 <th>매장명</th>
                 <th>업종</th>
                 <th>지역</th>
@@ -439,11 +446,11 @@ function AdminStoreApprovals() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="admin-table-state">매장 신청 목록을 불러오는 중입니다.</td>
+                  <td colSpan={7} className="admin-table-state">매장 신청 목록을 불러오는 중입니다.</td>
                 </tr>
               ) : approvalPage.content.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="admin-table-state">
+                  <td colSpan={7} className="admin-table-state">
                     조건에 맞는 매장 신청이 없습니다.
                   </td>
                 </tr>
@@ -454,20 +461,13 @@ function AdminStoreApprovals() {
                     className={selectedStore?.id === store.id ? "admin-table-row--selected" : ""}
                     onClick={() => openStoreDetail(store.id)}
                     onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
+                      if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
                         event.preventDefault();
                         openStoreDetail(store.id);
                       }
                     }}
                     tabIndex={0}
                   >
-                    <td className="admin-table-checkbox">
-                      <input
-                        type="checkbox"
-                        aria-label={`${store.name} 선택`}
-                        onClick={(event) => event.stopPropagation()}
-                      />
-                    </td>
                     <td>
                       <strong>{store.name}</strong>
                       <small>{store.ownerName}</small>
@@ -600,7 +600,7 @@ function AdminStoreApprovals() {
         isOpen={Boolean(selectedStore)}
         title={selectedStore?.name || "매장 신청 상세"}
         description={selectedStore ? `${selectedStore.region || ""} ${selectedStore.category || ""}`.trim() : ""}
-        onClose={() => setSelectedStore(null)}
+        onClose={closeStoreDetail}
         footer={
           <PermissionGuard
             permission={ADMIN_PERMISSIONS.STORE_APPROVE}
@@ -656,6 +656,13 @@ function AdminStoreApprovals() {
           </PermissionGuard>
         }
       >
+        {successMessage ? (
+          <div className="admin-notice admin-notice--success" role="status">{successMessage}</div>
+        ) : null}
+        {errorMessage ? (
+          <div className="admin-notice admin-notice--error" role="alert">{errorMessage}</div>
+        ) : null}
+        {isSubmitting ? <p role="status">승인 상태를 변경하고 있습니다. 결과를 확인한 뒤 닫아 주세요.</p> : null}
         {isDetailLoading ? (
           <div className="admin-drawer-loading">상세 정보를 불러오는 중입니다.</div>
         ) : selectedStore ? (
@@ -702,6 +709,10 @@ function StoreApprovalDetail({
 }) {
   return (
     <div className="admin-store-detail">
+      <div className="store-workspace__next-step">
+        <strong>{STORE_APPROVAL_STATUS_LABELS[store.approvalStatus]} 상태</strong>
+        <p>{getApprovalNextStep(store.approvalStatus)}</p>
+      </div>
       {store.mainImageUrl ? (
         <img className="admin-store-detail__image" src={store.mainImageUrl} alt={`${store.name} 대표`} />
       ) : (
@@ -780,6 +791,21 @@ function StoreApprovalDetail({
       ) : null}
     </div>
   );
+}
+
+function getApprovalNextStep(status) {
+  switch (status) {
+    case STORE_APPROVAL_STATUS.PENDING:
+      return "제출 서류와 신청 정보를 확인하고 승인 여부를 결정하세요.";
+    case STORE_APPROVAL_STATUS.ON_HOLD:
+      return "보류 사유와 보완 내용을 확인한 뒤 심사를 이어가세요.";
+    case STORE_APPROVAL_STATUS.APPROVED:
+      return "승인된 신청입니다. 상태 변경이 필요하면 상세에서 처리하세요.";
+    case STORE_APPROVAL_STATUS.REJECTED:
+      return "반려 사유를 확인하고, 보완된 신청은 다시 승인할 수 있습니다.";
+    default:
+      return "먼저 대기 신청을 검토하고, 보류 신청의 보완 여부를 확인하세요.";
+  }
 }
 
 function formatDate(value) {

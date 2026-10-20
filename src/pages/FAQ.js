@@ -1,8 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {Link} from 'react-router-dom';
 import { createFaq, deleteFaq, fetchFaqDetail, fetchFaqs, updateFaq } from "../api/faqApi";
 import ConfirmDialog from "../admin/components/ConfirmDialog";
 import PageLayout from "../components/PageLayout";
+import UnsavedChangesGuard from "../components/UnsavedChangesGuard";
+import "./support-workspace.css";
 
 const emptyDraft = {
   category: "notice",
@@ -46,6 +48,14 @@ function mergeUniqueById(currentItems, nextItems, key) {
 }
 
 function FAQ({ adminMode = false }) {
+  const listRequest=useRef(0);
+  const detailRef=useRef(null);
+  const detailHeadingRef=useRef(null);
+  const [statusFilter,setStatusFilter]=useState("");
+  const [editorTargetId,setEditorTargetId]=useState(null);
+  const [originalDraft,setOriginalDraft]=useState(emptyDraft);
+  const [detailError,setDetailError]=useState("");
+  const [detailReload,setDetailReload]=useState(0);
   const [filters, setFilters] = useState(initialFaqFilters);
   const [appliedFilters, setAppliedFilters] = useState(initialFaqFilters);
   const [faqPage, setFaqPage] = useState({
@@ -70,6 +80,7 @@ function FAQ({ adminMode = false }) {
   const [pendingDeleteFaqId, setPendingDeleteFaqId] = useState(null);
 
   const loadFaqList = useCallback(async ({ nextSelectedFaqId, page = 0, append = false } = {}) => {
+    const request=++listRequest.current;
     setIsListLoading(true);
     setLoadError("");
 
@@ -92,6 +103,7 @@ function FAQ({ adminMode = false }) {
         category: appliedFilters.category,
         keyword: appliedFilters.keyword.trim(),
       });
+      if(request!==listRequest.current)return [];
       const content = Array.isArray(response?.content) ? response.content : [];
       const responsePage = response?.page ?? page;
       const responseSize = response?.size ?? PAGE_SIZE;
@@ -117,6 +129,7 @@ function FAQ({ adminMode = false }) {
 
       return content;
     } catch (error) {
+      if(request!==listRequest.current)return [];
       if (!append) {
         setSelectedFaqId(null);
       }
@@ -124,12 +137,13 @@ function FAQ({ adminMode = false }) {
       setLoadError("FAQ 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
       return [];
     } finally {
-      setIsListLoading(false);
+      if(request===listRequest.current)setIsListLoading(false);
     }
   }, [appliedFilters]);
 
   useEffect(() => {
     loadFaqList();
+    return()=>{listRequest.current+=1;};
   }, [loadFaqList]);
 
   useEffect(() => {
@@ -142,6 +156,8 @@ function FAQ({ adminMode = false }) {
       }
 
       setIsDetailLoading(true);
+      setSelectedFaqDetail(null);
+      setDetailError("");
 
       try {
         const response = await fetchFaqDetail(selectedFaqId);
@@ -151,6 +167,7 @@ function FAQ({ adminMode = false }) {
       } catch (error) {
         if (!ignore) {
           setSelectedFaqDetail(null);
+          setDetailError("상세 내용을 불러오지 못했어요. 다시 확인한 뒤 수정해 주세요.");
         }
       } finally {
         if (!ignore) {
@@ -164,12 +181,12 @@ function FAQ({ adminMode = false }) {
     return () => {
       ignore = true;
     };
-  }, [selectedFaqId]);
+  }, [selectedFaqId, detailReload]);
 
   const faqPosts = faqPage.content;
 
   const selectedFaq = useMemo(() => {
-    if (selectedFaqDetail) {
+    if (selectedFaqDetail?.faqId === selectedFaqId) {
       return selectedFaqDetail;
     }
 
@@ -177,8 +194,29 @@ function FAQ({ adminMode = false }) {
   }, [faqPosts, selectedFaqDetail, selectedFaqId]);
   const faqResultCaption = getFaqFilterSummary(appliedFilters);
 
-  function resetDraft() {
+  const editorDirty=adminMode&&isEditorOpen&&JSON.stringify(draft)!==JSON.stringify(originalDraft);
+  const workspacePosts=faqPosts.filter(post=>!statusFilter||post.statusCode===statusFilter);
+  const workspaceSelected=workspacePosts.some(post=>post.faqId===selectedFaqId)?selectedFaq:null;
+  function allowWorkspaceChange(){return !isSubmitting&&(!editorDirty||window.confirm("저장하지 않은 FAQ 내용이 있어요. 내용을 버리고 이동할까요?"));}
+  function focusFaqDetail(){
+    requestAnimationFrame(()=>{
+      detailRef.current?.scrollIntoView?.({block:"nearest"});
+      detailHeadingRef.current?.focus({preventScroll:true});
+    });
+  }
+  function selectFaq(id){
+    if(isSubmitting)return;
+    if(id===selectedFaqId){focusFaqDetail();return;}
+    if(!allowWorkspaceChange())return;
+    resetDraft(true);setSelectedFaqId(id);focusFaqDetail();
+  }
+  function changeStatus(value){if(!allowWorkspaceChange())return;resetDraft(true);setStatusFilter(value);setSelectedFaqId(faqPosts.find(post=>!value||post.statusCode===value)?.faqId||null);}
+  function openCreateEditor(){if(!allowWorkspaceChange())return;setEditorMode("create");setEditorTargetId(null);setDraft(emptyDraft);setOriginalDraft(emptyDraft);setSubmitError("");setSubmitMessage("");setIsEditorOpen(true);focusFaqDetail();}
+  function resetDraft(force=false) {
+    if(!force&&!allowWorkspaceChange())return;
     setDraft(emptyDraft);
+    setOriginalDraft(emptyDraft);
+    setEditorTargetId(null);
     setEditorMode("create");
     setIsEditorOpen(false);
     setSubmitError("");
@@ -186,26 +224,31 @@ function FAQ({ adminMode = false }) {
   }
 
   function fillDraftFromFaq(faq) {
-    if (!faq) {
+    if (!faq || selectedFaqDetail?.faqId !== faq.faqId || isDetailLoading || detailError || !allowWorkspaceChange()) {
       return;
     }
 
-    setDraft({
+    const value={
       category: faq.category || "notice",
       title: faq.title || "",
       answer: faq.answer || "",
       pinned: Boolean(faq.isPinned),
       displayOrder: Number(faq.displayOrder ?? 0),
       status: faq.statusCode || "published",
-    });
+    };
+    setDraft(value);
+    setOriginalDraft(value);
+    setEditorTargetId(faq.faqId);
     setEditorMode("edit");
     setIsEditorOpen(true);
+    focusFaqDetail();
     setSubmitError("");
     setSubmitMessage("");
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if(isSubmitting||!adminMode)return;
 
     if (!draft.title.trim() || !draft.answer.trim()) {
       setSubmitError("제목과 답변은 필수입니다.");
@@ -229,16 +272,17 @@ function FAQ({ adminMode = false }) {
     try {
       let response;
 
-      if (editorMode === "edit" && selectedFaq?.faqId) {
-        response = await updateFaq(selectedFaq.faqId, payload);
+      if (editorMode === "edit" && editorTargetId) {
+        response = await updateFaq(editorTargetId, payload);
         setSubmitMessage("FAQ를 수정했습니다.");
       } else {
         response = await createFaq(payload);
         setSubmitMessage("FAQ를 등록했습니다.");
       }
 
-      const nextFaqId = response?.faqId || selectedFaq?.faqId || null;
+      const nextFaqId = response?.faqId || editorTargetId || null;
       await loadFaqList({ nextSelectedFaqId: nextFaqId });
+      setDetailReload(current=>current+1);
       setDraft(emptyDraft);
       setEditorMode("create");
       setIsEditorOpen(false);
@@ -250,6 +294,7 @@ function FAQ({ adminMode = false }) {
   }
 
   function requestDeleteFaq(faqId) {
+    if(!allowWorkspaceChange())return;
     setPendingDeleteFaqId(faqId);
     setSubmitError("");
     setSubmitMessage("");
@@ -264,6 +309,8 @@ function FAQ({ adminMode = false }) {
 
   function handleSearch(event) {
     event.preventDefault();
+    if(adminMode&&!allowWorkspaceChange())return;
+    if(adminMode)resetDraft(true);
     setAppliedFilters({
       category: filters.category,
       keyword: filters.keyword.trim(),
@@ -271,6 +318,8 @@ function FAQ({ adminMode = false }) {
   }
 
   function resetFilters() {
+    if(adminMode&&!allowWorkspaceChange())return;
+    if(adminMode){resetDraft(true);setStatusFilter("");}
     setFilters(initialFaqFilters);
     setAppliedFilters(initialFaqFilters);
   }
@@ -283,7 +332,7 @@ function FAQ({ adminMode = false }) {
   }
 
   async function confirmDeleteFaq() {
-    if (!pendingDeleteFaqId) {
+    if (!pendingDeleteFaqId || isSubmitting || !adminMode) {
       return;
     }
 
@@ -294,213 +343,31 @@ function FAQ({ adminMode = false }) {
     try {
       await deleteFaq(pendingDeleteFaqId);
       await loadFaqList();
-      resetDraft();
+      resetDraft(true);
       setSubmitMessage("FAQ를 삭제했습니다.");
       setPendingDeleteFaqId(null);
     } catch (error) {
+      setPendingDeleteFaqId(null);
       setSubmitError(error.message || "FAQ 삭제에 실패했습니다.");
+      focusFaqDetail();
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  return (
-    <PageLayout
-      title={adminMode ? "FAQ 관리" : "자주 묻는 질문"}
-      className={adminMode ? "" : "support-page support-page--faq"}
-      description={
-        adminMode
-          ? "관리자는 FAQ 등록, 수정, 삭제를 한 화면에서 처리할 수 있습니다."
-          : "궁금한 내용을 찾아보고, 해결되지 않으면 비공개 문의를 남겨 주세요."
-      }
-    >
-      {!adminMode && !isListLoading && !loadError && faqPage.totalElements === 0 && !appliedFilters.keyword && !appliedFilters.category && <section className="support-panel" aria-label="빠른 이용 안내">
-        <h2>빠른 이용 안내</h2>
-        <p>계정에 접근할 수 없거나 개인 정보 확인이 필요하면 <Link to="/qna/private">비공개 문의</Link>를 이용하세요. 로그인 없이도 접수할 수 있습니다.</p>
-        <p>식당 등록은 <Link to="/business">입점 안내</Link>를 확인한 뒤 로그인하고 신청해 주세요.</p>
-        <p>로그인하고 남긴 문의는 <Link to="/qna/my">내 문의</Link>에서 확인할 수 있습니다.</p>
-      </section>}
-      {(adminMode || isListLoading || loadError || faqPage.totalElements > 0 || appliedFilters.keyword || appliedFilters.category) && <>
-      <div className="faq-topline">
-        <strong>
-          전체 {faqPage.totalElements}건 중 {faqPosts.length}건 표시
-        </strong>
-        <span>{faqResultCaption}</span>
-      </div>
-
-      <form className="restaurant-filter-form faq-filter-form" onSubmit={handleSearch}>
-        <label className="admin-field">
-          <span>분류</span>
-          <select
-            value={filters.category}
-            onChange={(event) => updateFilter("category", event.target.value)}
-          >
-            <option value="">전체</option>
-            <option value="notice">공지</option>
-            <option value="account">계정</option>
-            <option value="service">서비스</option>
-            <option value="policy">정책</option>
-          </select>
-        </label>
-
-        <label className="admin-field">
-          <span>검색어</span>
-          <input
-            type="search"
-            value={filters.keyword}
-            onChange={(event) => updateFilter("keyword", event.target.value)}
-            placeholder="FAQ 제목 또는 답변"
-          />
-        </label>
-
-        <div className="admin-actions restaurant-filter-actions">
-          <button type="button" onClick={resetFilters}>
-            초기화
-          </button>
-          <button type="submit" className="button-primary">
-            조회
-          </button>
-        </div>
-      </form>
-
-      </>}
-      {loadError ? <div className="api-status api-status--error">{loadError}</div> : null}
-
-      <div className={adminMode ? "faq-columns faq-columns--admin" : "faq-columns faq-columns--public"}>
-        <section
-          className={adminMode ? "board-table" : "faq-public-board"}
-          aria-label="FAQ 게시판"
-        >
-          {adminMode ? (
-            <div className="board-table__head">
-              <span>분류</span>
-              <span>제목</span>
-              <span>작성자</span>
-              <span>조회수</span>
-              <span>수정일</span>
-            </div>
-          ) : null}
-
-          <div className={adminMode ? "board-table__body" : "faq-public-list"}>
-            {isListLoading && faqPosts.length === 0 ? (
-              <div className="board-empty">FAQ 목록을 불러오는 중입니다.</div>
-            ) : faqPosts.length === 0 ? (
-              <div className="board-empty">
-                <p>{appliedFilters.category || appliedFilters.keyword ? '조회된 FAQ가 없습니다. 분류나 검색어를 바꿔 다시 확인해 주세요.' : '자주 묻는 질문을 준비하고 있습니다.'}</p>
-                {!adminMode && <Link to="/qna/private">궁금한 내용은 비공개 1:1 문의로 남겨 주세요.</Link>}
-              </div>
-            ) : (
-              faqPosts.map((post) => {
-                const isSelected = selectedFaqId === post.faqId;
-                const detail = isSelected && selectedFaqDetail ? selectedFaqDetail : post;
-
-                return (
-                  <details
-                    key={post.faqId}
-                    className={
-                      adminMode
-                        ? `board-row ${isSelected ? "board-row--selected" : ""}`
-                        : `faq-public-item ${isSelected ? "faq-public-item--selected" : ""}`
-                    }
-                    open={isSelected || post.isPinned}
-                  >
-                    <summary
-                      className={adminMode ? "board-row__summary" : "faq-public-item__summary"}
-                      onClick={() => setSelectedFaqId(post.faqId)}
-                    >
-                      <span className={post.isPinned ? "board-badge board-badge--notice" : "board-badge"}>
-                        {toCategoryLabel(post.category)}
-                      </span>
-                      <span className={adminMode ? "board-row__title" : "faq-public-item__title"}>
-                        {post.isPinned ? <strong>[고정]</strong> : null}
-                        {post.title}
-                      </span>
-                      {adminMode ? (
-                        <>
-                          <span className="board-row__meta" data-label="작성자">
-                            {post.username}
-                          </span>
-                          <span className="board-row__meta" data-label="조회수">
-                            {Number(post.viewCount ?? 0).toLocaleString()}
-                          </span>
-                          <span className="board-row__meta" data-label="수정일">
-                            {formatDate(post.updatedAt)}
-                          </span>
-                        </>
-                      ) : null}
-                    </summary>
-
-                    <div className={adminMode ? "board-row__content" : "faq-public-item__content"}>
-                      <div className={adminMode ? "board-row__answer-label" : "faq-public-item__answer-label"}>
-                        답변
-                      </div>
-                      <div className={adminMode ? "board-row__body" : "faq-public-item__body"}>
-                        <p>
-                          {isSelected && isDetailLoading
-                            ? "상세 내용을 불러오는 중입니다."
-                            : detail?.answer || "답변 내용이 없습니다."}
-                        </p>
-                        {adminMode ? (
-                          <div className="board-row__actions">
-                            <button type="button" onClick={() => fillDraftFromFaq(detail)}>
-                              수정
-                            </button>
-                            <button
-                              type="button"
-                              className="button-danger"
-                              onClick={() => requestDeleteFaq(post.faqId)}
-                              disabled={isSubmitting}
-                            >
-                              삭제
-                            </button>
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  </details>
-                );
-              })
-            )}
-          </div>
-
-          {faqPage.hasNext ? (
-            <div className="list-more-actions">
-              <button type="button" onClick={handleLoadMoreFaq} disabled={isListLoading}>
-                {isListLoading ? "불러오는 중..." : "FAQ 더 보기"}
-              </button>
-            </div>
-          ) : null}
-        </section>
-
-        {adminMode ? (
-          <aside className="faq-side-card">
-            <div className="faq-side-card__section">
-              <div className="faq-side-card__header">
-                <h3>FAQ 작업</h3>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isEditorOpen && editorMode === "create") {
-                      resetDraft();
-                      return;
-                    }
-
-                    setEditorMode("create");
-                    setDraft(emptyDraft);
-                    setSubmitError("");
-                    setSubmitMessage("");
-                    setIsEditorOpen(true);
-                  }}
-                >
-                  {isEditorOpen && editorMode === "create" ? "등록창 닫기" : "새 FAQ 등록"}
-                </button>
-              </div>
-
-              {submitMessage ? <div className="api-status api-status--success">{submitMessage}</div> : null}
-              {submitError ? <div className="api-status api-status--error">{submitError}</div> : null}
-
-              {isEditorOpen ? (
-                <form className="admin-form" onSubmit={handleSubmit}>
+  if(adminMode) return <PageLayout title="자주 묻는 질문 관리" className="support-workspace" description="사용자에게 보여줄 안내를 찾고, 필요한 내용만 편집하세요.">
+    <UnsavedChangesGuard when={editorDirty} pending={isSubmitting}/>
+    <div className="sw-topline"><p><strong>{faqPage.totalElements.toLocaleString()}건</strong> 조회 결과 · {faqPosts.length}건 불러옴</p><button type="button" className="button-primary" onClick={openCreateEditor} disabled={isSubmitting}>새 FAQ 등록</button></div>
+    <div className="sw-status-bar" aria-label="불러온 FAQ의 게시 상태">{[["","전체"],["published","게시 중"],["review","검토 중"],["draft","임시 저장"]].map(([value,text])=><button type="button" key={value} aria-pressed={statusFilter===value} disabled={isSubmitting} onClick={()=>changeStatus(value)}>{text}</button>)}</div>
+    <form className="sw-filters" onSubmit={handleSearch}><label><span>FAQ 검색</span><input type="search" value={filters.keyword} onChange={event=>updateFilter("keyword",event.target.value)} placeholder="제목 또는 답변 검색" disabled={isSubmitting}/></label><label><span>분류</span><select value={filters.category} onChange={event=>updateFilter("category",event.target.value)} disabled={isSubmitting}><option value="">모든 분류</option>{Object.entries(categoryLabels).map(([value,text])=><option key={value} value={value}>{text}</option>)}</select></label><div className="sw-filter-actions"><button type="button" onClick={resetFilters} disabled={isSubmitting}>초기화</button><button type="submit" className="button-primary" disabled={isSubmitting}>조회</button></div></form>
+    {loadError&&<div className="api-status api-status--error" role="alert">{loadError}<button type="button" onClick={()=>{if(allowWorkspaceChange())loadFaqList();}} disabled={isSubmitting||isListLoading}>다시 시도</button></div>}
+    {submitMessage&&<div className="api-status api-status--success" role="status">{submitMessage}</div>}
+    <div className="sw-columns"><section className="sw-list" aria-label="FAQ 목록"><div className="sw-panel-heading"><h2>안내 목록</h2><span>{workspacePosts.length}건 표시</span></div><p className="sw-list-hint">게시 상태는 불러온 목록을 기준으로 분류해요.</p>
+      {isListLoading&&!faqPosts.length?<p className="sw-empty" role="status">FAQ 목록을 불러오고 있어요.</p>:!workspacePosts.length?<p className="sw-empty">조건에 맞는 FAQ가 없어요.</p>:<ul>{workspacePosts.map(post=><li key={post.faqId}><button type="button" className="sw-list-item" aria-current={selectedFaqId===post.faqId?'true':undefined} disabled={isSubmitting} onClick={()=>selectFaq(post.faqId)}><span className="sw-item-meta"><span className={'sw-status sw-status--'+(post.statusCode||'unknown')}>{({published:'게시 중',review:'검토 중',draft:'임시 저장'})[post.statusCode]||'상태 확인 필요'}</span><time>{formatDate(post.updatedAt)}</time></span><strong>{post.title}</strong><span className="sw-item-caption">{toCategoryLabel(post.category)}{post.isPinned?' · 상단 고정':''}</span><span className="sw-item-arrow" aria-hidden="true">→</span></button></li>)}</ul>}
+      {faqPage.hasNext&&<button type="button" className="sw-more" onClick={handleLoadMoreFaq} disabled={isListLoading||isSubmitting}>{isListLoading?'불러오는 중...':'FAQ 더 보기'}</button>}
+    </section><section className="sw-detail" aria-label="선택한 FAQ" ref={detailRef}><div className="sw-panel-heading"><h2 ref={detailHeadingRef} tabIndex={-1}>{isEditorOpen?(editorMode==='edit'?'FAQ 편집':'새 FAQ 작성'):'안내 상세'}</h2>{isEditorOpen&&<span className="sw-status">{editorDirty?'저장 전':'편집 중'}</span>}</div>
+      {submitError&&<div className="api-status api-status--error" role="alert">{submitError}</div>}
+      {isEditorOpen?                <form className="sw-editor admin-form" onSubmit={handleSubmit}><fieldset disabled={isSubmitting}>
                   <div className="faq-editor-caption">
                     {editorMode === "edit" ? "선택한 FAQ를 수정 중입니다." : "새 FAQ를 등록합니다."}
                   </div>
@@ -587,30 +454,151 @@ function FAQ({ adminMode = false }) {
                   </label>
 
                   <div className="admin-actions">
-                    <button type="button" onClick={resetDraft} disabled={isSubmitting}>
+                    <button type="button" onClick={()=>resetDraft()} disabled={isSubmitting}>
                       취소
                     </button>
                     <button type="submit" className="button-primary" disabled={isSubmitting}>
                       {isSubmitting ? "저장 중..." : editorMode === "edit" ? "수정 저장" : "등록"}
                     </button>
                   </div>
-                </form>
-              ) : (
-                <div className="board-empty">새 FAQ 등록 버튼을 눌러 작성창을 열어 주세요.</div>
-              )}
-            </div>
-          </aside>
-        ) : null}
+                </fieldset></form>:workspaceSelected?<><span className="sw-eyebrow">{toCategoryLabel(workspaceSelected.category)}{workspaceSelected.isPinned?' · 상단 고정':''}</span><h3 className="sw-detail-title">{workspaceSelected.title}</h3>
+        {isDetailLoading?<p className="sw-empty" role="status">상세 내용을 불러오고 있어요.</p>:detailError?<div className="api-status api-status--error" role="alert">{detailError}<button type="button" onClick={()=>setDetailReload(current=>current+1)}>다시 확인</button></div>:<div className="sw-answer-body">{workspaceSelected.answer||'등록된 답변이 없어요.'}</div>}
+        <dl className="sw-facts"><div><dt>작성자</dt><dd>{workspaceSelected.username||'-'}</dd></div><div><dt>최근 수정</dt><dd>{formatDate(workspaceSelected.updatedAt)}</dd></div><div><dt>조회수</dt><dd>{Number(workspaceSelected.viewCount??0).toLocaleString()}</dd></div><div><dt>노출 순서</dt><dd>{workspaceSelected.displayOrder??'-'}</dd></div></dl>
+        <div className="sw-save-bar"><button type="button" className="sw-danger-link" onClick={()=>requestDeleteFaq(workspaceSelected.faqId)} disabled={isSubmitting}>삭제</button><button type="button" className="button-primary" disabled={isSubmitting||isDetailLoading||Boolean(detailError)||selectedFaqDetail?.faqId!==workspaceSelected.faqId} onClick={()=>fillDraftFromFaq(workspaceSelected)}>내용 편집</button></div>
+      </>:<p className="sw-empty">목록에서 FAQ를 선택하거나 새 안내를 작성해 주세요.</p>}
+    </section></div>
+    <ConfirmDialog isOpen={Boolean(pendingDeleteFaqId)} title="FAQ 삭제" description="삭제한 FAQ는 사용자 화면에 더 이상 노출되지 않습니다. 계속 삭제할까요?" confirmLabel="삭제하기" isSubmitting={isSubmitting} onCancel={()=>setPendingDeleteFaqId(null)} onConfirm={confirmDeleteFaq}/>
+  </PageLayout>;
+
+  return (
+    <PageLayout
+      title="자주 묻는 질문"
+      className="support-page support-page--faq"
+      description="궁금한 내용을 찾아보고, 해결되지 않으면 비공개 문의를 남겨 주세요."
+    >
+      {!isListLoading && !loadError && faqPage.totalElements === 0 && !appliedFilters.keyword && !appliedFilters.category && <section className="support-panel" aria-label="빠른 이용 안내">
+        <h2>빠른 이용 안내</h2>
+        <p>계정에 접근할 수 없거나 개인 정보 확인이 필요하면 <Link to="/qna/private">비공개 문의</Link>를 이용하세요. 로그인 없이도 접수할 수 있습니다.</p>
+        <p>식당 등록은 <Link to="/business">입점 안내</Link>를 확인한 뒤 로그인하고 신청해 주세요.</p>
+        <p>로그인하고 남긴 문의는 <Link to="/qna/my">내 문의</Link>에서 확인할 수 있습니다.</p>
+      </section>}
+      {(isListLoading || loadError || faqPage.totalElements > 0 || appliedFilters.keyword || appliedFilters.category) && <>
+      <div className="faq-topline">
+        <strong>
+          전체 {faqPage.totalElements}건 중 {faqPosts.length}건 표시
+        </strong>
+        <span>{faqResultCaption}</span>
       </div>
-      <ConfirmDialog
-        isOpen={Boolean(pendingDeleteFaqId)}
-        title="FAQ 삭제"
-        description="삭제한 FAQ는 사용자 화면에 더 이상 노출되지 않습니다. 계속 삭제할까요?"
-        confirmLabel="삭제하기"
-        isSubmitting={isSubmitting}
-        onCancel={() => setPendingDeleteFaqId(null)}
-        onConfirm={confirmDeleteFaq}
-      />
+
+      <form className="restaurant-filter-form faq-filter-form" onSubmit={handleSearch}>
+        <label className="admin-field">
+          <span>분류</span>
+          <select
+            value={filters.category}
+            onChange={(event) => updateFilter("category", event.target.value)}
+          >
+            <option value="">전체</option>
+            <option value="notice">공지</option>
+            <option value="account">계정</option>
+            <option value="service">서비스</option>
+            <option value="policy">정책</option>
+          </select>
+        </label>
+
+        <label className="admin-field">
+          <span>검색어</span>
+          <input
+            type="search"
+            value={filters.keyword}
+            onChange={(event) => updateFilter("keyword", event.target.value)}
+            placeholder="FAQ 제목 또는 답변"
+          />
+        </label>
+
+        <div className="admin-actions restaurant-filter-actions">
+          <button type="button" onClick={resetFilters}>
+            초기화
+          </button>
+          <button type="submit" className="button-primary">
+            조회
+          </button>
+        </div>
+      </form>
+
+      </>}
+      {loadError ? <div className="api-status api-status--error">{loadError}</div> : null}
+
+      <div className="faq-columns faq-columns--public">
+        <section
+          className="faq-public-board"
+          aria-label="FAQ 게시판"
+        >
+
+
+          <div className="faq-public-list">
+            {isListLoading && faqPosts.length === 0 ? (
+              <div className="board-empty">FAQ 목록을 불러오는 중입니다.</div>
+            ) : faqPosts.length === 0 ? (
+              <div className="board-empty">
+                <p>{appliedFilters.category || appliedFilters.keyword ? '조회된 FAQ가 없습니다. 분류나 검색어를 바꿔 다시 확인해 주세요.' : '자주 묻는 질문을 준비하고 있습니다.'}</p>
+                <Link to="/qna/private">궁금한 내용은 비공개 1:1 문의로 남겨 주세요.</Link>
+              </div>
+            ) : (
+              faqPosts.map((post) => {
+                const isSelected = selectedFaqId === post.faqId;
+                const detail = isSelected && selectedFaqDetail?.faqId === post.faqId ? selectedFaqDetail : post;
+
+                return (
+                  <details
+                    key={post.faqId}
+                    className={`faq-public-item ${isSelected ? "faq-public-item--selected" : ""}`}
+                    open={isSelected || post.isPinned}
+                  >
+                    <summary
+                      className="faq-public-item__summary"
+                      onClick={() => setSelectedFaqId(post.faqId)}
+                    >
+                      <span className={post.isPinned ? "board-badge board-badge--notice" : "board-badge"}>
+                        {toCategoryLabel(post.category)}
+                      </span>
+                      <span className="faq-public-item__title">
+                        {post.isPinned ? <strong>[고정]</strong> : null}
+                        {post.title}
+                      </span>
+
+                    </summary>
+
+                    <div className="faq-public-item__content">
+                      <div className="faq-public-item__answer-label">
+                        답변
+                      </div>
+                      <div className="faq-public-item__body">
+                        <p>
+                          {isSelected && isDetailLoading
+                            ? "상세 내용을 불러오는 중입니다."
+                            : detail?.answer || "답변 내용이 없습니다."}
+                        </p>
+
+                      </div>
+                    </div>
+                  </details>
+                );
+              })
+            )}
+          </div>
+
+          {faqPage.hasNext ? (
+            <div className="list-more-actions">
+              <button type="button" onClick={handleLoadMoreFaq} disabled={isListLoading}>
+                {isListLoading ? "불러오는 중..." : "FAQ 더 보기"}
+              </button>
+            </div>
+          ) : null}
+        </section>
+
+
+      </div>
+
     </PageLayout>
   );
 }

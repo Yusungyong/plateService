@@ -14,16 +14,26 @@ export default function useDialogFocus(isOpen, onClose, busy = false) {
       originalOverflow = document.body.style.overflow;
       document.body.style.overflow = "hidden";
     }
+    const visible = (element) => {
+      if (element.matches("input[type='hidden']")) return false;
+      for (let parent = element; parent && parent !== dialog; parent = parent.parentElement) {
+        if (parent.hidden || parent.hasAttribute("inert") || parent.getAttribute("aria-hidden") === "true") return false;
+        if (parent.tagName === "DETAILS" && !parent.open && !parent.querySelector(":scope > summary")?.contains(element)) return false;
+        const style = window.getComputedStyle(parent);
+        if (style.display === "none" || style.visibility === "hidden") return false;
+      }
+      return true;
+    };
     const controls = () => [
       ...dialog.querySelectorAll(
-        "button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex='0']"
+        "button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], summary, [tabindex='0']"
       ),
-    ];
-    const preferred = dialog.querySelector(
-      "select:not(:disabled), textarea:not(:disabled), input:not(:disabled)"
-    );
+    ].filter(visible);
+    const preferred = controls().find(element => element.matches("select,textarea,input"));
     (preferred || controls()[0])?.focus();
     function keydown(event) {
+      // Native modal dialogs live in the browser's top layer; let them manage focus.
+      if (document.querySelector("dialog[open]")) return;
       const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
       if (dialogs[dialogs.length - 1] !== dialog) return;
       if (event.key === "Escape") {
