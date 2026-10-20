@@ -1,0 +1,19 @@
+import React from 'react';
+import {render,screen,fireEvent,within} from '@testing-library/react';
+import {MemoryRouter,useLocation} from 'react-router-dom';
+import AdminShell from './AdminShell';
+import {useAuth} from '../../auth/AuthContext';
+import {activeNavigation,searchNavigation,navigationItem,readPinnedMenus} from './adminNavigationModel';
+jest.mock('../../auth/AuthContext',()=>({useAuth:jest.fn()}));
+jest.mock('./AdminMenuTools',()=>()=>null);
+function Location(){return <output aria-label="현재 경로">{useLocation().pathname}</output>;}
+const auth=(subject='su12ng',permissions=null)=>({user:{accountSubject:subject,username:subject,roles:['ADMIN']},canAdmin:p=>!permissions||permissions.includes(p),logout:jest.fn()});
+function mount(){return render(<MemoryRouter initialEntries={['/admin/marketing']}><AdminShell><Location/></AdminShell></MemoryRouter>);}
+function open(){fireEvent.click(screen.getByRole('button',{name:'메뉴 찾기',exact:true}));return screen.getByRole('dialog',{name:'어떤 일을 할까요?'});}
+beforeEach(()=>{localStorage.clear();useAuth.mockReturnValue(auth());});
+test('task search navigates to content management rather than the old store-only search',()=>{mount();const modal=open();fireEvent.change(within(modal).getByLabelText('메뉴 검색'),{target:{value:'콘텐츠'}});fireEvent.click(within(modal).getByRole('link',{name:/피드 관리/}));expect(screen.getByLabelText('현재 경로')).toHaveTextContent('/admin/feeds');expect(screen.queryByRole('dialog')).not.toBeInTheDocument();});
+test('search covers hidden group keywords and reports empty results',()=>{mount();const modal=open();fireEvent.change(within(modal).getByLabelText('메뉴 검색'),{target:{value:'제작물'}});expect(within(modal).getByRole('link',{name:/마케팅 운영/})).toBeInTheDocument();fireEvent.change(within(modal).getByLabelText('메뉴 검색'),{target:{value:'존재하지않음'}});expect(within(modal).getByText(/일치하는 메뉴가 없어요/)).toBeInTheDocument();});
+test('unprivileged admin cannot find privileged or previously pinned routes',()=>{localStorage.setItem('plate-admin.pinned.other',JSON.stringify(['/admin/marketing','/admin/api-registry']));useAuth.mockReturnValue(auth('other',['DASHBOARD_READ']));mount();const modal=open();expect(within(modal).getAllByRole('link').map(a=>a.getAttribute('href'))).toEqual(['/admin/dashboard']);expect(within(modal).getByRole('link',{name:/대시보드/})).toBeInTheDocument();});
+test('pinning is scoped to current account and removed instantly on account change',()=>{const page=mount();const modal=open();fireEvent.click(within(modal).getByRole('button',{name:'마케팅 운영 고정'}));expect(readPinnedMenus('su12ng')).toEqual(['/admin/marketing']);fireEvent.keyDown(window,{key:'Escape'});expect(screen.getByText('자주 쓰는 메뉴')).toBeInTheDocument();useAuth.mockReturnValue(auth('other'));page.rerender(<MemoryRouter initialEntries={['/admin/dashboard']}><AdminShell><Location/></AdminShell></MemoryRouter>);expect(screen.queryByText('자주 쓰는 메뉴')).not.toBeInTheDocument();expect(screen.queryByRole('link',{name:'마케팅 운영'})).not.toBeInTheDocument();});
+test('menu search supports shortcut, initial focus and Escape returning focus',()=>{mount();const trigger=screen.getByRole('button',{name:'메뉴 찾기',exact:true});trigger.focus();fireEvent.keyDown(window,{key:'k',ctrlKey:true});expect(screen.getByLabelText('메뉴 검색')).toHaveFocus();fireEvent.keyDown(window,{key:'Escape'});expect(screen.queryByRole('dialog')).not.toBeInTheDocument();expect(trigger).toHaveFocus();});
+test('active context uses longest route and pin parser rejects malformed stored data',()=>{expect(activeNavigation([{path:'/admin/operations'},{path:'/admin/operations/incidents'}],'/admin/operations/incidents')).toEqual({path:'/admin/operations/incidents'});localStorage.setItem('plate-admin.pinned.su12ng','{"bad":true}');expect(readPinnedMenus('su12ng')).toEqual([]);expect(searchNavigation([navigationItem({path:'/admin/marketing',label:'마케팅 운영'})],'홍보')).toHaveLength(1);});

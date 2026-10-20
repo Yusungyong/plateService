@@ -1,172 +1,58 @@
 import { confirmFormLeave } from "../../components/formLeaveProtection";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { adminNavigationItems } from "../../config/routes";
 import { getPrimaryAdminRole, userCanViewApiRegistry } from "../constants/adminPermissions";
 import "../styles/admin.css";
+import "../styles/navigation.css";
 import AdminMenuTools from "./AdminMenuTools";
-import PlateBrand from "../../components/PlateBrand";
+import AdminMenuFinder from "./AdminMenuFinder";
+import useDialogFocus from "./useDialogFocus";
+import {NAV_GROUPS,navigationItem,activeNavigation,readPinnedMenus,writePinnedMenus} from "./adminNavigationModel";
 
-const ROLE_LABELS = {
-  SUPER_ADMIN: "최고 관리자",
-  ADMIN: "관리자",
-  OPERATOR: "운영자",
-  CONTENT_MANAGER: "콘텐츠 매니저",
-  VIEWER: "조회 전용",
-};
+const ROLE_LABELS = {SUPER_ADMIN:"최고 관리자",ADMIN:"관리자",OPERATOR:"운영자",CONTENT_MANAGER:"콘텐츠 매니저",VIEWER:"조회 전용"};
 
 function AdminShell({ children }) {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { canAdmin, logout, user } = useAuth();
-  const [globalKeyword, setGlobalKeyword] = useState("");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  const visibleNavigationItems = useMemo(
-    () =>
-      adminNavigationItems.filter(
-        (item) => item.available !== false && canAdmin(item.permission)
-          && (!item.operatorOnly || userCanViewApiRegistry(user))
-      ),
-    [canAdmin, user]
-  );
-  const navigationGroups = useMemo(
-    () =>
-      visibleNavigationItems.reduce((groups, item) => {
-        const groupName = item.group || "메뉴";
-        return {
-          ...groups,
-          [groupName]: [...(groups[groupName] || []), item],
-        };
-      }, {}),
-    [visibleNavigationItems]
-  );
-  const activeItem = visibleNavigationItems.find(({ path }) =>
-    location.pathname === path || (path !== "/admin/operations" && location.pathname.startsWith(path))
-  );
-  const primaryRole = getPrimaryAdminRole(user);
-  const roleLabel = ROLE_LABELS[primaryRole] || primaryRole || "운영자";
-
-  function handleLogout() {
-    if (!confirmFormLeave()) return;
-    logout();
-    navigate("/login", { replace: true });
-  }
-
-  function handleGlobalSearch(event) {
-    event.preventDefault();
-    const keyword = globalKeyword.trim();
-    navigate(
-      keyword
-        ? `/admin/store-approvals?keyword=${encodeURIComponent(keyword)}`
-        : "/admin/store-approvals"
-    );
-    setIsSidebarOpen(false);
-  }
-
-  return (
-    <div className={location.pathname.startsWith("/admin/operations")?"admin-shell admin-shell--operations":"admin-shell"}>
-      <a className="plate-skip" href="#admin-main">본문 바로가기</a>
-      <aside
-        id="admin-sidebar"
-        className={
-          isSidebarOpen
-            ? "admin-sidebar admin-sidebar--open"
-            : "admin-sidebar"
-        }
-      >
-        <PlateBrand />
-
-        <nav className="admin-navigation" aria-label="운영자 관리 메뉴">
-          {Object.entries(navigationGroups).map(([groupName, items]) => (
-            <div className="admin-navigation__group" key={groupName}>
-              <span className="admin-navigation__label">{groupName}</span>
-              {items.map((item) => (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  end={item.path === "/admin/operations"}
-                  onClick={() => setIsSidebarOpen(false)}
-                  className={({ isActive }) => {
-                    const classes = ["admin-navigation__link"];
-                    if (isActive) {
-                      classes.push("admin-navigation__link--active");
-                    }
-                    if (item.featured) {
-                      classes.push("admin-navigation__link--featured");
-                    }
-                    return classes.join(" ");
-                  }}
-                >
-                  <AdminNavIcon name={item.icon} />
-                  <span>{item.label}</span>
-                </NavLink>
-              ))}
-            </div>
-          ))}
-        </nav>
-
-        <div className="admin-sidebar__footer">
-          <Link to="/faq">고객지원 화면으로 이동</Link>
-        </div>
-      </aside>
-
-      {isSidebarOpen ? (
-        <button
-          type="button"
-          className="admin-sidebar-backdrop"
-          aria-label="메뉴 닫기"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      ) : null}
-
-      <div className="admin-workspace">
-        <header className="admin-topbar">
-          <div className="admin-topbar__leading">
-            <PlateBrand compact />
-            <button
-              type="button"
-              className="admin-mobile-menu"
-              onClick={() => setIsSidebarOpen((current) => !current)}
-              aria-expanded={isSidebarOpen}
-              aria-controls="admin-sidebar"
-            >
-              메뉴
-            </button>
-            <div className="admin-topbar__context">
-              <span>내부 운영</span>
-              <strong>{activeItem?.label || "관리자"}</strong>
-            </div>
-          </div>
-
-          {canAdmin("STORE_READ") && <form className="admin-global-search" onSubmit={handleGlobalSearch}>
-            <label htmlFor="admin-global-search">승인 검색</label>
-            <input
-              id="admin-global-search"
-              type="search"
-              value={globalKeyword}
-              onChange={(event) => setGlobalKeyword(event.target.value)}
-              placeholder="매장명, 대표자명, 지역 검색"
-            />
-            <button type="submit">검색</button>
-          </form>}
-
-          <div className="admin-profile">
-            <div className="admin-profile__identity">
-              <strong>{user?.displayName || user?.username || "운영자"}</strong>
-              <span>{roleLabel}</span>
-            </div>
-            <button type="button" className="admin-logout" onClick={handleLogout}>
-              로그아웃
-            </button>
-          </div>
-        </header>
-
-        <main className="admin-main" id="admin-main"><AdminMenuTools />{children}</main>
-      </div>
+  const location=useLocation(),navigate=useNavigate(),{canAdmin,logout,user}=useAuth();
+  const [finderOpen,setFinderOpen]=useState(false),[isSidebarOpen,setIsSidebarOpen]=useState(false);
+  const scope=user?.accountSubject||'';
+  const [pinState,setPinState]=useState(()=>({scope,paths:readPinnedMenus(scope)}));
+  const visibleNavigationItems=useMemo(()=>adminNavigationItems.filter(item=>item.available!==false&&canAdmin(item.permission)&&(!item.operatorOnly||userCanViewApiRegistry(user))).map(navigationItem),[canAdmin,user]);
+  const pinned=(pinState.scope===scope?pinState.paths:readPinnedMenus(scope)).filter(p=>visibleNavigationItems.some(i=>i.path===p));
+  const activeItem=activeNavigation(visibleNavigationItems,location.pathname);
+  const home=visibleNavigationItems.find(i=>i.path==='/admin/operations')?.path||visibleNavigationItems[0]?.path||'/';
+  const primaryRole=getPrimaryAdminRole(user),roleLabel=ROLE_LABELS[primaryRole]||primaryRole||'운영자';
+  const sidebar=useDialogFocus(isSidebarOpen,()=>setIsSidebarOpen(false));
+  useEffect(()=>{setFinderOpen(false);setIsSidebarOpen(false);},[scope,location.pathname]);
+  useEffect(()=>{const key=e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'&&!document.querySelector('[role="dialog"][aria-modal="true"]')){e.preventDefault();setIsSidebarOpen(false);setFinderOpen(true);}};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[]);
+  useEffect(()=>{const query=window.matchMedia?.('(min-width: 821px)');const close=e=>{if(e.matches)setIsSidebarOpen(false);};query?.addEventListener?.('change',close);return()=>query?.removeEventListener?.('change',close);},[]);
+  function handleLogout(){if(!confirmFormLeave())return;logout();navigate('/login',{replace:true});}
+  function togglePin(path){const paths=pinned.includes(path)?pinned.filter(p=>p!==path):[...pinned,path].slice(0,5);setPinState({scope,paths});writePinnedMenus(scope,paths);}
+  function openFinder(){setIsSidebarOpen(false);setFinderOpen(true);}
+  function menuLink(item){return <NavLink key={item.path} to={item.path} end={item.path==='/admin/operations'} onClick={()=>setIsSidebarOpen(false)} className={({isActive})=>'admin-navigation__link'+(isActive?' admin-navigation__link--active':'')}><AdminNavIcon name={item.icon}/><span>{item.label}</span></NavLink>;}
+  return <div className={'admin-shell admin-shell--workspace'+(location.pathname.startsWith('/admin/operations')?' admin-shell--operations':'')}>
+    <a className="plate-skip" href="#admin-main">본문 바로가기</a>
+    <aside ref={sidebar} id="admin-sidebar" className={'admin-sidebar'+(isSidebarOpen?' admin-sidebar--open':'')} role={isSidebarOpen?'dialog':undefined} aria-modal={isSidebarOpen?true:undefined} aria-label={isSidebarOpen?'운영 메뉴':undefined}>
+      <div className="admin-sidebar__brand"><Link to={home} aria-label="운영 시작 화면"><img src="/images/home/plate-mascot.png" width="44" height="44" alt=""/><span><strong>접시</strong><small>운영 공간</small></span></Link><button className="admin-sidebar__close" onClick={()=>setIsSidebarOpen(false)} aria-label="운영 메뉴 닫기">×</button></div>
+      <button className="admin-sidebar__find" type="button" onClick={openFinder}><span>메뉴 찾기</span><kbd>⌘ / Ctrl K</kbd></button>
+      <nav className="admin-navigation" aria-label="운영자 관리 메뉴">
+        {pinned.length>0&&<div className="admin-navigation__group"><span className="admin-navigation__label">자주 쓰는 메뉴</span>{pinned.map(p=>menuLink(visibleNavigationItems.find(i=>i.path===p)))}</div>}
+        {NAV_GROUPS.map(group=>{const items=visibleNavigationItems.filter(item=>item.group===group&&!pinned.includes(item.path));return items.length?<details className="admin-navigation__group" key={group} open><summary className="admin-navigation__label">{group}<span aria-hidden="true">⌄</span></summary>{items.map(menuLink)}</details>:null;})}
+      </nav>
+      <div className="admin-sidebar__footer"><Link to="/">접시 웹 보기 <span aria-hidden="true">↗</span></Link><small>작은 확인이 더 좋은 접시를 만들어요.</small></div>
+    </aside>
+    {isSidebarOpen&&<div className="admin-sidebar-backdrop" onClick={()=>setIsSidebarOpen(false)} aria-hidden="true"/>}
+    <div className="admin-workspace">
+      <header className="admin-topbar">
+        <div className="admin-topbar__leading"><button type="button" className="admin-mobile-menu" onClick={()=>setIsSidebarOpen(true)} aria-expanded={isSidebarOpen} aria-controls="admin-sidebar">메뉴</button><div className="admin-topbar__context"><span><Link to="/" aria-label="접시 홈으로 이동">접시</Link> / {activeItem?.group||'운영'}</span><strong>{activeItem?.label||'관리자'}</strong></div></div>
+        <button type="button" className="admin-menu-search" onClick={openFinder} aria-label="메뉴 찾기"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><span>어떤 일을 찾고 있나요?</span><kbd>⌘ / Ctrl K</kbd></button>
+        <div className="admin-profile"><span className="admin-profile__avatar" aria-hidden="true">{(user?.displayName||user?.username||'운').slice(0,1)}</span><div className="admin-profile__identity"><strong>{user?.displayName||user?.username||'운영자'}</strong><span>{roleLabel}</span></div><button type="button" className="admin-logout" onClick={handleLogout}>로그아웃</button></div>
+      </header>
+      <main className="admin-main" id="admin-main">{children}<AdminMenuTools/></main>
     </div>
-  );
+    {finderOpen&&<AdminMenuFinder key={scope} items={visibleNavigationItems} pinned={pinned} onPin={togglePin} onClose={()=>setFinderOpen(false)}/>}
+  </div>;
 }
 
 function AdminNavIcon({ name }) {

@@ -1,6 +1,6 @@
 import UnsavedChangesGuard from "../../components/UnsavedChangesGuard";
 import React, { useEffect, useRef, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { ADMIN_PERMISSIONS as P, userCanViewApiRegistry } from "../constants/adminPermissions";
 import { getOperationsReviews, saveOperationsReview } from "../api/operationsReviewApi";
@@ -20,13 +20,6 @@ export const MENU_SCOPES = {
   "/admin/qna": "QNA",
   "/admin/member-monitoring": "MEMBERS",
 };
-const SHORTCUTS = [
-  ["입점 신청 처리", "/admin/store-approvals", P.STORE_READ],
-  ["회원 확인", "/admin/member-monitoring", P.MEMBER_MONITORING_READ],
-  ["피드 숨김·복원", "/admin/feeds", P.FEED_READ],
-  ["문의 답변", "/admin/qna", P.QNA_MANAGE],
-  ["제철 음식 편집", "/admin/seasonal-foods", P.SEASONAL_READ],
-];
 export default function AdminMenuTools() {
   const { pathname, search } = useLocation(),
     { user, canAdmin } = useAuth();
@@ -43,11 +36,10 @@ export default function AdminMenuTools() {
       initialTarget={initialTarget}
       scope={MENU_SCOPES[base]}
       canWrite={canAdmin(P.SETTING_MANAGE)}
-      shortcuts={SHORTCUTS.filter(([, path, permission]) => path !== base && canAdmin(permission))}
     />
   );
 }
-function MenuTools({ scope, canWrite, shortcuts, initialTarget }) {
+function MenuTools({ scope, canWrite, initialTarget }) {
   const [open, setOpen] = useState(false),
     [target, setTarget] = useState(initialTarget),
     [queried, setQueried] = useState(initialTarget),
@@ -120,7 +112,7 @@ function MenuTools({ scope, canWrite, shortcuts, initialTarget }) {
     <section className="admin-menu-tools" aria-label="메뉴 운영 조치">
       <UnsavedChangesGuard when={!!reason.trim()} pending={writing.current} />
       <div className="admin-menu-tools__bar">
-        <span>운영 도구</span>
+        <span>이 화면의 확인 내용을 남기고 싶다면</span>
         <button
           type="button"
           className="admin-button admin-button--secondary"
@@ -133,11 +125,6 @@ function MenuTools({ scope, canWrite, shortcuts, initialTarget }) {
         >
           운영 점검 기록
         </button>
-        {shortcuts.map(([label, path]) => (
-          <Link key={path} to={path}>
-            {label} →
-          </Link>
-        ))}
       </div>
       {open && (
         <div className="admin-menu-tools__body">
