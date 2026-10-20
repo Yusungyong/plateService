@@ -1,3 +1,5 @@
+현재 상태: 2026-10-20 마케팅 운영 기능을 폐지했습니다. 아래 마케팅 UI 설명은 당시 구현 기록이며 공통 메뉴 탐색만 유지됩니다.
+
 운영 공통 메뉴 · 마케팅 스튜디오 UX
 
 관련 Issue: https://github.com/Yusungyong/plateService/issues/52

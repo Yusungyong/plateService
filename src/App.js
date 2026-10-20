@@ -31,8 +31,6 @@ import Login from "./pages/Login";
 import BusinessIntro from "./pages/BusinessIntro";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
-import CampaignLanding from "./pages/CampaignLanding";
-import MarketingPublications from "./pages/MarketingPublications";
 import "./App.css";
 import "./styles/brand.css";
 import "./styles/readiness.css";
@@ -56,7 +54,7 @@ function ApplicationShell({ children }) {
   const isAdminArea =
     location.pathname === "/admin" || location.pathname.startsWith("/admin/");
 
-  if (location.pathname === "/how-to" || location.pathname.startsWith("/how-to/") || location.pathname === "/" || /^\/go\//.test(location.pathname) || isLoginPage || isLegalPage) {
+  if (location.pathname === "/" || /^\/(how-to|go|marketing)(\/|$)/.test(location.pathname) || isLoginPage || isLegalPage) {
     return children;
   }
 
@@ -94,9 +92,10 @@ function RoutedApp() {
           <Routes>
             <Route path="*" element={<NotFound />} />
             <Route path="/" element={<Home />} />
-            <Route path="/go/:code" element={<CampaignLanding />} />
-            <Route path="/how-to" element={<MarketingPublications />} />
-            <Route path="/how-to/:id" element={<MarketingPublications />} />
+            {/* Retired public links discard attribution and OAuth query parameters. */}
+            <Route path="/go/*" element={<Navigate to="/" replace />} />
+            <Route path="/how-to/*" element={<Navigate to="/" replace />} />
+            <Route path="/marketing/*" element={<Navigate to="/" replace />} />
             <Route path="/login" element={<Login />} />
             {accountPublicRoutes.map(({ path, component: Component }) => (
               <Route key={path} path={path} element={<Component />} />
@@ -143,6 +142,7 @@ function RoutedApp() {
             </Route>
             <Route element={<ProtectedRoute requireAdmin />}>
               <Route path="/admin" element={<AdminEntryRoute />} />
+              <Route path="/admin/marketing/*" element={<AdminEntryRoute />} />
               {adminRoutes.map(({ path, component, permission, operatorOnly, props }) => (
                 <Route
                   key={path}

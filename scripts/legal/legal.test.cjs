@@ -222,19 +222,28 @@ test('privacy correction publishes the verified provider and retention trigger w
   assert.equal(hash(files['legal/documents/service-terms/2026-10-11.md']), '869a2d6666d4929a5b43d5de35f7a08b8451cfa15f140aeb4dc1ef52dc0be72a');
 });
 
-test('campaign and publishing routes retain OAuth query only for the separate static callback', () => {
+test('retired campaign links redirect without tracking and the callback cannot collect OAuth data', () => {
   require('node:child_process').execFileSync(process.execPath, [path.join(__dirname, 'generate.cjs'), '--build']);
   const scope = {};
   vm.runInNewContext(fs.readFileSync(path.join(root, '.legal-preview/cloudfront-viewer-request.js'), 'utf8'), scope);
-  for (const uri of ['/go/ABCDEFGH2345', '/how-to', '/how-to/aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa'])
-    assert.equal(scope.handler({request:{uri}}).uri, '/index.html');
+  for (const uri of ['/go/ABCDEFGH2345', '/how-to', '/how-to/aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa']) {
+    const retired=scope.handler({request:{uri,querystring:{visit:{value:'SYNTHETIC'}}}});
+    assert.equal(retired.statusCode,301);
+    assert.equal(retired.headers.location.value,'/');
+    assert.equal(retired.querystring,undefined);
+  }
+  const admin=scope.handler({request:{uri:'/admin/marketing',querystring:{tab:{value:'studio'}}}});
+  assert.equal(admin.uri,'/index.html');
+  assert.equal(Object.keys(admin.querystring).length,0);
+  assert.doesNotMatch(fs.readFileSync(path.join(root,'build/sitemap.xml'),'utf8'),/how-to|marketing|\/go\//);
   const querystring={code:{value:'SYNTHETIC_CODE'},state:{value:'SYNTHETIC_STATE'}};
   const result=scope.handler({request:{uri:'/marketing/instagram/callback/',querystring}});
   assert.equal(result.uri,'/marketing/instagram/callback/index.html');
-  assert.deepEqual(result.querystring,querystring);
+  assert.equal(Object.keys(result.querystring).length,0);
   assert.equal(scope.handler({request:{uri:'/marketing/instagram/unexpected'}}).statusCode,404);
   const html=fs.readFileSync(path.join(root,'public/marketing/instagram/callback/index.html'),'utf8');
   assert.match(html,/connect-src 'none'/);
   assert.match(html,/history.replaceState/);
-  assert.doesNotMatch(html,/<script[^>]+src=|fetch\(|localStorage|sessionStorage/);
+  assert.doesNotMatch(html,/<script[^>]+src=|fetch\(|localStorage|sessionStorage|URLSearchParams|location\.(search|hash)|Blob|download=/);
+  assert.match(html,/계정 연결 기능이 종료됐어요/);
 });

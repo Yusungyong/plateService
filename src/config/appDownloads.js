@@ -1,4 +1,4 @@
-// Production store listings shared by the homepage and campaign pages.
+// Production store listings used by the public homepage.
 export const APP_DOWNLOADS = {
   ios: {
     name: "App Store",

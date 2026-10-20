@@ -1,0 +1,46 @@
+마케팅 운영 기능 폐지 — 웹 변경 기록
+2026-10-20
+
+요청: 마케팅 운영 메뉴와 관련 기능 전체 폐지.
+기준: main aa76f5a95ecbd6a54e1f5fd0c4390531c5b4ed32
+
+변경
+- 마케팅 운영 화면, 제작물·게시·분석·예약·연결 설정, 해당 API 클라이언트와 테스트/fixture 27개 파일 삭제.
+- 메뉴 검색·즐겨찾기·라우트에서 마케팅 운영 제거. 나머지 운영 메뉴 12개 유지.
+- 과거 /admin/marketing 북마크는 로그인·권한 확인 후 허용된 운영 시작 메뉴로 이동.
+- /how-to와 /go 링크는 쿼리·해시를 전달하지 않고 접시 홈으로 이동.
+- 정적 Instagram 콜백은 인증 코드·state를 읽지 않는 종료 안내만 제공.
+  기존 Amplify의 콜백 정적 파일 rewrite를 지원하기 위해 해당 HTML 경로는 유지.
+- API 카탈로그의 마케팅 소비 경로 26개, 오류 보고 경로 37개, 마케팅 메뉴 제거.
+- 사이트맵에서 /how-to 제외. 과거 문서에는 종료 표시를 추가하고 자산은 보존.
+- 홈 App Store / Google Play 다운로드, 일반 앱 기능, 약관·개인정보 원문 유지.
+
+검증
+- 전체 Jest: 44 suites, 368 tests 통과.
+- 마지막 테스트 변수 정리 후 App.retirement + AdminShell: 2 suites, 15 tests 재검증 통과.
+- 법적 페이지/라우팅: 14 tests 통과.
+- 수정한 JS와 테스트 ESLint, git diff --check 통과.
+- production build 성공.
+- 합성 브라우저: 1440 / 768 / 390px, 공통·종료 경로 18 + 기술 운영 12 + 업무 메뉴 33 = 63 cases 통과.
+  실제 인증정보 사용 0, 실제 API 변경 0, 외부 요청 전송 0.
+  콜백 / 및 /index.html 모두 쿼리·해시 제거, 다운로드/인증 교환/API 호출 없음 확인.
+  나머지 12개 운영 메뉴의 근거 조회·필터·뒤로 가기·모바일 overflow 회귀 검증 유지.
+- 기존 CRA/Browserslist/React Router 안내 경고는 이번 변경과 무관하며 실패 없음.
+
+운영 반영 확인
+- 웹 release.json sourceFingerprint:
+  b233d4518bb8c05b74fa8e825f9fe0bf33e635539fe9c2da01b1ed86b44c1868
+- public 정적 파일은 위 fingerprint 범위 밖이므로 콜백도 별도 확인:
+  SHA-256 19a324dbc1a6f45598b0cc3c69d9c499bcab891278e6a6c66a89b19bab9b2d76
+- 서버의 마케팅 API 제거와 함께 반영. 실제 API 구조관리의 runtime 목록은 서버가 결정한다.
+- 생성된 CloudFront router는 종료 링크 301 및 콜백 쿼리 제거를 포함하지만,
+  현재 Amplify에서는 기존 rewrite + 배포된 SPA/정적 종료 HTML로도 안전하게 종료된다.
+- 기존 외부 Instagram 게시물 자체를 삭제하거나 계정을 변경하지 않는다.
+
+로컬 증거
+/private/tmp/plate-retirement-web-tests.log
+/private/tmp/plate-retirement-web-focused-tests.log
+/private/tmp/plate-retirement-web-legal.log
+/private/tmp/plate-retirement-web-eslint.log
+/private/tmp/plate-retirement-web-build.log
+/private/tmp/plate-marketing-retirement-web-browser/{common,operations,workspace}/verification.json

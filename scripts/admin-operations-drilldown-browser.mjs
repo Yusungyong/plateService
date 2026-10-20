@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 // Offline browser checks: synthetic identities/data only. No request can reach an external API.
 import assert from 'node:assert/strict';
-import {readFile, mkdir, writeFile} from 'node:fs/promises';
+import {mkdir, writeFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import path from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import vm from 'node:vm';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const require=createRequire(import.meta.url);
@@ -17,32 +16,8 @@ assert(base.protocol==='http:'||base.protocol==='https:','A local HTTP URL is re
 const output=path.resolve(option('--output',path.join(root,'output/admin-operations-drilldown-browser')));
 const playwright=process.env.PLATE_PLAYWRIGHT_MODULE;
 const {chromium}=playwright?await import(pathToFileURL(playwright).href):require('playwright');
-const {transformSync}=require('@babel/core');
-const sourceFile=path.join(root,'src/admin/pages/marketingFixtures.js');
-const source=await readFile(sourceFile,'utf8');
-const transformed=transformSync(source,{filename:sourceFile,babelrc:false,configFile:false,plugins:[require.resolve('@babel/plugin-transform-modules-commonjs')]}).code;
-const loaded={exports:{}};
-vm.runInNewContext(transformed,{module:loaded,exports:loaded.exports,require:createRequire(sourceFile)},{filename:sourceFile});
-const {fixture,production,CREATIVE}=loaded.exports;
-const earlier='bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb';
-const oldest='cccccccc-cccc-4ccc-cccc-cccccccccccc';
 const now=new Date();
 const earlierTime=new Date(now.getTime()-86400000).toISOString();
-const oldestTime=new Date(now.getTime()-2*86400000).toISOString();
-const data=fixture();
-data.queue.creatives[0].created_at=now.toISOString();
-data.queue.creatives[0].tokenUsage={input_tokens:1200,output_tokens:680};
-data.queue.creatives.push({...data.queue.creatives[0],id:earlier,created_at:earlierTime,state:'READY_FOR_PUBLISHING'}, {...data.queue.creatives[0],id:oldest,created_at:oldestTime,state:'REJECTED'});
-data.queue.jobs=[{id:CREATIVE,job_key:'ui-example-today',campaign_id:data.queue.campaigns[0].id,status:'SUCCEEDED',not_before:now.toISOString(),created_at:now.toISOString()}];
-data.queue.events=[{id:'synthetic-review',created_at:now.toISOString(),event:'PRODUCTION_REVIEWED',reason:'화면 검증용 예시 기록입니다.',actor:'synthetic-operator'}, {id:'synthetic-generated',created_at:earlierTime,event:'JOB_SUCCEEDED',reason:'예시 제작물이 준비됐어요.',actor:'synthetic-worker'}];
-data.publishing.runtimeEnabled=true;
-data.publishing.control.paused=false;
-data.publishing.accounts=[{channel:'WEBSITE',state:'VERIFIED'}, {channel:'INSTAGRAM',username:'plate_ui_example',state:'VERIFIED',profile_landing_confirmed:true,token_expires_at:new Date(now.getTime()+30*86400000).toISOString()}];
-data.publishing.posts=[{id:'dddddddd-dddd-4ddd-dddd-dddddddddddd',title:'예시: 사진과 식당 이름을 함께',channel:'WEBSITE',state:'PUBLISHED',due_at:earlierTime,permalink:'https://plate-service.com/how-to/synthetic-ui-example'}];
-data.workerChecks=[{kind:'GENERATOR',state:'READY',observedAt:now.toISOString(),reason:'USAGE_CHECK_PASSED',primaryPercent:18,secondaryPercent:12},{kind:'PUBLISHER',state:'READY',observedAt:now.toISOString(),reason:'ACCOUNT_CHECK_PASSED'}];
-
-data.queue.jobs.push({id:'job-unknown',job_key:'검증용 결과 미확인 생성',status:'UNKNOWN',campaign_id:data.queue.campaigns[0].id,not_before:now.toISOString(),started_at:now.toISOString()},{id:'job-queued',job_key:'검증용 대기 생성',status:'QUEUED',not_before:now.toISOString()});
-data.publishing.posts.push({id:'post-unknown',title:'검증용 결과 미확인 게시',state:'UNKNOWN',channel:'INSTAGRAM',due_at:now.toISOString()},{id:'post-queued',title:'검증용 예약 게시',state:'QUEUED',channel:'WEBSITE',due_at:new Date(now.getTime()+86400000).toISOString()});
 const errorReport={method:'POST',path:'/api/images',errorCount:3,http5xxCount:2,http4xxCount:0,networkCount:1,timeoutCount:0,clients:['IOS'],lastSeenAt:now.toISOString(),recent:[{kind:'HTTP',status:500,client:'IOS',count:2,lastSeenAt:now.toISOString()},{kind:'NETWORK',status:null,client:'IOS',count:1,lastSeenAt:now.toISOString()}]};
 const registry={declaredBaseline:{routes:[{id:'image',method:'POST',path:'/api/images',module:'content',surfaces:['app'],menuIds:['editor']}],menus:[{id:'editor',label:'검증용 사진 등록'}]},activeRoutes:[{method:'POST',path:'/api/images',module:'content'},{method:'GET',path:'/api/admin/api-registry',module:'platform'}],runtimeMetrics:[{method:'POST',path:'/api/images',status:200,requestCount:80,totalTimeMs:800},{method:'POST',path:'/api/images',status:500,requestCount:20,totalTimeMs:600}],clientErrors:{available:true,windowHours:24,windowStart:earlierTime,windowEnd:now.toISOString(),rows:[errorReport]},architecture:{servicePortCount:2,modules:[{id:'content',portCount:1,commandMethodCount:1,queryMethodCount:2,ports:[]},{id:'platform',portCount:1,commandMethodCount:1,queryMethodCount:1,ports:[]}],dependencies:[],progress:[]}};
 const attempt={deliveryId:5,providerStatus:'FAILED',platform:'IOS',attemptedAt:now.toISOString(),errorCode:'SYNTHETIC_FAILURE',receivedAt:null,openedAt:null};
@@ -52,11 +27,6 @@ const report={schemaVersion:1,startedAt:now.toISOString(),baseUrl:base.origin,sy
 await mkdir(output,{recursive:true});
 const browser=await chromium.launch({channel:'chrome',headless:true});
 const identity=(subject='su12ng')=>({accessToken:'SYNTHETIC.'+Buffer.from(JSON.stringify({sub:subject,displayName:subject==='su12ng'?'UI 검증 운영자':'su12ng',roles:['ADMIN'],exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.NOT_A_SIGNATURE'});
-const previewPage=await browser.newPage({viewport:{width:1080,height:1350}});
-await previewPage.setContent('<html lang="ko"><style>*{box-sizing:border-box}body{margin:0;background:#fff4e9;color:#392c26;padding:90px;font-family:Arial,sans-serif}small{font-size:24px;color:#986957}h1{font-size:78px;line-height:1.25;margin:70px 0 50px}p{font-size:35px;line-height:1.6}.photo{height:570px;border-radius:36px;background:#f5b67f;display:grid;place-items:center;font-size:150px}.label{padding-top:42px;color:#6d5545}</style><small>접시 · UI 검증용 예시</small><h1>사진에 식당 이름도<br>함께 남겨요.</h1><div class="photo">🍜</div><p class="label">테스트 이미지입니다.<br>실제 게시물이 아닙니다.</p></html>');
-const preview=await previewPage.screenshot({type:'jpeg',quality:85});
-await previewPage.close();
-
 async function contextFor(viewport,subject='su12ng'){
  const context=await browser.newContext({viewport,locale:'ko-KR',timezoneId:'Asia/Seoul',serviceWorkers:'block',reducedMotion:'reduce'});
  await context.addInitScript(value=>localStorage.setItem('plate-service.auth',JSON.stringify(value)),identity(subject));
@@ -69,17 +39,6 @@ async function contextFor(viewport,subject='su12ng'){
    if(url.pathname==='/api/admin/operations/snapshot')return json(operations);
    if(url.pathname==='/api/admin/api-registry')return json(registry);
    if(url.pathname==='/api/admin/operations/push-attempts/5')return json(attempt);
-   if(url.pathname==='/api/admin/marketing/console')return json(data);
-   if(url.pathname==='/api/admin/marketing/console/recurring-status')return json({reports:[{state:'READY',stale:false,generation_time:'09:00',publish_time:'19:30',weekly_time:'10:00',observed_at:now.toISOString(),weekly_published:1,weekly_unknown:0}]});
-   if(/^\/api\/admin\/marketing\/creatives\/[^/]+\/production$/.test(url.pathname)){
-    const item=production();
-    if(url.pathname.includes(earlier)){item.state='READY_FOR_PUBLISHING';item.production.state='READY_FOR_PUBLISHING';}
-    if(url.pathname.includes(oldest)){item.state='REJECTED';item.production.state='REJECTED';}
-    item.production.reviews=[{at:earlierTime,decision:'APPROVE',reason:'UI 검증용 합성 기록입니다.'}];
-    return json(item);
-   }
-   if(/^\/api\/admin\/marketing\/console\/creatives\/[^/]+\/previews\/[ab]$/.test(url.pathname))return route.fulfill({status:200,contentType:'image/jpeg',headers,body:preview});
-   if(url.pathname.startsWith('/api/admin/marketing/measurement/'))return json({collectionState:'DISABLED',groups:[]});
    if(url.pathname==='/api/admin/dashboard/summary')return json({metrics:[]});
    if(['/api/admin/dashboard/activity-trends','/api/admin/dashboard/region-distribution','/api/admin/operations/reviews'].includes(url.pathname))return json([]);
    if(url.pathname==='/api/admin/activities')return json({content:[],hasNext:false});
@@ -128,10 +87,6 @@ try {
   await check(prefix+'-registry',async()=>{
    await page.goto(base.origin+'/admin/api-registry');await page.getByRole('button',{name:'서버 등록 API 목록',exact:true}).click();await page.getByText('2개 표시',{exact:true}).waitFor();await page.getByRole('button',{name:'호출 지표 보기',exact:true}).click();await page.getByRole('button',{name:'POST /api/images 오류율 근거',exact:true}).click();const evidence=page.getByRole('region',{name:'서버 호출 근거'});await evidence.getByRole('cell',{name:'500',exact:true}).waitFor();assert.equal(await evidence.getByRole('row').count(),3);await screenshot(page,prefix+'-registry-evidence');await noOverflow(page);
    await page.getByRole('button',{name:'미등록 API 목록',exact:true}).click();assert.equal(await page.getByRole('button',{name:'POST /api/images',exact:true}).count(),0);await page.getByRole('button',{name:'필터 초기화',exact:true}).click();await page.getByRole('button',{name:'영향 API 목록',exact:true}).click();await page.getByText('1개 표시',{exact:true}).waitFor();await screenshot(page,prefix+'-registry-errors');return {viewport,...await noOverflow(page)};
-  });
-  await check(prefix+'-marketing',async()=>{
-   await page.goto(base.origin+'/admin/marketing');await page.getByRole('button',{name:'검토할 제작물 2개 근거 보기',exact:true}).click();await page.getByRole('img',{name:'현재 A안 홍보 카드',exact:true}).waitFor();assert.equal(await page.getByLabel('제작 상태').inputValue(),'review');assert.equal(await page.locator('.mk-library-list li').count(),2);await screenshot(page,prefix+'-marketing-review');await noOverflow(page);
-   await page.getByRole('tab',{name:'오늘',exact:true}).click();await page.getByRole('button',{name:'결과 확인 필요 2건 근거 보기',exact:true}).click();const evidence=page.getByRole('region',{name:'결과 확인 필요 근거'});await evidence.waitFor();assert.equal(await evidence.locator('.mk-evidence-row').count(),2);await screenshot(page,prefix+'-marketing-unknown');await evidence.getByRole('button',{name:/제작 · 검증용 결과 미확인 생성/}).click();assert.equal(await page.getByLabel('생성 작업 상태').inputValue(),'UNKNOWN');await page.goBack();await evidence.waitFor();await page.getByRole('button',{name:'게시 완료 1건 근거 보기',exact:true}).click();assert.equal(await page.getByLabel('게시 상태').inputValue(),'PUBLISHED');assert.equal(await page.getByRole('heading',{name:'검증용 예약 게시',exact:true}).count(),0);await screenshot(page,prefix+'-marketing-published');return {viewport,...await noOverflow(page)};
   });
   await context.close();
  }
