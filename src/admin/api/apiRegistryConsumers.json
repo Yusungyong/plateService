@@ -2364,7 +2364,22 @@
       "implementationStage": "reviewed_source",
       "source": "src/admin/pages/AdminFeeds.js",
       "sourceLine": 1
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/api-registry/client-errors",
+      "module": "platform",
+      "capability": "api-error-context",
+      "authorization": "su12ng 운영자 및 DASHBOARD_READ 운영 권한",
+      "surfaces": [
+        "admin"
+      ],
+      "menuIds": [
+        "admin:/admin/api-registry"
+      ],
+      "usageStatus": "connected_in_source",
+      "id": "api_error_context_occurrences"
     }
   ],
-  "reviewNotes": "2026-10-13: operations console and admin actions server deployed; actual local/public read verification passed across30 routes, all12 review scopes and private photo preview. Web implementation and isolated write verification are linked under web#39/PR40. Runtime registration remains authoritative; native app changes and unmerged chat follow-ups retain their separate status."
+  "reviewNotes": "2026-10-13: operations console and admin actions server deployed; actual local/public read verification passed across30 routes, all12 review scopes and private photo preview. Web implementation and isolated write verification are linked under web#39/PR40. Runtime registration remains authoritative; native app changes and unmerged chat follow-ups retain their separate status. 2026-10-22: 운영자 전용 계정·메뉴별 오류 발생 기록 GET 추가. 상세는 전체 registry export에 포함하지 않음."
 }

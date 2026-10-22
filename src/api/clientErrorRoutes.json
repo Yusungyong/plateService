@@ -1254,5 +1254,9 @@
   {
     "method": "PUT",
     "path": "/api/videos/{storeId}/watch/progress"
+  },
+  {
+    "method": "GET",
+    "path": "/api/admin/api-registry/client-errors"
   }
 ]

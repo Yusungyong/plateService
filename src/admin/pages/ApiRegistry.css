@@ -260,3 +260,8 @@ button.api-map-node:hover, button.api-map-node.is-selected {border-color:var(--a
 .api-detail-updates p { margin: 6px 0; }
 @media (max-width: 800px) { .api-update-list { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { .api-updates { padding: 14px; } .api-view-tabs { flex-wrap: wrap; } }
+
+.api-error-occurrences { margin-top: 20px; padding-top: 16px; border-top: 1px solid #dce2e8; }
+.api-error-occurrences h4 { margin: 0; font-size: 1rem; }
+.api-error-occurrences p { line-height: 1.6; }
+.api-error-occurrences td small { display: block; margin-top: 4px; color: #5b6572; font-size: .78rem; }

@@ -17,7 +17,7 @@ async function setup(fetchImplementation) {
   modules = await import("./client");
   return modules;
 }
-const reportCalls = () => global.fetch.mock.calls.filter(call => pathOf(call[0]) === COLLECTOR);
+const reportCalls = () => global.fetch.mock.calls.filter(call => pathOf(call[0]).startsWith(COLLECTOR));
 beforeEach(() => {
   jest.resetModules(); jest.useFakeTimers("modern"); global.fetch = jest.fn(); eventCounter = 0;
   Object.defineProperty(globalThis, "crypto", {configurable: true, value: {
@@ -34,8 +34,8 @@ afterEach(async () => {
   modules = null;
 });
 
-test("records a final HTTP error privately with exactly six fields and keeps the original user rejection", async () => {
-  const {default: api, setAuthSession} = await setup(async (url, init) => pathOf(url) === COLLECTOR ? accepted(init) : jsonResponse(503, {message: "PRIVATE server rejection", data: {password: "BODY_SECRET"}}));
+test("records a final HTTP error with bounded context and verified collection credentials and keeps the original user rejection", async () => {
+  const {default: api, setAuthSession} = await setup(async (url, init) => pathOf(url).startsWith(COLLECTOR) ? accepted(init) : jsonResponse(503, {message: "PRIVATE server rejection", data: {password: "BODY_SECRET"}}));
   setAuthSession("ACCESS_SECRET", "REFRESH_SECRET");
   await expect(api.get(ME, {query: {email: "QUERY_SECRET"}})).rejects.toMatchObject({status: 503, message: "PRIVATE server rejection"});
   expect(global.fetch).toHaveBeenCalledTimes(1);
@@ -43,9 +43,9 @@ test("records a final HTTP error privately with exactly six fields and keeps the
   expect(reportCalls()).toHaveLength(1);
   const init = reportCalls()[0][1];
   expect(init.credentials).toBe("omit");
-  expect(init.headers.Authorization).toBeUndefined();
+  expect(init.headers.Authorization).toBe("Bearer ACCESS_SECRET");
   const event = JSON.parse(init.body).events[0];
-  expect(Object.keys(event).sort()).toEqual(["client", "eventId", "kind", "method", "path", "status"]);
+  expect(Object.keys(event).sort()).toEqual(["client", "eventId", "kind", "method", "occurredAt", "path", "screen", "status"]);
   expect(event).toMatchObject({method: "GET", path: ME, kind: "HTTP", status: 503, client: "WEB"});
   ["PRIVATE", "BODY_SECRET", "QUERY_SECRET", "ACCESS_SECRET", "REFRESH_SECRET"].forEach(value => expect(init.body).not.toContain(value));
 });
@@ -69,7 +69,7 @@ test("does not count a recovered 401 and preserves the existing token refresh an
 
 test("records the final refreshed endpoint 401 once before clearing the authenticated session", async () => {
   const {default: api, setAuthSession, registerAuthFailureHandler} = await setup(async (url, init) => {
-    if (pathOf(url) === COLLECTOR) return accepted(init);
+    if (pathOf(url).startsWith(COLLECTOR)) return accepted(init);
     if (pathOf(url) === "/api/auth/refresh") return jsonResponse(200, {data: {accessToken: "new-access", refreshToken: "new-refresh"}});
     return jsonResponse(401, {message: "still unauthorized"});
   });
@@ -84,7 +84,7 @@ test("records the final refreshed endpoint 401 once before clearing the authenti
 });
 
 test("records terminal access-only 401 before logout and guest 401 without altering login behavior", async () => {
-  const {default: api, setAuthSession, registerAuthFailureHandler} = await setup(async (url, init) => pathOf(url) === COLLECTOR ? accepted(init) : jsonResponse(401, {}));
+  const {default: api, setAuthSession, registerAuthFailureHandler} = await setup(async (url, init) => pathOf(url).startsWith(COLLECTOR) ? accepted(init) : jsonResponse(401, {}));
   const authFailed = jest.fn();
   setAuthSession("access", null);
   registerAuthFailureHandler(authFailed);
@@ -93,7 +93,8 @@ test("records terminal access-only 401 before logout and guest 401 without alter
   await expect(api.get(ME)).rejects.toMatchObject({status: 401});
   await advance(250);
   expect(reportCalls()).toHaveLength(1);
-  expect(JSON.parse(reportCalls()[0][1].body).events).toHaveLength(2);
+  await advance(250);
+  expect(reportCalls().flatMap(call=>JSON.parse(call[1].body).events)).toHaveLength(2);
   expect(global.fetch.mock.calls.some(call => pathOf(call[0]) === "/api/auth/refresh")).toBe(false);
 });
 
@@ -102,7 +103,7 @@ test("shares one failed refresh event across concurrent request failures", async
   let signalRefreshStarted;
   const started = new Promise(resolve => {signalRefreshStarted = resolve;});
   const {default: api, setAuthSession} = await setup(async (url, init) => {
-    if (pathOf(url) === COLLECTOR) return accepted(init);
+    if (pathOf(url).startsWith(COLLECTOR)) return accepted(init);
     if (pathOf(url) === "/api/auth/refresh") {
       signalRefreshStarted();
       return new Promise(resolve => {finishRefresh = resolve;});
@@ -121,7 +122,7 @@ test("shares one failed refresh event across concurrent request failures", async
 
 test.each(["NETWORK_UNAVAILABLE", "NETWORK_TIMEOUT"])("records final refresh %s once and leaves tokens available", async code => {
   const {default: api, setAuthSession, registerAuthFailureHandler} = await setup(async (url, init) => {
-    if (pathOf(url) === COLLECTOR) return accepted(init);
+    if (pathOf(url).startsWith(COLLECTOR)) return accepted(init);
     if (pathOf(url) === "/api/auth/refresh") {
       if (code === "NETWORK_UNAVAILABLE") throw new TypeError("Failed to fetch");
       return new Promise((_resolve, reject) => init.signal.addEventListener("abort", () => reject(new Error("timeout"))));
@@ -166,13 +167,14 @@ test("excludes cancelled requests and late HTTP failures after an account switch
 });
 
 test("collector 401 never triggers main refresh/logout or recursively reports itself", async () => {
-  const {default: api, setAuthSession, registerAuthFailureHandler} = await setup(async url => jsonResponse(pathOf(url) === COLLECTOR ? 401 : 503, {}));
+  const {default: api, setAuthSession, registerAuthFailureHandler} = await setup(async url => jsonResponse(pathOf(url).startsWith(COLLECTOR) ? 401 : 503, {}));
   const authFailed = jest.fn();
   registerAuthFailureHandler(authFailed);
   setAuthSession("member-access", "member-refresh");
   await expect(api.get(REGISTRY)).rejects.toMatchObject({status: 503});
   await advance(250);
-  expect(global.fetch).toHaveBeenCalledTimes(2);
+  expect(global.fetch).toHaveBeenCalledTimes(3);
+  expect(global.fetch.mock.calls[2][1].headers.Authorization).toBeUndefined();
   expect(authFailed).not.toHaveBeenCalled();
   expect(global.fetch.mock.calls.some(call => pathOf(call[0]) === "/api/auth/refresh")).toBe(false);
 });
@@ -180,7 +182,7 @@ test("collector 401 never triggers main refresh/logout or recursively reports it
 test("success returns immediately while telemetry is still in flight", async () => {
   let finishReport;
   const {default: api} = await setup(async (url, init) => {
-    if (pathOf(url) === COLLECTOR) return new Promise(resolve => {finishReport = () => resolve(accepted(init));});
+    if (pathOf(url).startsWith(COLLECTOR)) return new Promise(resolve => {finishReport = () => resolve(accepted(init));});
     if (pathOf(url) === REGISTRY) return jsonResponse(503, {});
     return jsonResponse(200, {data: {available: true}});
   });
@@ -195,7 +197,7 @@ test("success returns immediately while telemetry is still in flight", async () 
 test("a real successful API request wakes the reporter after three failed automatic retries", async () => {
   let reportAttempts = 0;
   const {default: api} = await setup(async (url, init) => {
-    if (pathOf(url) === COLLECTOR) {
+    if (pathOf(url).startsWith(COLLECTOR)) {
       if (++reportAttempts <= 4) throw new TypeError("collector offline");
       return accepted(init);
     }
@@ -218,7 +220,7 @@ test("a real successful API request wakes the reporter after three failed automa
 
 test("classifies a malformed error response body by its actual HTTP503 instead of network failure", async () => {
   const {default: api} = await setup(async (url, init) => {
-    if (pathOf(url) === COLLECTOR) return accepted(init);
+    if (pathOf(url).startsWith(COLLECTOR)) return accepted(init);
     return {...jsonResponse(503, null), json: async () => {throw new SyntaxError("PRIVATE response content");}};
   });
   await expect(api.get(REGISTRY)).rejects.toMatchObject({status: 503, code: "HTTP_ERROR"});
@@ -264,4 +266,24 @@ test("new operations failures use the owned route template without release IDs",
  expect(JSON.parse(reportCalls()[0][1].body).events[0]).toMatchObject({method:"POST",path:"/api/admin/operations/releases/{releaseId}/checks",status:503});
  expect(reportCalls()[0][1].body).not.toContain("private-release-id");
  expect(reportCalls()[0][1].body).not.toContain("PRIVATE_EVENT");
+});
+
+
+test("request screen survives navigation and delayed reports cannot borrow a new account", async()=> {
+  let finish;
+  window.history.replaceState({},"","/admin/member-monitoring");
+  const {default:api,setAuthSession}=await setup(async(url,init)=> {
+    if(pathOf(url).startsWith(COLLECTOR))return accepted(init);
+    return new Promise(resolve=>{finish=resolve;});
+  });
+  setAuthSession("first-access","first-refresh");
+  const pending=api.get(SUMMARY).catch(error=>error);
+  await settle();window.history.replaceState({},"","/admin/dashboard");
+  finish(jsonResponse(503,{}));await pending;
+  setAuthSession("second-access","second-refresh");
+  await advance(250);
+  expect(reportCalls()).toHaveLength(1);
+  expect(reportCalls()[0][1].headers.Authorization).toBeUndefined();
+  expect(JSON.parse(reportCalls()[0][1].body).events[0].screen).toBe("AdminMonitoring");
+  window.history.replaceState({},"","/");
 });
