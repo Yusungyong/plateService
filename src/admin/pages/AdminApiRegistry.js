@@ -105,7 +105,7 @@ export default function AdminApiRegistry() {
     if (!snapshot) return;
     if (!initialMenuChosen.current) {
       initialMenuChosen.current = true;
-      const firstMenu = menuRelations.find(menu => menu.id === "app:Home" && menu.activeApiCount > 0) || menuRelations.find(menu => menu.activeApiCount > 0) || menuRelations.find(menu => menu.apiCount > 0);
+      const firstMenu = menuRelations.find(menu => menu.id === "app:Home" && menu.activeApiCount > 0) || menuRelations.find(menu => menu.activeApiCount > 0 && menu.rows.some(row => row.observed)) || menuRelations.find(menu => menu.activeApiCount > 0) || menuRelations.find(menu => menu.apiCount > 0);
       if (firstMenu) setMenuId(firstMenu.id);
     } else if (menuId && menuId !== UNLINKED_MENU && !menuRelations.some(menu => menu.id === menuId)) setMenuId("");
   }, [snapshot, menuRelations, menuId]);
