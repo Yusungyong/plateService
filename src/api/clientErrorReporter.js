@@ -1,4 +1,8 @@
 import routeCatalog from "./clientErrorRoutes.json";
+import {safeClientErrorContext} from "./clientErrorContext";
+let readSession = () => ({version: null, token: null});
+export function configureClientErrorSession(reader) {readSession=reader;}
+
 
 const COLLECTOR_PATH = "/api/monitoring/client-errors";
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -8,7 +12,7 @@ const unsafeCharacters = value => /[\\\s]/.test(value) || [...value].some(charac
 
 export function createRouteMatcher(catalog = routeCatalog, baseUrl = "") {
   const base = new URL(baseUrl || "/", typeof window === "undefined" ? "http://localhost" : window.location.origin);
-  const routes = catalog.filter(route => route.path !== COLLECTOR_PATH).map(route => ({...route,
+  const routes = catalog.filter(route => !route.path.startsWith(COLLECTOR_PATH)).map(route => ({...route,
     literal: !route.path.includes("{"),
     specificity: route.path.replace(/\{[^}]+\}/g, "").length,
     pattern: new RegExp(`^${route.path.split(/(\{[^}]+\})/).map(part => part.startsWith("{") ? "[^/]+" : escape(part)).join("")}$`),
@@ -46,7 +50,7 @@ function randomEventId() {
 
 /** Privacy boundary: only owned route templates and bounded enum/count fields leave this module. */
 export function createClientErrorReporter({baseUrl = "", fetchImpl = (...args) => fetch(...args),
-  now = Date.now, createId = randomEventId, setTimer = setTimeout, clearTimer = clearTimeout, catalog = routeCatalog} = {}) {
+  now = Date.now, createId = randomEventId, setTimer = setTimeout, clearTimer = clearTimeout, catalog = routeCatalog, getSession = () => readSession()} = {}) {
   const match = createRouteMatcher(catalog, baseUrl);
   const endpoint = `${baseUrl.replace(/\/$/, "")}${COLLECTOR_PATH}`;
   const queue = [];
@@ -62,7 +66,7 @@ export function createClientErrorReporter({baseUrl = "", fetchImpl = (...args) =
     if (paused) {paused = false; attempts = 0;}
     schedule();
   }
-  function enqueue({method = "GET", path, error, cancelled = false}) {
+  function enqueue({method = "GET", path, error, cancelled = false, context, version, authenticated = false}) {
     try {
       if (stopped || cancelled || !error || seen.has(error)
           || ["REQUEST_CANCELLED", "AUTH_SESSION_CHANGED", "ERR_CANCELED"].includes(error.code)) return false;
@@ -76,7 +80,7 @@ export function createClientErrorReporter({baseUrl = "", fetchImpl = (...args) =
       if (queue.length >= 100) {seen.add(error); wake(); return false;}
       const eventId = createId();
       if (!UUID.test(eventId || "")) return false;
-      queue.push({createdAt: now(), event: {eventId, ...route, kind, status: kind === "HTTP" ? status : null, client: "WEB"}});
+      queue.push({createdAt: now(), version, authenticated, event: {eventId, ...route, kind, status: kind === "HTTP" ? status : null, client: "WEB", ...safeClientErrorContext(context)}});
       seen.add(error); wake(); return true;
     } catch (_) {return false;}
   }
@@ -87,7 +91,8 @@ export function createClientErrorReporter({baseUrl = "", fetchImpl = (...args) =
     if (timer !== null) {clearTimer(timer); timer = null;}
     while (queue.length && now() - queue[0].createdAt >= DAY_MS) queue.shift();
     if (!queue.length) return Promise.resolve();
-    const batch = queue.slice(0, 20);
+    const first = queue[0];
+    const batch = queue.filter(item => item.version === first.version && item.authenticated === first.authenticated).slice(0,20);
     const ids = new Set(batch.map(item => item.event.eventId));
     running = Promise.resolve().then(async () => {
       if (stopped) {running = null; return;}
@@ -100,9 +105,14 @@ export function createClientErrorReporter({baseUrl = "", fetchImpl = (...args) =
       let retry = true;
       try {
         const delivered = Promise.resolve().then(async () => {
-          const response = await fetchImpl(endpoint, {method: "POST", credentials: "omit", cache: "no-store", redirect: "error",
+          const session = getSession();
+          const token = first.authenticated && first.version !== undefined && first.version === session.version ? session.token : null;
+          const init = {method: "POST", credentials: "omit", cache: "no-store", redirect: "error",
             headers: {Accept: "application/json", "Content-Type": "application/json"},
-            body: JSON.stringify({events: batch.map(item => item.event)}), signal: controller.signal, keepalive: true});
+            body: JSON.stringify({events: batch.map(item => item.event)}), signal: controller.signal, keepalive: true};
+          let response = await fetchImpl(token ? endpoint+"/member" : endpoint,
+            token ? {...init,headers:{...init.headers,Authorization:`Bearer ${token}`}} : init);
+          if (token && [401,403,404].includes(response.status)) response = await fetchImpl(endpoint,init);
           if (Number.isInteger(response.status) && response.status >= 400 && response.status < 500 && response.status !== 429) return true;
           if (response.status !== 202 || typeof response.json !== "function") return false;
           const acknowledgement = await response.json();

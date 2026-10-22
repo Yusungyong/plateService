@@ -1,4 +1,6 @@
-import {reportClientError, wakeClientErrorReporting} from "./clientErrorReporter";
+import {reportClientError, wakeClientErrorReporting, configureClientErrorSession} from "./clientErrorReporter";
+
+import {captureClientErrorContext} from "./clientErrorContext";
 
 const DEFAULT_HEADERS = {
   Accept: "application/json",
@@ -22,6 +24,7 @@ let refreshPromise = null;
 let sessionVersion = 0;
 let authFailureHandler = null;
 let authSessionRefreshHandler = null;
+configureClientErrorSession(() => ({version: sessionVersion, token: authToken}));
 
 function setAuthSession(nextAccessToken, nextRefreshToken) {
   if (authToken !== (nextAccessToken || null) || refreshToken !== (nextRefreshToken || null)) {
@@ -33,11 +36,11 @@ function setAuthSession(nextAccessToken, nextRefreshToken) {
 }
 
 function setAuthToken(token) {
-  authToken = token || null;
+  setAuthSession(token, null);
 }
 
 function clearAuthToken() {
-  authToken = null;
+  clearAuthSession();
 }
 
 function clearAuthSession() {
@@ -193,7 +196,7 @@ async function executeRequest(path, options = {}) {
   }
 }
 
-async function refreshAuthSession() {
+async function refreshAuthSession(context) {
   if (!refreshToken) {
     throw new ApiError("Refresh token is missing.", {
       status: 401,
@@ -210,14 +213,14 @@ async function refreshAuthSession() {
         body: { refreshToken },
         withAuth: false,
       });} catch (error) {
-        if (version === sessionVersion) reportClientError({method: "POST", path: "/api/auth/refresh", error});
+        if (version === sessionVersion) reportClientError({method: "POST", path: "/api/auth/refresh", error, context, version, authenticated:false});
         throw error;
       }
       const {response, payload} = result;
 
       if (!response.ok) {
         const error = createApiError(response, payload);
-        if (version === sessionVersion) reportClientError({method: "POST", path: "/api/auth/refresh", error});
+        if (version === sessionVersion) reportClientError({method: "POST", path: "/api/auth/refresh", error, context, version, authenticated:false});
         throw error;
       }
 
@@ -260,11 +263,13 @@ async function refreshAuthSession() {
 
 async function request(path, options = {}) {
   const version = sessionVersion;
+  const context = options._errorContext || captureClientErrorContext();
+  const authenticated = options.withAuth !== false && Boolean(authToken);
   const hadAuthSession = Boolean(authToken || refreshToken);
   let result;
   try {result = await executeRequest(path, options);}
   catch (error) {
-    if (version === sessionVersion) reportClientError({method: options.method || "GET", path, error, cancelled: options.signal?.aborted});
+    if (version === sessionVersion) reportClientError({method: options.method || "GET", path, error, cancelled: options.signal?.aborted, context, version, authenticated});
     throw error;
   }
   const {response, payload} = result;
@@ -283,11 +288,11 @@ async function request(path, options = {}) {
 
   if (shouldRefresh && refreshToken) {
     try {
-      await refreshAuthSession();
+      await refreshAuthSession(context);
       if (version !== sessionVersion) {
         throw new ApiError("Session changed during refresh.", { code: "AUTH_SESSION_CHANGED" });
       }
-      return request(path, { ...options, _retry: true });
+      return request(path, { ...options, _retry: true, _errorContext: context });
     } catch (refreshError) {
       if (version !== sessionVersion) throw refreshError;
       if (["NETWORK_UNAVAILABLE", "NETWORK_TIMEOUT", "REQUEST_CANCELLED"].includes(refreshError.code)) throw refreshError;
@@ -301,7 +306,7 @@ async function request(path, options = {}) {
     }
   }
 
-  reportClientError({method: options.method || "GET", path, error, cancelled: options.signal?.aborted});
+  reportClientError({method: options.method || "GET", path, error, cancelled: options.signal?.aborted, context, version, authenticated});
   if (response.status === 401 && options.withAuth !== false && hadAuthSession) {
     clearAuthSession();
 
