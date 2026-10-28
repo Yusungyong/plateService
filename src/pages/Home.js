@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import HomeExplorer from "../components/home/HomeExplorer";
 import HomeIcon from "../components/home/HomeIcon";
+import HomeVideoDialog from "../components/home/HomeVideoDialog";
 import restoreOriginal from "../components/home/imageFallback";
 import PhonePreview from "../components/home/PhonePreview";
 import StoreButtons from "../components/home/StoreButtons";
@@ -27,6 +28,8 @@ function Brand({ footer = false }) {
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [videoOpen, setVideoOpen] = useState(false);
+  const videoTrigger = useRef(null);
   const menuToggle = useRef(null);
   useEffect(() => {
     const previous = document.title;
@@ -136,10 +139,20 @@ export default function Home() {
               </p>
               <StoreButtons />
               <p className="home-availability">iOS · Android에서 만나요</p>
-              <a className="home-explore" href="#features">
-                <span>접시를 조금 더 알아보기</span>
-                <HomeIcon name="arrow" />
-              </a>
+              <button
+                ref={videoTrigger}
+                type="button"
+                className="home-explore"
+                aria-haspopup="dialog"
+                onClick={() => {
+                  closeMenu();
+                  setVideoOpen(true);
+                }}
+              >
+                <HomeIcon name="play" />
+                <span>접시 사용 영상 보기</span>
+                <small aria-hidden="true">36초</small>
+              </button>
             </div>
             <div className="home-hero-visual">
               <div className="home-hero-disc" aria-hidden="true">
@@ -426,6 +439,12 @@ export default function Home() {
           </div>
         </div>
       </footer>
+      {videoOpen && (
+        <HomeVideoDialog
+          onClose={() => setVideoOpen(false)}
+          returnFocusRef={videoTrigger}
+        />
+      )}
     </div>
   );
 }

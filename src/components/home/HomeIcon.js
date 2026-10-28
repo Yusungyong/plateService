@@ -1,6 +1,13 @@
 import React from "react";
 
 const paths = {
+  play: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m10 8 6 4-6 4Z" fill="currentColor" strokeWidth="1" />
+    </>
+  ),
+  close: <path d="m6 6 12 12M18 6 6 18" />,
   arrow: (
     <>
       <path d="M5 12h14M12 5l7 7-7 7" />
