@@ -1,11 +1,12 @@
 import React, { useRef, useState } from "react";
-import home400 from "../../assets/home/app-home-400.webp";
-import home800 from "../../assets/home/app-home-800.webp";
-import map400 from "../../assets/home/app-map-400.webp";
-import map800 from "../../assets/home/app-map-800.webp";
-import profile400 from "../../assets/home/app-profile-400.webp";
-import profile800 from "../../assets/home/app-profile-800.webp";
+import home400 from "../../assets/home/app-home-400.jpg";
+import home800 from "../../assets/home/app-home-800.jpg";
+import map400 from "../../assets/home/app-map-400.jpg";
+import map800 from "../../assets/home/app-map-800.jpg";
+import profile400 from "../../assets/home/app-profile-400.jpg";
+import profile800 from "../../assets/home/app-profile-800.jpg";
 import "./HomeExplorer.css";
+import restoreOriginal from "./imageFallback";
 
 const FEATURES = [
   {
@@ -45,14 +46,6 @@ const FEATURES = [
     original: "KakaoTalk_20260915_211008421.png",
   },
 ];
-
-function restoreOriginal(event, filename) {
-  const image = event.currentTarget;
-  const original = `/images/home/${filename}`;
-  if (image.getAttribute("src") === original) return;
-  image.removeAttribute("srcset");
-  image.src = original;
-}
 
 export default function HomeExplorer() {
   const [selected, setSelected] = useState(0);

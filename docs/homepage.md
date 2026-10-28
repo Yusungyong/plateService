@@ -16,10 +16,10 @@
 
 - `src/pages/Home.js`, `Home.css`: 공개 홈의 화면 구성과 반응형 스타일. 홈 클래스로 스타일을 제한합니다. `src/styles/readiness.css`의 이전 홈 덮어쓰기는 제거하고 지원·계정 화면 스타일은 유지합니다.
 - `src/components/home/HomeExplorer.js`, `HomeExplorer.css`: 접근 가능한 탭과 실제 앱 미리보기.
-- `PhonePreview.js`: 첫 화면의 반응형 앱 이미지와 원본 대체 처리.
+- `PhonePreview.js`: 첫 화면의 반응형 앱 이미지. `imageFallback.js`는 모든 미리보기에서 원본 대체 처리를 공유합니다.
 - `StoreButtons.js`: 스토어 다운로드 링크와 아이콘.
 - `HomeIcon.js`: 작은 SVG 아이콘. 외부 아이콘·모션·폰트 라이브러리를 추가하지 않습니다.
-- `src/assets/home/app-{home,map,profile}-{400,800}.webp`: 기존 공개 홈에서 사용하던 실제 화면. 화면 너비에 맞춰 `srcset`으로 선택합니다. 첫 휴대폰 이미지에만 높은 로딩 우선순위를 부여하고 나머지는 지연 로딩합니다. 기능 탭은 선택한 이미지 한 장만 렌더링합니다.
+- `src/assets/home/app-{home,map,profile}-{400,800}.jpg`: 기존 공개 홈의 실제 원본 PNG에서 생성한 JPEG입니다. 현재 Amplify SPA 재작성 규칙이 WebP 요청을 HTML로 응답하므로 허용된 jpg 형식을 사용합니다. 화면 너비에 맞춰 `srcset`으로 선택합니다. 첫 휴대폰 이미지에만 높은 로딩 우선순위를 부여하고 나머지는 지연 로딩합니다. 기능 탭은 선택한 이미지 한 장만 렌더링합니다.
 - 원본 대체 이미지: `public/images/home/KakaoTalk_20260915_211008421_02.png`(홈), `_01.png`(지도), 접미사 없는 `.png`(프로필). 사용자가 제공한 1206×2622 화면입니다. 앱이 업데이트되면 공개 가능한 최신 화면으로 교체합니다.
 - `public/images/home/plate-mascot.png`: 기존 접시 캐릭터. `plateApp2/play-console-assets/app-icon-512.png`에서 가져온 자산입니다.
 - 공유 예시의 사진은 기존 홈 이미지에 포함된 음식 사진 일부를 CSS로 표시합니다. 새로운 이용자 사진·후기·이용 수치를 만들지 않습니다.
