@@ -1,34 +1,63 @@
-# 접시 홈페이지
+# 접시 공개 홈페이지
 
-## 홈페이지 정보 구조 정비 (2026-09-16)
+## 2026-10-28 개편
 
-앱 가치 → 실제 화면 기반 핵심 기능 → 3단계 이용 흐름 → 설치 안내 → 고객지원·식당 비즈니스 → 운영 정보 순서로 정리했습니다. 관리자는 하단 링크, 로그인·회원가입은 고객지원 영역에서 접근합니다. 모바일에서는 기능 설명과 앱 화면을 나란히 배치해 반복되는 긴 카드 목록을 줄입니다.
+`/`는 접시 앱의 공개 홍보 홈입니다. 발견 → 기록 → 친구와 공유 → 앱 다운로드 흐름으로 구성했습니다. `feature/61-public-home-redesign`, Issue #61에서 관리합니다.
 
-소개용 AI 음식 이미지와 가상 지도·레시피 그림은 현재 홈에서 사용하지 않습니다. 원본 파일은 보존합니다. 첫 화면의 흰 배경 마스코트 장식도 제거하고, 브랜드 로고는 유지합니다. 사진 속 사용자 이름·음식점 이름을 수정하거나 앱 화면을 재생성하지 않았습니다. 스토어 링크 제공 시에는 설정값과 홈의 준비 중 안내 문구를 함께 갱신해야 합니다.
+- 첫 화면: 코랄색 배경의 실제 앱 화면과 App Store·Google Play 바로가기.
+- 주요 기능: 맛집 발견·내 주변 지도·나만의 기록을 선택하면 해당 앱 화면과 설명이 전환됩니다. 방향키·Home·End로도 탐색할 수 있습니다.
+- 친구와 공유: 콘텐츠를 대화에 보내고 만날 약속으로 이어지는 흐름을 예시 대화로 설명합니다. 실제 대화 캡처가 아니라는 안내를 함께 표시합니다.
+- 사용 상황: 주변 탐색, 음식 기록, 친구 공유를 소개합니다.
+- 하단: 앱 다운로드, 고객지원, 식당 비즈니스, 로그인·회원가입, 약관·개인정보처리방침, 관리자 진입.
 
-홈 경로 `/`는 앱 소개 홈페이지입니다. 고객지원은 `/faq`, 관리자는 `/admin`, 기존 약관 경로는 유지합니다.
+지원·비즈니스·관리자 경로와 인증 동작은 기존 구현을 사용합니다. API·DB 변경은 없습니다. 폐지한 마케팅 운영 기능·추적·자동 게시를 재활성화하지 않습니다.
 
-## 미리보기 및 확인
+## 구성과 이미지
 
-`npm start` 후 http://localhost:3000/ 에서 확인합니다. `npm test -- --watchAll=false --runInBand`, `npm run test:legal`, `npm run build`로 검증합니다. 운영 배포는 별도입니다.
+- `src/pages/Home.js`, `Home.css`: 공개 홈의 화면 구성과 반응형 스타일. 홈 클래스로 스타일을 제한합니다. `src/styles/readiness.css`의 이전 홈 덮어쓰기는 제거하고 지원·계정 화면 스타일은 유지합니다.
+- `src/components/home/HomeExplorer.js`, `HomeExplorer.css`: 접근 가능한 탭과 실제 앱 미리보기.
+- `PhonePreview.js`: 첫 화면의 반응형 앱 이미지와 원본 대체 처리.
+- `StoreButtons.js`: 스토어 다운로드 링크와 아이콘.
+- `HomeIcon.js`: 작은 SVG 아이콘. 외부 아이콘·모션·폰트 라이브러리를 추가하지 않습니다.
+- `src/assets/home/app-{home,map,profile}-{400,800}.webp`: 기존 공개 홈에서 사용하던 실제 화면. 화면 너비에 맞춰 `srcset`으로 선택합니다. 첫 휴대폰 이미지에만 높은 로딩 우선순위를 부여하고 나머지는 지연 로딩합니다. 기능 탭은 선택한 이미지 한 장만 렌더링합니다.
+- 원본 대체 이미지: `public/images/home/KakaoTalk_20260915_211008421_02.png`(홈), `_01.png`(지도), 접미사 없는 `.png`(프로필). 사용자가 제공한 1206×2622 화면입니다. 앱이 업데이트되면 공개 가능한 최신 화면으로 교체합니다.
+- `public/images/home/plate-mascot.png`: 기존 접시 캐릭터. `plateApp2/play-console-assets/app-icon-512.png`에서 가져온 자산입니다.
+- 공유 예시의 사진은 기존 홈 이미지에 포함된 음식 사진 일부를 CSS로 표시합니다. 새로운 이용자 사진·후기·이용 수치를 만들지 않습니다.
+- 기존 AI 음식 이미지 `food-scenes-v1.png`와 이전 `app-home.png`, `app-map.png`는 이 홈에서 사용하지 않습니다.
 
-## 스토어 링크
+## 공식 다운로드 링크
 
-운영자 확인에 따라 현재 공식 링크는 미설정입니다. 버튼은 준비 중 안내와 문의 이메일을 제공합니다. 추후 `REACT_APP_APP_STORE_URL`, `REACT_APP_GOOGLE_PLAY_URL`을 빌드 환경에 설정하고 다시 빌드합니다. 설정 코드는 `src/config/appDownloads.js`입니다.
+`src/config/appDownloads.js`의 기본값을 사용합니다.
 
-## 구성과 이미지 출처
+- App Store: https://apps.apple.com/kr/app/id6759185760
+- Google Play: https://play.google.com/store/apps/details?id=com.plateappnew
 
-- `src/pages/Home.js`, `Home.css`: 반응형 홈, 모바일 메뉴, 설치 안내 대화상자.
-- `public/images/home/plate-mascot.png`: Yusungyong/plateApp2의 `play-console-assets/app-icon-512.png` 원본.
-- `app-home.png`, `app-map.png`: 같은 저장소의 `play-console-assets/android/phone-screenshot-01-home.png`, `phone-screenshot-02-map-images.png` 원본. 참조 커밋 `e5befc6426cb5a1eb315369bbeae46d3adf5eefd`.
-- `food-scenes-v1.png`: imagegen 내장 도구로 생성한 소개용 음식·공간 이미지. 실제 매장이나 이용자 콘텐츠가 아니며 화면에도 연출 이미지로 표시합니다. 단일 이미지의 네 영역을 CSS 배경 위치로 사용합니다.
+배포 환경에서 `REACT_APP_APP_STORE_URL`, `REACT_APP_GOOGLE_PLAY_URL`로 재정의할 수 있습니다. 링크는 새 창으로 열리고 접근성 이름에 이를 안내합니다.
 
-생성 요청의 핵심: 따뜻한 자연광과 아이보리·코랄 분위기의 정사각 2×2 사진 시트. 왼쪽 위 순두부찌개, 오른쪽 위 카페 외관, 왼쪽 아래 딸기 생크림 케이크, 오른쪽 아래 비빔밥과 구이를 포함한 한식 한 상. 글자·로고·테두리 없이 홈페이지 카드에 사용할 사진 품질로 생성. 이미지의 원본 산출물은 `exec-51c09aaf-85c6-4268-b214-da3b620eb94a.png`입니다.
+## 반응형·접근성
 
-## 최신 앱 화면 교체 (2026-09-16)
+320px부터 데스크톱까지 대응합니다. 작은 화면에서는 메뉴를 접고, 이미지와 설명을 세로로 배치합니다. 메뉴는 항목 선택·바깥 클릭·Escape로 닫히며 Escape 시 토글 버튼으로 포커스를 돌려줍니다. 본문 건너뛰기와 고정 헤더 아래 섹션 이동을 지원합니다. `prefers-reduced-motion`에서는 등장 애니메이션·전환·부드러운 스크롤을 끕니다. 기능 미리보기는 원본 화면의 비율을 보존합니다.
 
-사용자가 제공한 `public/images/home/KakaoTalk_20260915_211008421` 이미지 3장을 원본 그대로 사용합니다. `_02.png`는 첫 화면 앞쪽 휴대폰의 콘텐츠 홈, `_01.png`는 뒤쪽 휴대폰의 주변 지도, 접미사 없는 `.png`는 공유 기능 카드의 프로필 화면입니다. 프로필은 CSS로 최근 콘텐츠 영역을 강조하여 표시합니다. 원본 크기는 모두 1206×2622이며 `Home.js`의 `APP_SCREENS`에서 연결합니다. 이전 `app-home.png`, `app-map.png`는 더 이상 화면에서 참조하지 않습니다.
+## 로컬 확인
 
-## 게시 전 확인
+```sh
+npm ci
+CI=true npm test -- --watch=false --watchman=false --runInBand src/pages/Home.test.js src/components/HomeNavigation.test.js
+npm run test:legal
+npm run build
+PORT=4196 BROWSER=none npm start
+```
 
-스토어 주소 수령 후 연결하고, 앱 화면을 교체할 때는 공개 가능한 콘텐츠인지 확인합니다. 약관 준비본과 공개본의 분리·게시 조건은 `docs/legal/README.md`를 따릅니다.
+브라우저 검증 도구는 로컬 주소만 허용하고 외부 요청·API 변경 요청을 차단합니다. Playwright는 검증 도구로 별도 설치하며 앱 의존성에 추가하지 않습니다.
+
+```sh
+PLATE_PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs \
+PLATE_BROWSER_CHANNEL=chrome \
+node scripts/home-browser.mjs --base-url http://127.0.0.1:4196 --output /tmp/plate-home-proof
+```
+
+검증 대상은 320·390·768·1440px 화면, 이미지 로딩, 가로 넘침, 다운로드 주소, 탭 키보드 조작, 모바일 메뉴, 모션 줄이기, 지원·약관·비즈니스·관리자 경로입니다. 실제 기기의 Safari/Chrome 및 로그인한 관리자 화면은 운영 반영 후 별도로 확인합니다.
+
+## 적용 상태
+
+로컬 구현과 검증을 진행한 변경입니다. 운영 배포 여부는 연결 PR과 Amplify의 `main` 배포 기록으로 확인합니다. 루트 앱 작업 공간 `output/home-redesign-2026-10-28`에 화면·검증 로그·패치를 보관합니다.

@@ -17,7 +17,7 @@ test("failed optimized screenshots fall back to the latest original without srcs
 test("the root route shows the app homepage and keeps support, admin and policy links", () => {
   window.history.replaceState({}, "", "/");
   render(<App />);
-  expect(screen.getByRole("heading", { level: 1, name: /오늘의 맛있는 발견/ })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { level: 1, name: /맛있는 순간을,.*우리의 이야기로/ })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /관리자 로그인/ })).toHaveAttribute("href", "/admin");
   expect(screen.getByRole("link", { name: "개인정보 처리방침" })).toHaveAttribute("href", "/privacy-policy");
   expect(screen.getAllByRole("link", { name: "고객지원" })[0]).toHaveAttribute("href", "/faq");
@@ -55,6 +55,68 @@ test("home exposes existing service destinations and real section anchors", () =
   expect(screen.getByRole("link", { name: "식당 비즈니스 시작하기" })).toHaveAttribute("href", "/business");
   for (const name of ["앱 소개", "주요 기능"]) {
     const target = screen.getByRole("link", { name }).getAttribute("href");
-    expect(document.querySelector(target)).toHaveAttribute("tabindex", "-1");
+    expect(screen.getAllByRole("region").find(region => `#${region.id}` === target)).toHaveAttribute("tabindex", "-1");
   }
+});
+
+
+test("feature previews support roving keyboard focus and load only the selected screen", () => {
+  render(<MemoryRouter><Home /></MemoryRouter>);
+  const tabs = screen.getAllByRole("tab");
+  expect(tabs.map(tab => tab.textContent)).toEqual(expect.arrayContaining([
+    expect.stringContaining("맛집 발견"),
+    expect.stringContaining("내 주변 지도"),
+    expect.stringContaining("나만의 기록"),
+  ]));
+  const expectSelected = index => {
+    tabs.forEach((tab, item) => {
+      expect(tab).toHaveAttribute("aria-selected", String(item === index));
+      expect(tab).toHaveAttribute("tabindex", item === index ? "0" : "-1");
+    });
+    const panel = screen.getByRole("tabpanel");
+    expect(panel).toHaveAttribute("id", tabs[index].getAttribute("aria-controls"));
+    expect(panel).toHaveAttribute("aria-labelledby", tabs[index].id);
+    expect(within(panel).getAllByRole("img")).toHaveLength(1);
+    const allPanels = screen.getAllByRole("tabpanel", { hidden: true });
+    allPanels.filter(item => item !== panel).forEach(item => expect(within(item).queryByRole("img", {hidden: true})).not.toBeInTheDocument());
+  };
+  expectSelected(0);
+  tabs[0].focus();
+  fireEvent.keyDown(tabs[0], { key: "ArrowDown" });
+  expectSelected(1);
+  expect(tabs[1]).toHaveFocus();
+  fireEvent.keyDown(tabs[1], { key: "End" });
+  expectSelected(2);
+  expect(tabs[2]).toHaveFocus();
+  fireEvent.keyDown(tabs[2], { key: "ArrowRight" });
+  expectSelected(0);
+  fireEvent.keyDown(tabs[0], { key: "ArrowUp" });
+  expectSelected(2);
+  fireEvent.keyDown(tabs[2], { key: "Home" });
+  expectSelected(0);
+  expect(tabs[0]).toHaveFocus();
+});
+
+test("Escape restores menu focus and clicking outside dismisses the menu", () => {
+  render(<MemoryRouter><Home /></MemoryRouter>);
+  const toggle = screen.getByRole("button", {name: "메뉴 열기"});
+  fireEvent.click(toggle);
+  screen.getByRole("link", {name: "앱 소개"}).focus();
+  fireEvent.keyDown(document, {key: "Escape"});
+  expect(toggle).toHaveAttribute("aria-expanded", "false");
+  expect(toggle).toHaveFocus();
+  fireEvent.click(toggle);
+  fireEvent.pointerDown(screen.getByRole("heading", {level: 1}));
+  expect(toggle).toHaveAttribute("aria-expanded", "false");
+});
+
+test("feature screenshot failures use their original image without repeated responsive retries", () => {
+  render(<MemoryRouter><Home /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("tab", {name: "내 주변 지도"}));
+  const image = within(screen.getByRole("tabpanel")).getByRole("img");
+  fireEvent.error(image);
+  expect(image).toHaveAttribute("src", "/images/home/KakaoTalk_20260915_211008421_01.png");
+  expect(image).not.toHaveAttribute("srcset");
+  fireEvent.error(image);
+  expect(image).toHaveAttribute("src", "/images/home/KakaoTalk_20260915_211008421_01.png");
 });
