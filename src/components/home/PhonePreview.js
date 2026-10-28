@@ -1,15 +1,9 @@
 import React from "react";
-import home400 from "../../assets/home/app-home-400.webp";
-import home800 from "../../assets/home/app-home-800.webp";
+import restoreOriginal from "./imageFallback";
+import home400 from "../../assets/home/app-home-400.jpg";
+import home800 from "../../assets/home/app-home-800.jpg";
 
 export default function PhonePreview() {
-  const fallback = (event) => {
-    const image = event.currentTarget;
-    const original = "/images/home/KakaoTalk_20260915_211008421_02.png";
-    if (image.getAttribute("src") === original) return;
-    image.removeAttribute("srcset");
-    image.src = original;
-  };
   return (
     <figure className="home-hero-phone">
       <div className="home-hero-phone-screen">
@@ -21,7 +15,9 @@ export default function PhonePreview() {
           width="800"
           height="1739"
           fetchPriority="high"
-          onError={fallback}
+          onError={(event) =>
+            restoreOriginal(event, "KakaoTalk_20260915_211008421_02.png")
+          }
         />
       </div>
       <span className="home-hero-phone-camera" aria-hidden="true" />

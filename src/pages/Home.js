@@ -2,10 +2,11 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import HomeExplorer from "../components/home/HomeExplorer";
 import HomeIcon from "../components/home/HomeIcon";
+import restoreOriginal from "../components/home/imageFallback";
 import PhonePreview from "../components/home/PhonePreview";
 import StoreButtons from "../components/home/StoreButtons";
-import map400 from "../assets/home/app-map-400.webp";
-import home400 from "../assets/home/app-home-400.webp";
+import map400 from "../assets/home/app-map-400.jpg";
+import home400 from "../assets/home/app-home-400.jpg";
 import "./Home.css";
 
 const MASCOT = "/images/home/plate-mascot.png";
@@ -163,6 +164,12 @@ export default function Home() {
                 </div>
                 <img
                   src={map400}
+                  onError={(event) =>
+                    restoreOriginal(
+                      event,
+                      "KakaoTalk_20260915_211008421_01.png"
+                    )
+                  }
                   alt=""
                   width="400"
                   height="870"
@@ -248,6 +255,12 @@ export default function Home() {
                 <div className="home-shared-photo">
                   <img
                     src={home400}
+                    onError={(event) =>
+                      restoreOriginal(
+                        event,
+                        "KakaoTalk_20260915_211008421_02.png"
+                      )
+                    }
                     alt="접시 콘텐츠 화면에 담긴 음식 사진 일부"
                     width="400"
                     height="870"
