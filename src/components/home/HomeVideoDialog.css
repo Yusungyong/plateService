@@ -1,0 +1,125 @@
+.home-video-dialog {
+  width: min(440px, calc(100% - 32px));
+  max-width: none;
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 24px;
+  background: var(--home-paper, #f8f7f3);
+  color: var(--home-ink, #242923);
+  box-shadow: 0 24px 100px #0005;
+  overscroll-behavior: contain;
+}
+.home-video-dialog::backdrop {
+  background: #101610c9;
+}
+.home-video-panel {
+  padding: 16px;
+}
+.home-video-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 2px 12px;
+}
+.home-video-eyebrow {
+  font-size: 11px;
+  color: var(--home-muted);
+}
+.home-video-heading h2 {
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: -0.04em;
+}
+.home-video-close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid #2429231a;
+  border-radius: 50%;
+  background: white;
+  color: #242923;
+  cursor: pointer;
+}
+.home-video-close:hover {
+  background: #eeeae2;
+}
+.home-video-player {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #101610;
+}
+.home-video-player video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  max-height: calc(100vh - 190px);
+  max-height: calc(100dvh - 190px);
+  object-fit: contain;
+}
+.home-video-loading {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 16px);
+  width: max-content;
+  padding: 7px 12px;
+  border-radius: 12px;
+  color: white;
+  background: #101610dd;
+  font-size: 12px;
+  pointer-events: none;
+}
+.home-video-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  background: #101610ed;
+  color: white;
+  text-align: center;
+}
+.home-video-error p {
+  font-size: 16px;
+  font-weight: 650;
+}
+.home-video-error span {
+  font-size: 12px;
+  color: #dadfd8;
+}
+.home-video-error button {
+  min-height: 44px;
+  padding: 8px 20px;
+  border: 0;
+  border-radius: 24px;
+  background: #fff;
+  color: #242923;
+  cursor: pointer;
+}
+.home-video-description {
+  margin-top: 12px;
+  color: var(--home-muted);
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+}
+@media (max-height: 480px) {
+  .home-video-dialog {
+    width: min(420px, calc(100% - 32px));
+  }
+  .home-video-description {
+    font-size: 11px;
+  }
+}
