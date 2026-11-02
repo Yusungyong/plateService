@@ -3,7 +3,12 @@
   "name": "접시 — 오늘의 맛있는 발견",
   "icons": [
     {
-      "src": "images/home/plate-mascot.png",
+      "src": "images/brand/plate-icon-white-v1-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "images/brand/plate-icon-white-v1-512.png",
       "type": "image/png",
       "sizes": "512x512"
     }
@@ -11,5 +16,5 @@
   "start_url": "/",
   "display": "browser",
   "theme_color": "#ef683c",
-  "background_color": "#fffbf6"
+  "background_color": "#ffffff"
 }

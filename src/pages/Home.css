@@ -90,8 +90,8 @@ html:has(.home-site) {
 .home-brand img {
   width: 48px;
   height: 48px;
-  border-radius: 50%;
-  mix-blend-mode: multiply;
+  border-radius: 12px;
+  background: #fff;
 }
 .home-brand > span {
   font-size: 28px;
@@ -764,7 +764,8 @@ html:has(.home-site) {
 .home-install-art img {
   width: 270px;
   height: 270px;
-  mix-blend-mode: multiply;
+  border-radius: 24px;
+  background: #fff;
   transform: rotate(-9deg);
   z-index: 1;
 }

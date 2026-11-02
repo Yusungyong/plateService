@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { PLATE_BRAND_IMAGE } from "../branding";
 import HomeExplorer from "../components/home/HomeExplorer";
 import HomeIcon from "../components/home/HomeIcon";
 import HomeVideoDialog from "../components/home/HomeVideoDialog";
@@ -10,7 +11,6 @@ import map400 from "../assets/home/app-map-400.jpg";
 import home400 from "../assets/home/app-home-400.jpg";
 import "./Home.css";
 
-const MASCOT = "/images/home/plate-mascot.png";
 function Brand({ footer = false }) {
   return (
     <Link
@@ -18,7 +18,7 @@ function Brand({ footer = false }) {
       to="/"
       aria-label="접시 홈"
     >
-      <img src={MASCOT} alt="" width="48" height="48" />
+      <img src={PLATE_BRAND_IMAGE} alt="" width="48" height="48" />
       <span>
         접시<small>plate</small>
       </span>
@@ -366,7 +366,7 @@ export default function Home() {
             <div className="home-install-art" aria-hidden="true">
               <div className="home-plate-ring" />
               <img
-                src={MASCOT}
+                src={PLATE_BRAND_IMAGE}
                 alt=""
                 width="512"
                 height="512"
