@@ -2,6 +2,7 @@ import { confirmFormLeave } from "../../components/formLeaveProtection";
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
+import { PLATE_BRAND_IMAGE } from "../../branding";
 import { adminNavigationItems } from "../../config/routes";
 import { getPrimaryAdminRole, userCanViewApiRegistry } from "../constants/adminPermissions";
 import "../styles/admin.css";
@@ -34,7 +35,7 @@ function AdminShell({ children }) {
   return <div className={'admin-shell admin-shell--workspace'+(location.pathname.startsWith('/admin/operations')?' admin-shell--operations':'')}>
     <a className="plate-skip" href="#admin-main">본문 바로가기</a>
     <aside ref={sidebar} id="admin-sidebar" className={'admin-sidebar'+(isSidebarOpen?' admin-sidebar--open':'')} role={isSidebarOpen?'dialog':undefined} aria-modal={isSidebarOpen?true:undefined} aria-label={isSidebarOpen?'운영 메뉴':undefined}>
-      <div className="admin-sidebar__brand"><Link to={home} aria-label="운영 시작 화면"><img src="/images/home/plate-mascot.png" width="44" height="44" alt=""/><span><strong>접시</strong><small>운영 공간</small></span></Link><button className="admin-sidebar__close" onClick={()=>setIsSidebarOpen(false)} aria-label="운영 메뉴 닫기">×</button></div>
+      <div className="admin-sidebar__brand"><Link to={home} aria-label="운영 시작 화면"><img src={PLATE_BRAND_IMAGE} width="44" height="44" alt=""/><span><strong>접시</strong><small>운영 공간</small></span></Link><button className="admin-sidebar__close" onClick={()=>setIsSidebarOpen(false)} aria-label="운영 메뉴 닫기">×</button></div>
       <button className="admin-sidebar__find" type="button" onClick={openFinder}><span>메뉴 찾기</span><kbd>⌘ / Ctrl K</kbd></button>
       <nav className="admin-navigation" aria-label="운영자 관리 메뉴">
         {pinned.length>0&&<div className="admin-navigation__group"><span className="admin-navigation__label">자주 쓰는 메뉴</span>{pinned.map(p=>menuLink(visibleNavigationItems.find(i=>i.path===p)))}</div>}

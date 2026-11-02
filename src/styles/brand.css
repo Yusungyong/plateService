@@ -23,7 +23,8 @@ body { background: var(--plate-cream); color: var(--plate-ink); }
 .plate-recovery a { display: inline-flex; min-height: 44px; align-items: center; background: var(--plate-action); color: white; border-radius: 999px; padding: 0 20px; text-decoration: none; }
 .app-shell, .admin-shell, .login-page { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif; }
 .plate-brand { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; color: var(--plate-ink); text-decoration: none; min-height: 48px; }
-.plate-brand img { width: 64px; height: 64px; object-fit: contain; mix-blend-mode: multiply; }
+.plate-brand img { width: 64px; height: 64px; object-fit: contain; background: #fff; border-radius: 14px; }
+.admin-sidebar__brand img { background: #fff; border-radius: 12px; }
 .plate-brand > span { font-size: 28px; font-weight: 850; letter-spacing: -.06em; line-height: 1.1; }
 .plate-brand small { display: block; margin-top: 5px; font-size: 11px; font-weight: 550; color: var(--plate-muted); letter-spacing: 0; }
 .plate-brand--compact img { width: 42px; height: 42px; }
@@ -62,7 +63,6 @@ body { background: var(--plate-cream); color: var(--plate-ink); }
 .app-shell :is(h2, h3, label), .login-page :is(h2, label) { color: var(--plate-ink); }
 .app-shell :is(.page-layout__description, .board-empty, .board-filter__label) { color: var(--plate-muted); }
 .app-shell .button-primary, .app-shell .restaurant-registration .admin-actions .button-primary, .login-page .login-submit { background: var(--plate-action); border-color: var(--plate-action); color: white; }
-.login-showcase__topline { mix-blend-mode: multiply; }
 .login-page { --login-primary: var(--plate-action); --login-primary-dark: #963619; --login-background: var(--plate-cream); --login-text: var(--plate-ink); --login-border: var(--plate-border); --login-muted: var(--plate-muted); grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .login-showcase { background: radial-gradient(ellipse at 15% 80%, #ffe3cd, transparent 68%), var(--plate-cream); }
 .login-showcase::before, .login-showcase::after { display: none; }

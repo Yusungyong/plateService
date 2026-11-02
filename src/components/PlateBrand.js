@@ -1,9 +1,10 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { PLATE_BRAND_IMAGE } from "../branding";
 
 export default function PlateBrand({ compact = false }) {
   return <Link to="/" className={`plate-brand${compact ? " plate-brand--compact" : ""}`} aria-label="접시 홈으로 이동">
-    <img src="/images/home/plate-mascot.png" width="64" height="64" alt="" />
+    <img src={PLATE_BRAND_IMAGE} width="64" height="64" alt="" />
     <span>접시<small>홈으로</small></span>
   </Link>;
 }
