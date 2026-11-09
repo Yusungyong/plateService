@@ -107,7 +107,7 @@ export default function OperationsShared({ title, description, data, children })
         <>
           <p className="ops-muted">
             마지막 조회 {time(data.snapshot.collectedAt)} · 서버 지표는 현재 프로세스 누적, 앱
-            오류는 24 UTC 시간 버킷, 푸시는 최근 24시간 기준입니다.
+            API 오류는 24 UTC 시간 버킷, 푸시는 최근 24시간 기준입니다.
           </p>
           {children}
         </>

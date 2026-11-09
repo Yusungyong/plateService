@@ -18,6 +18,27 @@ test("new client contracts are discoverable without inflating registered server 
   expect(registrationLabel(rows.find(row => row.path.endsWith("candidate-bundles")))).toBe("서버 반영 대기");
 });
 
+test("runtime diagnostics source links remain distinct from live server registration", () => {
+  const contracts = [
+    {method: "POST", path: "/api/monitoring/runtime-errors", menu: "app:runtime-errors"},
+    {method: "POST", path: "/api/monitoring/runtime-errors/member", menu: "app:runtime-errors"},
+    {method: "GET", path: "/api/admin/operations/runtime-errors", menu: "admin:/admin/operations/incidents"},
+  ];
+  const pending = registryRows({});
+  for (const contract of contracts) {
+    const matches = pending.filter(row => row.method === contract.method && row.path === contract.path);
+    expect(matches).toHaveLength(1);
+    expect(matches[0]).toMatchObject({active: false, observed: false, requestCount: null});
+    expect(matches[0].menuIds).toContain(contract.menu);
+  }
+  const server = {method: "GET", path: "/api/admin/operations/runtime-errors", id: "server-runtime", module: "server-platform", authorization: "server-policy", menuIds: ["server:menu"]};
+  const active = registryRows({activeRoutes: [server]});
+  const row = active.find(item => item.method === server.method && item.path === server.path);
+  expect(row).toMatchObject({active: true, id: "server-runtime", module: "server-platform", authorization: "server-policy"});
+  expect(row.menuIds).toEqual(expect.arrayContaining(["server:menu", "admin:/admin/operations/incidents"]));
+  expect(active.filter(item => item.active)).toHaveLength(1);
+});
+
 test("server parameter names, identity, contract and consumers survive additive source merge", () => {
   const row = {method: "GET", path: "/api/chat/rooms/{id}", module: "server-module", id: "server-room", capability: "server-capability", menuIds: ["server:menu"], surfaces: ["admin"], variants: [{handler: "ServerController"}]};
   const rows = registryRows({declaredBaseline: {routes: [row]}, activeRoutes: [row]});

@@ -9,12 +9,14 @@ import { loginAuthReport } from "./apiClientErrors";
 import "./Operations.css";
 import {EvidenceFlow,focusEvidence} from "./OperationsDrilldown";
 import "./OperationsDrilldown.css";
+import RuntimeErrors from "./RuntimeErrors";
 export default function AdminOperationsIncidents() {
   const data = useOperationsSnapshot(),
     s = data.snapshot,
     m = useMemo(() => operationsModel(s), [s]);
   const [params, setParams] = useSearchParams(),
-    push = params.get("view") === "push";
+    push = params.get("view") === "push",
+    runtime = params.get("view") === "runtime";
   const id=params.get('delivery')||'',errorKey=params.get('api')||'',outcome=params.get('outcome')||'',kind=params.get('kind')||'';
   const attempts=m.attempts.filter(row=>!outcome||row.providerStatus===outcome);
   const errorRows=m.rows.filter(row=>!kind||Number(row[kind])>0);
@@ -93,7 +95,7 @@ export default function AdminOperationsIncidents() {
       <div className="ops-tabs" aria-label="진단 유형">
         <button
           className="ops-link-button"
-          aria-pressed={!push}
+          aria-pressed={!push && !runtime}
           onClick={() => setParams({})}
         >
           API 오류
@@ -105,8 +107,15 @@ export default function AdminOperationsIncidents() {
         >
           푸시 전달
         </button>
+        <button
+          className="ops-link-button"
+          aria-pressed={runtime}
+          onClick={() => setParams({ view: "runtime" })}
+        >
+          앱 화면 오류
+        </button>
       </div>
-      {push ? (
+      {runtime ? <RuntimeErrors snapshotRevision={s} /> : push ? (
         <>
           <div className="ops-filter-bar"><strong>최근 24시간 FCM 집계</strong>{['SUCCESS','FAILED'].map(status=><button type="button" className="ops-link-button" key={status} aria-pressed={outcome===status} onClick={()=>{setParams({view:'push',outcome:status});focusEvidence('ops-push-list');}}>{status==='SUCCESS'?'접수 성공':'전송 실패'} {m.pushAvailable?(status==='SUCCESS'?m.accepted:m.rejected)+'건':'확인 불가'} →</button>)}</div>
           <p className="ops-muted">집계는 최근 24시간 전체 전송 기준이며, 아래 목록은 최근 최대 30건 안에서 선택 조건을 적용한 표본입니다.</p>
