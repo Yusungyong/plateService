@@ -1,0 +1,22 @@
+import React from "react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import AdminOperationsIncidents from "./AdminOperationsIncidents";
+import useOperationsSnapshot from "./useOperationsSnapshot";
+import { getRuntimeErrors } from "../api/runtimeErrorsApi";
+import { useAuth } from "../../auth/AuthContext";
+jest.mock("./useOperationsSnapshot");
+jest.mock("../api/runtimeErrorsApi");
+jest.mock("../../auth/AuthContext", () => ({ useAuth: jest.fn() }));
+test("앱 오류 탭은 기존 API·푸시 진단과 분리되어 들어갈 때만 조회한다", async () => {
+  useAuth.mockReturnValue({user: {accountSubject: "su12ng", roles: ["ADMIN"]}});
+  useOperationsSnapshot.mockReturnValue({snapshot: {schemaVersion: 1, api: {runtimeMetrics: [], clientErrors: {available: false}}, push: {available: true, counts: [], attempts: [], skips: []}}, loading: false, error: "", autoRefresh: false, setAutoRefresh: jest.fn(), load: jest.fn()});
+  getRuntimeErrors.mockResolvedValue({available: true, total: 0, kindCounts: [], hourly: [], recent: [], groups: [], recentLimit: 50, retentionDays: 7});
+  render(<MemoryRouter initialEntries={["/admin/operations/incidents"]}><AdminOperationsIncidents /></MemoryRouter>);
+  expect(getRuntimeErrors).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", {name: "앱 화면 오류"}));
+  expect(await screen.findByText(/보고된 앱 화면 오류가 없어요/)).toBeInTheDocument();
+  expect(screen.getByRole("button", {name: "앱 화면 오류"})).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(screen.getByRole("button", {name: "푸시 전달"}));
+  expect(screen.getByText("최근 24시간 전송 시도 기록이 없습니다.")).toBeInTheDocument();
+});

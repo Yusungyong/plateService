@@ -2,6 +2,9 @@
   "analyzedAt": "2026-10-20",
   "sourceEvidence": "Reviewed app source and server PR #149 (44bf85701ec16e8fbb299269a30cc2330c97cf62). Additive consumer links; explicit replace only for retired UI consumers. Runtime registration remains authoritative. Operations console server PR #153 and web PR #38 are deployed (2026-10-13). Admin actions server PR #155/#157/#159 deployed and verified (2026-10-13, main 2a62453731c20aa47a4f81a23d9517ad7941ba1c). Marketing automation web consumers were retired on 2026-10-20. Public historical links now redirect to the ordinary homepage; app downloads and unrelated legal consent remain available.",
   "appSourceHashes": {
+    "src/monitoring/runtimeErrorReporter.ts": "eb10db9380cc968926dc8119eee527badba2e641057e3812d153c99458df9572",
+    "src/monitoring/runtimeErrors.ts": "954e972b09c69ed4e4a16f5826b697ba3db68577911e2f5ea8f0ca75e711da19",
+    "src/components/common/AppErrorBoundary.tsx": "47b4764a852b2107f8445ff658525e02b3286eea027883357ed3a944b013c5eb",
     "docs/code-optimization-2026-10-11.md": "fcc8f29ba122b98c85004691ba22b1e95314a5848c4309ea42e7b6c43509f44c",
     "output/db-performance-implementation-2026-10-10/README.txt": "dc63c206cd37fa413c45e8137742a3c30d8c75e6fc86816ba45873eb882c10ea",
     "src/api/apiErrorReporter.ts": "ad2f00645b1fb50f8c8a6e813c85290dff4260805c56318ca2b3898282a59660",
@@ -58,6 +61,15 @@
       "source": "src/api/axiosInstance.ts",
       "sourceLine": 11,
       "notes": "공통·회원 탈퇴 API의 최종 실패를 익명으로 보고하는 코드 분류입니다. 설치본 업데이트 후 수집됩니다."
+    },
+    {
+      "id": "app:runtime-errors",
+      "label": "앱 공통 > 화면·실행 오류 수집",
+      "surface": "app",
+      "isGrouping": true,
+      "source": "src/monitoring/runtimeErrorReporter.ts",
+      "sourceLine": 4,
+      "notes": "공통 오류 감지에서 보고하는 코드 분류입니다. 실제 수집은 변경된 앱과 서버 반영 이후에만 확인할 수 있습니다."
     },
     {
       "id": "web_common:client-api-errors",
@@ -351,10 +363,11 @@
       "notes": "su12ng 전용",
       "apiIds": [
         "api_1feef140f5eedc1c",
-        "api_4c896d73d9449141"
+        "api_4c896d73d9449141",
+        "api_runtime_error_diagnostics"
       ],
       "missingCalls": [],
-      "apiCount": 2
+      "apiCount": 3
     },
     {
       "id": "admin:/admin/operations/releases",
@@ -2366,6 +2379,51 @@
       "sourceLine": 1
     },
     {
+      "id": "api_runtime_errors_anonymous",
+      "method": "POST",
+      "path": "/api/monitoring/runtime-errors",
+      "module": "platform",
+      "capability": "app-runtime-errors",
+      "authorization": "익명 오류 수집 (입력 및 수집 제한)",
+      "surfaces": ["app"],
+      "menuIds": ["app:runtime-errors"],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "reviewed_source",
+      "source": "src/monitoring/runtimeErrorReporter.ts",
+      "sourceLine": 4,
+      "usageNote": "앱 공통 오류 감지의 비식별 보고 경로입니다. 실제 수집은 앱 설치본 및 서버 반영 뒤에 확인해야 합니다."
+    },
+    {
+      "id": "api_runtime_errors_member",
+      "method": "POST",
+      "path": "/api/monitoring/runtime-errors/member",
+      "module": "platform",
+      "capability": "app-runtime-errors",
+      "authorization": "회원 토큰 및 입력·수집 제한",
+      "surfaces": ["app"],
+      "menuIds": ["app:runtime-errors"],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "reviewed_source",
+      "source": "src/monitoring/runtimeErrorReporter.ts",
+      "sourceLine": 118,
+      "usageNote": "확인된 회원 세션에서 사용합니다. 세션 확인이 불가능하면 익명 경로를 사용합니다."
+    },
+    {
+      "id": "api_runtime_error_diagnostics",
+      "method": "GET",
+      "path": "/api/admin/operations/runtime-errors",
+      "module": "platform",
+      "capability": "app-runtime-errors",
+      "authorization": "su12ng + DASHBOARD_READ",
+      "surfaces": ["admin"],
+      "menuIds": ["admin:/admin/operations/incidents"],
+      "usageStatus": "connected_in_source",
+      "implementationStage": "reviewed_source",
+      "source": "src/admin/api/runtimeErrorsApi.js",
+      "sourceLine": 8,
+      "usageNote": "장애·알림 진단에서 최근 앱 화면·실행 오류를 조회합니다. 서버 등록 여부는 실시간 등록 정보로 확인합니다."
+    },
+    {
       "method": "GET",
       "path": "/api/admin/api-registry/client-errors",
       "module": "platform",
@@ -2381,5 +2439,5 @@
       "id": "api_error_context_occurrences"
     }
   ],
-  "reviewNotes": "2026-10-13: operations console and admin actions server deployed; actual local/public read verification passed across30 routes, all12 review scopes and private photo preview. Web implementation and isolated write verification are linked under web#39/PR40. Runtime registration remains authoritative; native app changes and unmerged chat follow-ups retain their separate status. 2026-10-22: 운영자 전용 계정·메뉴별 오류 발생 기록 GET 추가. 상세는 전체 registry export에 포함하지 않음."
+  "reviewNotes": "2026-10-13: operations console and admin actions server deployed; actual local/public read verification passed across30 routes, all12 review scopes and private photo preview. Web implementation and isolated write verification are linked under web#39/PR40. Runtime registration remains authoritative; native app changes and unmerged chat follow-ups retain their separate status. 2026-10-22: 운영자 전용 계정·메뉴별 오류 발생 기록 GET 추가. 상세는 전체 registry export에 포함하지 않음. 2026-11-09: 앱 화면·실행 오류 수집 및 운영 조회 계약과 관련 앱 소스 해시 3개만 별도로 검토. 서버 등록과 앱 배포 여부는 별도 확인."
 }
